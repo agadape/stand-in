@@ -1,0 +1,13 @@
+# Only app/ is built (Root Directory = app); keep uploads small.
+contracts/lib
+contracts/out
+contracts/cache
+contracts/broadcast
+app/node_modules
+app/.next
+*.db
+*.db-journal
+.env
+.env.local
+.github
+docs
