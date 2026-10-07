@@ -1,26 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { keccak256, stringToHex, type Hex } from "viem";
-import { z } from "zod";
 import type { Persona } from "./db/schema";
+import { runJudge, type LlmVerdict } from "./llm";
 import type { Scenario } from "./scenarios";
 import { features, notes, similarity, type StyleFeatures } from "./style";
 
-export const MODEL = "claude-opus-5-5";
-
-const LlmVerdictSchema = z.object({
-  answers: z.array(
-    z.object({
-      scenarioId: z.string(),
-      score: z.number().int().min(0).max(100),
-      tell: z.string(),
-    }),
-  ),
-  overall: z.number().int().min(0).max(100),
-  verdictLine: z.string(),
-});
-
-export type LlmVerdict = z.infer<typeof LlmVerdictSchema>;
+export type { LlmVerdict } from "./llm";
 
 export type Verdict = {
   llm: LlmVerdict;
@@ -40,7 +24,8 @@ Penalise answers that read polished, generic or assistant-like. Also penalise an
 For each answer write one short, specific "tell": the detail that sold it or gave it away, quoting a word or two from the candidate's answer. Never quote or paraphrase NAME's private sample messages in a tell; describe the habit instead.
 "overall" is your holistic 0-100 confidence that this is NAME, not an average.
 "verdictLine" is one playful sentence, under 20 words, written the way NAME texts, addressed to the candidate.
-Scenario ids in "answers" must match the ids given, in the same order.`;
+Scenario ids in "answers" must match the ids given, in the same order.
+Respond with JSON only.`;
 
 function personaBlock(persona: Persona) {
   const quiz = persona.quiz.map((q) => `Q: ${q.question}\nA: ${q.answer}`).join("\n");
@@ -61,25 +46,11 @@ function candidateBlock(scenarios: Scenario[], answers: string[]) {
 }
 
 export async function judge(persona: Persona, scenarios: Scenario[], answers: string[]): Promise<Verdict> {
-  const client = new Anthropic();
-
-  const response = await client.messages.parse({
-    model: MODEL,
-    max_tokens: 8000,
-    system: [
-      { type: "text", text: RULES },
-      // Stable per twin, so repeated attempts against the same twin hit the cache.
-      { type: "text", text: personaBlock(persona), cache_control: { type: "ephemeral" } },
-    ],
-    messages: [{ role: "user", content: candidateBlock(scenarios, answers) }],
-    output_config: { format: zodOutputFormat(LlmVerdictSchema), effort: "medium" },
+  const llm = await runJudge({
+    rules: RULES,
+    persona: personaBlock(persona),
+    candidate: candidateBlock(scenarios, answers),
   });
-
-  if (response.stop_reason === "refusal") {
-    throw new Error(`Judge declined: ${response.stop_details?.explanation ?? "no explanation"}`);
-  }
-  const llm = response.parsed_output;
-  if (!llm) throw new Error("Judge returned no parsable verdict");
 
   const personaStyle = features([...persona.samples, ...persona.quiz.map((q) => q.answer)]);
   const candidateStyle = features(answers);
@@ -95,6 +66,7 @@ export async function judge(persona: Persona, scenarios: Scenario[], answers: st
   const scoreBps = Math.max(0, Math.min(10_000, Math.round(score * 100)));
 
   // Anyone holding the stored verdict can recompute this and check it against the chain.
+  // Field set and order are mirrored in components/verify-verdict.tsx.
   const verdictHash = keccak256(
     stringToHex(
       JSON.stringify({

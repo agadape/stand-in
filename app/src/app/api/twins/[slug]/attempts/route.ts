@@ -7,6 +7,7 @@ import { explorerTx } from "@/lib/chain";
 import { postOwnerProof, postVerdict } from "@/lib/contract";
 import { db, schema } from "@/lib/db";
 import { judge } from "@/lib/judge";
+import { JudgeUnavailableError } from "@/lib/llm";
 import { assertCanAttempt, clientIpHash, limitResponse } from "@/lib/limits";
 import { ANSWERS_PER_ATTEMPT, scenarioById } from "@/lib/scenarios";
 import { twinBySlug } from "@/lib/twins";
@@ -60,7 +61,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     return limitResponse(error) ?? Promise.reject(error);
   }
 
-  const verdict = await judge(twin.persona, scenarios.map((s) => s!), answers);
+  let verdict;
+  try {
+    verdict = await judge(twin.persona, scenarios.map((s) => s!), answers);
+  } catch (error) {
+    if (error instanceof JudgeUnavailableError) return NextResponse.json({ error: error.message }, { status: 503 });
+    throw error;
+  }
 
   let txHash: Hex;
   let paidWei = 0n;

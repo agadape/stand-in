@@ -4,11 +4,19 @@ import { formatEther } from "viem";
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { funderStatus } from "@/lib/limits";
+import { judgeLabel } from "@/lib/llm";
 
-/** Liveness for the team: chain, contract, funder gas and database reachability. */
+/** Liveness for the team: judge, chain, contract, funder gas and database reachability. */
 export async function GET() {
   const checks: Record<string, unknown> = { chainId: env().MONAD_CHAIN_ID, contract: env().STANDIN_ADDRESS };
   let ok = true;
+
+  try {
+    checks.judge = judgeLabel();
+  } catch (error) {
+    checks.judge = { error: error instanceof Error ? error.message : String(error) };
+    ok = false;
+  }
 
   try {
     const funder = await funderStatus();

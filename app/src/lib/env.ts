@@ -5,6 +5,12 @@ const address = /^0x[0-9a-fA-F]{40}$/;
 const int = (fallback: number) => z.coerce.number().int().nonnegative().default(fallback);
 
 const schema = z.object({
+  // The judge. "auto" picks Anthropic if ANTHROPIC_API_KEY is set, else Gemini.
+  LLM_PROVIDER: z.enum(["auto", "anthropic", "gemini"]).default("auto"),
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().default("gemini-3.8-flash"),
+  ANTHROPIC_MODEL: z.string().default("claude-opus-5-5"),
+
   MONAD_RPC_URL: z.string().url().default("https://testnet-rpc.monad.xyz"),
   MONAD_CHAIN_ID: z.coerce.number().int().default(10143),
   STANDIN_ADDRESS: z.string().regex(address, "STANDIN_ADDRESS must be a 0x address"),
@@ -36,8 +42,10 @@ export type Env = z.infer<typeof schema>;
 
 let cached: Env | undefined;
 
-// Parsed lazily so `next build` succeeds on a machine without secrets.
+// Parsed lazily so `next build` succeeds on a machine without secrets. In development
+// it is re-parsed on every call: hot reload keeps this module's instance alive while
+// `.env.local` and the schema change underneath it, and a stale cache misleads.
 export function env(): Env {
-  if (!cached) cached = schema.parse(process.env);
+  if (!cached || process.env.NODE_ENV !== "production") cached = schema.parse(process.env);
   return cached;
 }

@@ -9,7 +9,7 @@ Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis)
 - [x] `StandIn` deployed to Monad testnet and source-verified on MonadVision: [`0x9390…16C2`](https://testnet.monadvision.com/address/0x9390ad4e2F8d61387a00CB168c58733831a416C2)
 - [x] Contract tests (18, incl. fuzz), app type-check, lint and production build all green; CI runs them on every push
 - [x] Chain path exercised against the real contract: twin creation by the twin's own wallet, card read back from chain
-- [ ] Judge path (prove → challenge → payout) end to end: `scripts/e2e.mjs`, needs `ANTHROPIC_API_KEY`
+- [ ] Judge path (prove → challenge → payout) end to end: `scripts/e2e.mjs`, needs a judge key (`GEMINI_API_KEY`, free tier)
 - [ ] Passkey flows on real phones (Mera PRF)
 - [ ] Hosted deployment and demo video
 
@@ -40,7 +40,8 @@ app/  Next.js 16, TypeScript, Tailwind v4
  ├─ src/app/api/attempts  GET one attempt's public record (what the verify button recomputes)
  ├─ src/app/api/health    funder gas, database and chain status for the team
  ├─ src/lib/limits.ts     per-twin / per-address / per-IP / global ceilings and a funder-gas guard
- ├─ src/lib/judge.ts      Claude Opus 5.5 (Anthropic SDK, structured output) + style fingerprint → score, verdict hash
+ ├─ src/lib/judge.ts      prompt, score blend and verdict hash
+ ├─ src/lib/llm/          pluggable judge model: Gemini 3.8 Flash (free tier) or Claude Opus 5.5, same JSON schema
  ├─ src/lib/style.ts      countable texting habits: casing, length, emoji, punctuation, laugh/abbrev rates
  ├─ src/lib/passkey.ts    Mera (WebAuthn PRF) → EVM account → viem signer, client-side only
  ├─ src/lib/twin-wallet.ts per-twin wallet derived from a server seed + slug; gas top-ups
@@ -52,13 +53,13 @@ scripts/    gen-env.mjs (bootstrap .env.local) · deploy.mjs (forge create + Sou
 docs/       runbook.md (operations and troubleshooting)
 ```
 
-**Scoring.** Final score (0–10000 bps) = 65% the twin's holistic read (Claude Opus 5.5, JSON-schema constrained) + 35% style similarity (weighted distance between the owner's and the candidate's measured habits). The LLM is told never to quote the owner's private samples in its tells, only the habits.
+**Scoring.** Final score (0–10000 bps) = 65% the twin's holistic read (the judge model, JSON-schema constrained; Gemini 3.8 Flash on the hosted demo, Claude Opus 5.5 when an Anthropic key is configured) + 35% style similarity (weighted distance between the owner's and the candidate's measured habits). The LLM is told never to quote the owner's private samples in its tells, only the habits.
 
 **Privacy.** Sample texts and quiz answers are stored server-side and sent only to the judge. The public twin card and API expose name, bio, addresses, scores and verdict lines; never the samples or other players' answers. Only the owner's passkey can create a twin for that address.
 
 ## Run it
 
-Prerequisites: Node 20.9+, [Foundry](https://getfoundry.sh), an Anthropic API key (or `ant auth login`), and some Monad testnet MON from <https://faucet.monad.xyz>.
+Prerequisites: Node 20.9+, [Foundry](https://getfoundry.sh), a judge key (a free Gemini key from <https://aistudio.google.com/apikey>, or an Anthropic key), and some Monad testnet MON from <https://faucet.monad.xyz>.
 
 ```bash
 # 0. forge-std is a git submodule (skip if you cloned with --recurse-submodules)
@@ -72,7 +73,7 @@ node scripts/sync-abi.mjs            # copies the ABI into the app (already comm
 (cd app && npm install)
 node scripts/gen-env.mjs             # writes app/.env.local with fresh TWIN_KEY_SEED and FUNDER_PRIVATE_KEY, prints the funder address
 #    → fund the printed address at https://faucet.monad.xyz (it pays deploys, twin gas and demo pots)
-#    → set ANTHROPIC_API_KEY in app/.env.local
+#    → set GEMINI_API_KEY (or ANTHROPIC_API_KEY) in app/.env.local
 
 # 3. Deploy to Monad testnet (chain 10143) and verify on MonadVision
 node scripts/deploy.mjs              # forge create + Sourcify verify; writes STANDIN_ADDRESS into app/.env.local
@@ -132,7 +133,7 @@ Things we hit that differ from Ethereum, and what the code does about them:
 
 ## AI tool disclosure
 
-- **In the product:** verdicts are produced by Claude Opus 5.5 through the Anthropic SDK with a JSON-schema constrained output, combined with deterministic style statistics computed in TypeScript.
+- **In the product:** verdicts are produced by a language model constrained to a JSON schema (`app/src/lib/llm/`): Gemini 3.8 Flash via Google's Gen AI SDK on the hosted demo, or Claude Opus 5.5 via the Anthropic SDK when an Anthropic key is configured. The model's read is blended with deterministic style statistics computed in TypeScript.
 - **In development:** the codebase was written with Claude Code (Claude Opus 5.5 and Claude Fable 5.1) pair-programming with the team: research, idea stress-testing, contract, tests, app and this README. All code was reviewed, built and tested by the team before submission.
 
 ## License

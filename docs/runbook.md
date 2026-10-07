@@ -8,7 +8,10 @@ All runtime configuration lives in `app/.env.local` (never committed). `node scr
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | The judge (Claude Opus 5.5). Alternatively sign in with `ant auth login` and leave unset. | — |
+| `GEMINI_API_KEY` | Judge model key. Free tier at <https://aistudio.google.com/apikey> (Flash models only; ~5–15 requests/min). | — |
+| `GEMINI_MODEL` | Gemini model id | `gemini-3.8-flash` |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Alternative judge (Claude). Used automatically when the key is set. | `claude-opus-5-5` |
+| `LLM_PROVIDER` | `auto` (Anthropic if its key is set, else Gemini), `gemini`, or `anthropic` | `auto` |
 | `MONAD_RPC_URL` | JSON-RPC endpoint | `https://testnet-rpc.monad.xyz` |
 | `MONAD_CHAIN_ID` | `10143` testnet, `143` mainnet | `10143` |
 | `NEXT_PUBLIC_EXPLORER_URL` | Explorer base for links | `https://testnet.monadvision.com` |
@@ -103,7 +106,7 @@ The repo's CI (`.github/workflows/ci.yml`) runs `forge test`, `tsc` and `eslint`
 
 **Port 3000 in use.** `next dev` honours `PORT`; `.claude/launch.json` sets `autoPort` so the preview picks a free one.
 
-**Judge errors.** `Judge declined` means Claude's safety classifiers refused; `Judge returned no parsable verdict` means the structured output failed validation. Both are logged server-side; the player sees a retryable error. Each verdict costs roughly 1,500 input + 300 output tokens.
+**Judge errors.** "The judge is busy" (HTTP 503) is a provider rate limit; on Gemini's free tier that's a handful of requests per minute, so a party of ten should expect to see it and retry. `Judge declined` means the model's safety classifiers refused; `Judge returned no parsable verdict` / a Zod error means the structured output failed validation. All are logged server-side. Each verdict is roughly 1,500 input + 300 output tokens; `/api/health` shows which provider is active.
 
 **Verify button says "Mismatch".** The stored verdict no longer hashes to what the twin posted. Either the database row was edited after the fact, or the hashed field set in `app/src/lib/judge.ts` and `app/src/components/verify-verdict.tsx` has drifted; they must list the same fields in the same order (`scenarios, answers, llm, similarity, scoreBps`).
 
