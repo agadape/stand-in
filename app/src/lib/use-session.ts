@@ -12,11 +12,13 @@ function subscribe(onChange: () => void) {
   };
 }
 
+// Returns a string on the client even when nothing is stored, so only the server
+// snapshot is `null`; a `null` here would read as "not hydrated yet" and hide the UI.
 function snapshot() {
   try {
-    return window.localStorage.getItem(OWNED_KEY);
+    return window.localStorage.getItem(OWNED_KEY) ?? "";
   } catch {
-    return null;
+    return "";
   }
 }
 

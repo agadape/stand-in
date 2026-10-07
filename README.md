@@ -4,6 +4,17 @@
 
 Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis), Track 03: Social, Attention & Culture.
 
+## Status (7 Oct 2026)
+
+- [x] `StandIn` deployed to Monad testnet and source-verified on MonadVision: [`0x9390…16C2`](https://testnet.monadvision.com/address/0x9390ad4e2F8d61387a00CB168c58733831a416C2)
+- [x] Contract tests (18, incl. fuzz), app type-check, lint and production build all green; CI runs them on every push
+- [x] Chain path exercised against the real contract: twin creation by the twin's own wallet, card read back from chain
+- [ ] Judge path (prove → challenge → payout) end to end: `scripts/e2e.mjs`, needs `ANTHROPIC_API_KEY`
+- [ ] Passkey flows on real phones (Mera PRF)
+- [ ] Hosted deployment and demo video
+
+Operational details (env vars, wallets, deploy, troubleshooting) live in [docs/runbook.md](docs/runbook.md).
+
 ## The game
 
 1. **Make your twin.** Paste texts you've actually sent and answer six quick questions. A passkey (Face ID, fingerprint) is the whole account: no wallet app, no seed phrase.
@@ -34,7 +45,8 @@ app/  Next.js 16, TypeScript, Tailwind v4
  └─ src/lib/db            Drizzle + libsql (SQLite locally, Turso in prod)
 contracts/  Foundry
  └─ src/StandIn.sol       twins, pots, verdicts, payouts (18 tests incl. fuzz)
-scripts/    sync-abi.mjs (contract → app ABI), gen-env.mjs (bootstrap .env.local)
+scripts/    gen-env.mjs (bootstrap .env.local) · deploy.mjs (forge create + Sourcify verify) · sync-abi.mjs (contract → app ABI) · e2e.mjs (API smoke test)
+docs/       runbook.md (operations and troubleshooting)
 ```
 
 **Scoring.** Final score (0–10000 bps) = 65% the twin's holistic read (Claude Opus 5.5, JSON-schema constrained) + 35% style similarity (weighted distance between the owner's and the candidate's measured habits). The LLM is told never to quote the owner's private samples in its tells, only the habits.
@@ -49,21 +61,24 @@ Prerequisites: Node 20.9+, [Foundry](https://getfoundry.sh), an Anthropic API ke
 # 0. forge-std is a git submodule (skip if you cloned with --recurse-submodules)
 git submodule update --init --recursive
 
-# 1. Contracts: compile, test, deploy to Monad testnet (chain 10143)
-cd contracts
-forge test
-DEPLOYER_PRIVATE_KEY=0x... forge script script/Deploy.s.sol --rpc-url monad_testnet --broadcast
-cd ..
+# 1. Contracts: compile and test
+(cd contracts && forge test)
 node scripts/sync-abi.mjs            # copies the ABI into the app (already committed; rerun after contract changes)
 
-# 2. App
-cd app && npm install && cd ..
+# 2. Keys
+(cd app && npm install)
 node scripts/gen-env.mjs             # writes app/.env.local with fresh TWIN_KEY_SEED and FUNDER_PRIVATE_KEY, prints the funder address
-#    → fund the printed address at https://faucet.monad.xyz (it pays twin gas and demo pots)
-#    → set ANTHROPIC_API_KEY and STANDIN_ADDRESS (from the deploy output) in app/.env.local
+#    → fund the printed address at https://faucet.monad.xyz (it pays deploys, twin gas and demo pots)
+#    → set ANTHROPIC_API_KEY in app/.env.local
+
+# 3. Deploy to Monad testnet (chain 10143) and verify on MonadVision
+node scripts/deploy.mjs              # forge create + Sourcify verify; writes STANDIN_ADDRESS into app/.env.local
+
+# 4. App
 cd app
 npx drizzle-kit push                 # creates the local SQLite schema
 npm run dev                          # http://localhost:3000
+node ../scripts/e2e.mjs http://localhost:3000   # optional: full create → prove → fund → challenge loop from the shell
 ```
 
 Passkeys need a secure context (`localhost` counts) and an authenticator with the WebAuthn PRF extension: iCloud Keychain, Google Password Manager, 1Password and Windows Hello all work. Challengers without one can paste an address instead.
@@ -81,7 +96,9 @@ Every verdict screen links to its transaction on MonadVision and shows the verdi
 
 ## Contract
 
-`contracts/src/StandIn.sol`, Solidity 0.8.28. Testnet address: see `app/.env.local` / the submission page.
+`contracts/src/StandIn.sol`, Solidity 0.8.28.
+
+**Monad testnet (chain 10143):** [`0x9390ad4e2F8d61387a00CB168c58733831a416C2`](https://testnet.monadvision.com/address/0x9390ad4e2F8d61387a00CB168c58733831a416C2) · [deploy tx](https://testnet.monadvision.com/tx/0x731ca711a18ff4967feb2bf1dbdf8d180fd3759dc14b5d114bbedf620fd00150) · source verified on Sourcify (exact match). Deployed with `node scripts/deploy.mjs`.
 
 | Function | Who | What |
 |---|---|---|
@@ -93,6 +110,14 @@ Every verdict screen links to its transaction on MonadVision and shows the verdi
 | `updatePersona(twinId, personaHash)` | twin | re-hashes the persona after an edit |
 
 `forge test` runs 18 tests including a fuzz test that the pot pays out only on a strictly higher score.
+
+## Notes on building for Monad
+
+Things we hit that differ from Ethereum, and what the code does about them:
+
+- **Gas is charged on `gas_limit`, not gas used.** Twin wallets are topped up with 0.2 MON (`TWIN_GAS_TOPUP_MON`); a `createTwin` or `submitVerdict` costs about 0.01 MON at the testnet's ~100 gwei base fee.
+- **A freshly funded wallet can't send immediately.** Consensus checks the sender's balance against execution state 3 blocks behind the tip ([reserve balance](https://docs.monad.xyz/developer-essentials/reserve-balance)), so a wallet funded a second ago is rejected with "insufficient balance" even though `eth_getBalance` shows the money. Re-sending an identical transaction returns the same cached answer. `ensureGas` waits ~2 s after a top-up, and `withSendRetry` bumps the priority fee per attempt so each retry is a new transaction.
+- **`forge script` bytecode didn't verify.** The bytecode `forge script` broadcast was two bytes longer than any `forge build` output, so Sourcify reported `bytecode_length_mismatch`. `scripts/deploy.mjs` uses `forge create`, which sends the compiled artifact as-is; verification then matched exactly.
 
 ## Status and honest limitations
 

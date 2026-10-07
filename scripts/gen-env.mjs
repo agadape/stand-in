@@ -36,6 +36,6 @@ if (funder) {
 }
 if (!anthropic) console.log("\nStill needed: ANTHROPIC_API_KEY (or `ant auth login`)");
 if (!contract || /^0x0{40}$/.test(contract)) {
-  console.log("Still needed: STANDIN_ADDRESS. Deploy with:");
-  console.log("  cd contracts && DEPLOYER_PRIVATE_KEY=<funded key> forge script script/Deploy.s.sol --rpc-url monad_testnet --broadcast");
+  console.log("Still needed: STANDIN_ADDRESS. Once the funder address has MON, deploy with:");
+  console.log("  node scripts/deploy.mjs");
 }

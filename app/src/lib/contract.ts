@@ -1,20 +1,26 @@
-import { parseEther, parseEventLogs, type Address, type Hex } from "viem";
+import { parseEther, parseEventLogs, parseGwei, type Address, type Hex } from "viem";
 import { publicClient, standInAddress } from "./chain";
 import { env } from "./env";
 import { standInAbi } from "./standin-abi";
-import { ensureGas, funderWallet, twinAccount, twinWallet } from "./twin-wallet";
+import { ensureGas, funderWallet, twinAccount, twinWallet, withSendRetry } from "./twin-wallet";
+
+// A different tip per attempt gives each retry a new transaction hash (see withSendRetry).
+const tip = (attempt: number) => ({ maxPriorityFeePerGas: parseGwei(String(2 + attempt)) });
 
 /** The twin registers itself on-chain and names its owner. */
 export async function registerTwin(slug: string, owner: Address, personaHash: Hex) {
   const account = twinAccount(slug);
   await ensureGas(account.address);
 
-  const hash = await twinWallet(slug).writeContract({
-    address: standInAddress(),
-    abi: standInAbi,
-    functionName: "createTwin",
-    args: [owner, personaHash],
-  });
+  const hash = await withSendRetry((attempt) =>
+    twinWallet(slug).writeContract({
+      address: standInAddress(),
+      abi: standInAbi,
+      functionName: "createTwin",
+      args: [owner, personaHash],
+      ...tip(attempt),
+    }),
+  );
   const receipt = await publicClient().waitForTransactionReceipt({ hash });
   const [created] = parseEventLogs({ abi: standInAbi, logs: receipt.logs, eventName: "TwinCreated" });
   if (!created) throw new Error("TwinCreated event missing from receipt");
@@ -24,12 +30,15 @@ export async function registerTwin(slug: string, owner: Address, personaHash: He
 
 export async function postOwnerProof(slug: string, chainTwinId: number, scoreBps: number, verdictHash: Hex) {
   await ensureGas(twinAccount(slug).address);
-  const hash = await twinWallet(slug).writeContract({
-    address: standInAddress(),
-    abi: standInAbi,
-    functionName: "proveOwner",
-    args: [BigInt(chainTwinId), scoreBps, verdictHash],
-  });
+  const hash = await withSendRetry((attempt) =>
+    twinWallet(slug).writeContract({
+      address: standInAddress(),
+      abi: standInAbi,
+      functionName: "proveOwner",
+      args: [BigInt(chainTwinId), scoreBps, verdictHash],
+      ...tip(attempt),
+    }),
+  );
   await publicClient().waitForTransactionReceipt({ hash });
   return hash;
 }
@@ -43,12 +52,15 @@ export async function postVerdict(
   verdictHash: Hex,
 ) {
   await ensureGas(twinAccount(slug).address);
-  const hash = await twinWallet(slug).writeContract({
-    address: standInAddress(),
-    abi: standInAbi,
-    functionName: "submitVerdict",
-    args: [BigInt(chainTwinId), challenger, scoreBps, verdictHash],
-  });
+  const hash = await withSendRetry((attempt) =>
+    twinWallet(slug).writeContract({
+      address: standInAddress(),
+      abi: standInAbi,
+      functionName: "submitVerdict",
+      args: [BigInt(chainTwinId), challenger, scoreBps, verdictHash],
+      ...tip(attempt),
+    }),
+  );
   const receipt = await publicClient().waitForTransactionReceipt({ hash });
   const [paid] = parseEventLogs({ abi: standInAbi, logs: receipt.logs, eventName: "Paid" });
   return { txHash: hash, paidWei: paid ? paid.args.amount : 0n };
@@ -56,13 +68,16 @@ export async function postVerdict(
 
 /** Demo money: the funder wallet sweetens a twin's pot so judges can see a payout. */
 export async function fundDemoPot(chainTwinId: number) {
-  const hash = await funderWallet().writeContract({
-    address: standInAddress(),
-    abi: standInAbi,
-    functionName: "fund",
-    args: [BigInt(chainTwinId)],
-    value: parseEther(String(env().DEMO_POT_MON)),
-  });
+  const hash = await withSendRetry((attempt) =>
+    funderWallet().writeContract({
+      address: standInAddress(),
+      abi: standInAbi,
+      functionName: "fund",
+      args: [BigInt(chainTwinId)],
+      value: parseEther(String(env().DEMO_POT_MON)),
+      ...tip(attempt),
+    }),
+  );
   await publicClient().waitForTransactionReceipt({ hash });
   return hash;
 }
