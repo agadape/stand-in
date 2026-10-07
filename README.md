@@ -77,9 +77,9 @@ node scripts/gen-env.mjs             # writes app/.env.local with fresh TWIN_KEY
 # 3. Deploy to Monad testnet (chain 10143) and verify on MonadVision
 node scripts/deploy.mjs              # forge create + Sourcify verify; writes STANDIN_ADDRESS into app/.env.local
 
-# 4. App
+# 4. Database and app
+node scripts/db-push.mjs             # applies the schema to the DB in app/.env.local (local file, or Turso in prod)
 cd app
-npx drizzle-kit push                 # creates the local SQLite schema
 npm run dev                          # http://localhost:3000
 node ../scripts/e2e.mjs http://localhost:3000   # optional: full create → prove → fund → challenge loop from the shell
 ```

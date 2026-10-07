@@ -53,6 +53,22 @@ After any contract change: `forge test` in `contracts/`, then `node scripts/sync
 
 Current testnet deployment: [`0x9390ad4e2F8d61387a00CB168c58733831a416C2`](https://testnet.monadvision.com/address/0x9390ad4e2F8d61387a00CB168c58733831a416C2).
 
+## Production database (Turso)
+
+The schema is SQLite, so production uses Turso (hosted libsql). One-time setup:
+
+```bash
+npm i -g @tursodatabase/cli
+turso auth login
+turso db create standin
+turso db show standin --url          # → DATABASE_URL (libsql://...)
+turso db tokens create standin       # → DATABASE_AUTH_TOKEN
+```
+
+Put both into `app/.env.local`, apply the schema with `node scripts/db-push.mjs` (drizzle-kit does not read `.env.local` by itself), then set the same two values on Vercel with `vercel env add DATABASE_URL production` and `vercel env add DATABASE_AUTH_TOKEN production` (type the values; don't pipe them from PowerShell, it adds a BOM). Re-run `db-push` after every schema change, locally and against Turso.
+
+Pointing local dev at the Turso database is fine and often convenient for a team: everyone sees the same twins. Use `DATABASE_URL=file:./standin.db` for offline hacking.
+
 ## Running and testing
 
 ```bash
