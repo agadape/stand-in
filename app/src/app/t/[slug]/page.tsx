@@ -12,9 +12,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const twin = await twinBySlug(slug);
   if (!twin) return { title: "Not found" };
+  const title = `Be ${twin.name}`;
+  const description = `Answer three texts as ${twin.name}. Their AI twin decides if you pulled it off.`;
   return {
-    title: `Be ${twin.name}`,
-    description: `Answer three texts as ${twin.name}. Their AI twin decides if you pulled it off.`,
+    title,
+    description,
+    openGraph: { title, description, type: "website" },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 

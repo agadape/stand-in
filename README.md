@@ -28,15 +28,18 @@ Nobody waits for anyone: a twin is a link, one person can play alone, and a judg
 
 - **Every twin has its own wallet.** It registers itself on-chain, posts every verdict, and pays challengers. The app operator holds no admin key on the contract: `submitVerdict`, `proveOwner` and `updatePersona` are callable only by the twin's wallet, and `reclaim` only by the owner or the twin (paying the owner).
 - **Verdict and payout are one transaction.** `submitVerdict` records the score and, if it beats the owner's bar, empties the pot into the challenger's wallet. Finality in well under a second makes "the twin just paid you" land while the player is still looking at the screen.
-- **Verdicts are checkable.** Each verdict's `keccak256` hash is stored on-chain next to the score. Anyone holding the stored verdict JSON (scenario ids, answers, the twin's per-answer scores and tells, style similarity, final score) can recompute the hash and confirm nothing was edited after the fact.
+- **Verdicts are checkable.** Each verdict's `keccak256` hash is stored on-chain next to the score. Every verdict screen and every public attempt page (`/t/<slug>/a/<id>`) has a **Verify on Monad** button that refetches the stored verdict, recomputes the hash in the browser, reads the hash out of the transaction's event log directly from the RPC, and compares; the app's server is not trusted anywhere in that check.
 - **Players never need gas.** Passkey accounts hold nothing and sign nothing on-chain; the twin's wallet does all the sending.
 
 ## Architecture
 
 ```
 app/  Next.js 16, TypeScript, Tailwind v4
- ├─ src/components        create-twin, play, verdict, twin-view (client components)
+ ├─ src/components        create-twin, play, verdict, verify-verdict, twin-view (client components)
  ├─ src/app/api/twins     POST create · GET card+leaderboard · GET scenarios · POST attempts · POST pot
+ ├─ src/app/api/attempts  GET one attempt's public record (what the verify button recomputes)
+ ├─ src/app/api/health    funder gas, database and chain status for the team
+ ├─ src/lib/limits.ts     per-twin / per-address / per-IP / global ceilings and a funder-gas guard
  ├─ src/lib/judge.ts      Claude Opus 5.5 (Anthropic SDK, structured output) + style fingerprint → score, verdict hash
  ├─ src/lib/style.ts      countable texting habits: casing, length, emoji, punctuation, laugh/abbrev rates
  ├─ src/lib/passkey.ts    Mera (WebAuthn PRF) → EVM account → viem signer, client-side only

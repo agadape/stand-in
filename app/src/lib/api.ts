@@ -35,6 +35,12 @@ export type LeaderboardRow = {
 
 export type Scenario = { id: string; prompt: string };
 
+export type LlmVerdict = {
+  answers: { scenarioId: string; score: number; tell: string }[];
+  overall: number;
+  verdictLine: string;
+};
+
 export type AttemptResult = {
   id: number;
   mode: "owner" | "challenger";
@@ -42,16 +48,34 @@ export type AttemptResult = {
   ownerScoreBps: number;
   passed: boolean;
   paidWei: string;
-  llm: {
-    answers: { scenarioId: string; score: number; tell: string }[];
-    overall: number;
-    verdictLine: string;
-  };
+  llm: LlmVerdict;
   styleNotes: string[];
   styleSimilarity: number;
   verdictHash: string;
   txHash: string;
   txUrl: string;
+};
+
+/** Full public record of an attempt, as served by GET /api/attempts/[id]. */
+export type AttemptRecord = {
+  id: number;
+  mode: "owner" | "challenger";
+  displayName: string;
+  address: string;
+  scoreBps: number;
+  passed: boolean;
+  paidWei: string;
+  txHash: string;
+  txUrl: string;
+  verdictHash: string;
+  scenarioIds: string[];
+  scenarios: Scenario[];
+  answers: string[];
+  llm: LlmVerdict;
+  similarity: number;
+  styleNotes: string[];
+  createdAt: number;
+  twin: { slug: string; name: string; chainTwinId: number; twinAddress: string; ownerScoreBps: number };
 };
 
 export type OwnerProof = { issuedAt: number; signature: string };
@@ -119,6 +143,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input),
     }),
+
+  getAttempt: (id: number) => request<{ attempt: AttemptRecord }>(`/api/attempts/${id}`, { cache: "no-store" }),
 };
 
 /** 0..10000 basis points to a display percentage with one decimal. */

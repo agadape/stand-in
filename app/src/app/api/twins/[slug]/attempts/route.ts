@@ -7,6 +7,7 @@ import { explorerTx } from "@/lib/chain";
 import { postOwnerProof, postVerdict } from "@/lib/contract";
 import { db, schema } from "@/lib/db";
 import { judge } from "@/lib/judge";
+import { assertCanAttempt, clientIpHash, limitResponse } from "@/lib/limits";
 import { ANSWERS_PER_ATTEMPT, scenarioById } from "@/lib/scenarios";
 import { twinBySlug } from "@/lib/twins";
 
@@ -52,6 +53,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     }
   }
 
+  const ipHash = clientIpHash(request);
+  try {
+    await assertCanAttempt(twin.id, address, ipHash);
+  } catch (error) {
+    return limitResponse(error) ?? Promise.reject(error);
+  }
+
   const verdict = await judge(twin.persona, scenarios.map((s) => s!), answers);
 
   let txHash: Hex;
@@ -88,6 +96,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       verdictHash: verdict.verdictHash,
       txHash,
       paidWei: paidWei.toString(),
+      ipHash,
       createdAt: new Date(),
     })
     .returning()

@@ -20,8 +20,18 @@ All runtime configuration lives in `app/.env.local` (never committed). `node scr
 | `DEMO_POT_MON` | Amount the owner's "Add demo pot" button drops into the pot | `0.1` |
 | `DATABASE_URL` | libsql URL: `file:./standin.db` locally, a Turso URL in production | `file:./standin.db` |
 | `DATABASE_AUTH_TOKEN` | Turso token (production only) | — |
+| `NEXT_PUBLIC_CHAIN_ID`, `NEXT_PUBLIC_MONAD_RPC_URL` | Used by the browser for the "Verify on Monad" button | testnet |
+| `LIMIT_TWINS_PER_DAY` / `_PER_OWNER_DAY` / `_PER_IP_DAY` | Ceilings on twin creation (global, per owner address, per hashed IP) | 50 / 3 / 5 |
+| `LIMIT_ATTEMPTS_PER_DAY` / `_PER_TWIN_HOUR` / `_PER_ADDRESS_HOUR` / `_PER_IP_HOUR` | Ceilings on attempts | 300 / 12 / 6 / 10 |
+| `MIN_FUNDER_MON` | Below this funder balance the app refuses new twins and attempts (503) rather than failing mid-flow | `0.3` |
 
 The dev server reloads `.env.local` on change; no restart needed.
+
+## Monitoring
+
+`GET /api/health` returns `{ ok, chainId, contract, funder: { address, balanceMon, ok }, db: { ok, twins, attempts } }` and responds **503** when the funder is below `MIN_FUNDER_MON` or the database is unreachable. Point an uptime checker at it before any public demo; the funder running dry is the most likely failure during judging.
+
+Players hitting a ceiling see a plain-English message with HTTP 429 (per-twin, per-address, per-IP limits) or 503 (global daily limits, funder out of gas). Raise the `LIMIT_*` values for an event, then lower them again.
 
 ## Wallets
 
@@ -78,6 +88,8 @@ The repo's CI (`.github/workflows/ci.yml`) runs `forge test`, `tsc` and `eslint`
 **Port 3000 in use.** `next dev` honours `PORT`; `.claude/launch.json` sets `autoPort` so the preview picks a free one.
 
 **Judge errors.** `Judge declined` means Claude's safety classifiers refused; `Judge returned no parsable verdict` means the structured output failed validation. Both are logged server-side; the player sees a retryable error. Each verdict costs roughly 1,500 input + 300 output tokens.
+
+**Verify button says "Mismatch".** The stored verdict no longer hashes to what the twin posted. Either the database row was edited after the fact, or the hashed field set in `app/src/lib/judge.ts` and `app/src/components/verify-verdict.tsx` has drifted; they must list the same fields in the same order (`scenarios, answers, llm, similarity, scoreBps`).
 
 ## Changing the game
 

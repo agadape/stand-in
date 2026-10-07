@@ -1,44 +1,12 @@
-import {
-  createPublicClient,
-  createWalletClient,
-  defineChain,
-  http,
-  type Address,
-  type Hex,
-} from "viem";
+import { createPublicClient, createWalletClient, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { chainById } from "./chains";
 import { env } from "./env";
 
-export const monadTestnet = defineChain({
-  id: 10143,
-  name: "Monad Testnet",
-  nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
-  rpcUrls: {
-    default: {
-      http: ["https://testnet-rpc.monad.xyz"],
-      webSocket: ["wss://testnet-rpc.monad.xyz"],
-    },
-  },
-  blockExplorers: {
-    default: { name: "MonadVision", url: "https://testnet.monadvision.com" },
-  },
-  testnet: true,
-});
-
-export const monadMainnet = defineChain({
-  id: 143,
-  name: "Monad",
-  nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
-  rpcUrls: {
-    default: { http: ["https://rpc.monad.xyz"], webSocket: ["wss://rpc.monad.xyz"] },
-  },
-  blockExplorers: {
-    default: { name: "MonadVision", url: "https://monadvision.com" },
-  },
-});
+export { monadMainnet, monadTestnet } from "./chains";
 
 export function chain() {
-  return env().MONAD_CHAIN_ID === monadMainnet.id ? monadMainnet : monadTestnet;
+  return chainById(env().MONAD_CHAIN_ID);
 }
 
 export function publicClient() {
