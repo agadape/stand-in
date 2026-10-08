@@ -155,7 +155,13 @@ export function TwinView({
                     rel="noreferrer"
                     className="text-xs text-muted underline decoration-dotted"
                   >
-                    {BigInt(row.paidWei) > 0n ? `paid ${formatMon(row.paidWei)}` : row.passed ? "passed" : "tx"}
+                    {row.mode === "owner"
+                      ? "set the bar"
+                      : BigInt(row.paidWei) > 0n
+                        ? `paid ${formatMon(row.paidWei)}`
+                        : row.passed
+                          ? "passed"
+                          : "tx"}
                   </a>
                 </div>
               </li>
