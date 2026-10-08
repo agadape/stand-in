@@ -1,14 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { env } from "../env";
-import { JudgeUnavailableError, LlmVerdictSchema, type JudgePrompt } from "./types";
+import { JudgeUnavailableError, LlmVerdictSchema, type JudgePrompt, type JudgeResult } from "./types";
 
 /** Claude as the judge. Uses ANTHROPIC_API_KEY from the environment. */
-export async function runAnthropic(prompt: JudgePrompt): Promise<unknown> {
+export async function runAnthropic(prompt: JudgePrompt): Promise<JudgeResult> {
   const client = new Anthropic();
+  const model = env().ANTHROPIC_MODEL;
   try {
     const response = await client.messages.parse({
-      model: env().ANTHROPIC_MODEL,
+      model,
       max_tokens: 8000,
       system: [
         { type: "text", text: prompt.rules },
@@ -23,9 +24,9 @@ export async function runAnthropic(prompt: JudgePrompt): Promise<unknown> {
       throw new Error(`Judge declined: ${response.stop_details?.explanation ?? "no explanation"}`);
     }
     if (!response.parsed_output) throw new Error("Judge returned no parsable verdict");
-    return response.parsed_output;
+    return { raw: response.parsed_output, model };
   } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) {
+    if (error instanceof Anthropic.RateLimitError || error instanceof Anthropic.InternalServerError) {
       throw new JudgeUnavailableError("The judge is busy right now. Try again in a minute.");
     }
     throw error;

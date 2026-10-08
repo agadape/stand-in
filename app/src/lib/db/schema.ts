@@ -49,6 +49,8 @@ export const attempts = sqliteTable("attempts", {
   verdictHash: text("verdict_hash").notNull(),
   txHash: text("tx_hash").notNull(),
   paidWei: text("paid_wei").notNull().default("0"),
+  // Which model wrote the verdict; with a fallback chain it can differ per attempt.
+  judgeModel: text("judge_model"),
   ipHash: text("ip_hash"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });

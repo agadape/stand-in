@@ -52,6 +52,7 @@ export type AttemptResult = {
   styleNotes: string[];
   styleSimilarity: number;
   verdictHash: string;
+  judgeModel: string | null;
   txHash: string;
   txUrl: string;
 };
@@ -68,6 +69,7 @@ export type AttemptRecord = {
   txHash: string;
   txUrl: string;
   verdictHash: string;
+  judgeModel: string | null;
   scenarioIds: string[];
   scenarios: Scenario[];
   answers: string[];

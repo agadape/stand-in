@@ -9,7 +9,8 @@ All runtime configuration lives in `app/.env.local` (never committed). `node scr
 | Variable | Purpose | Default |
 |---|---|---|
 | `GEMINI_API_KEY` | Judge model key. Free tier at <https://aistudio.google.com/apikey> (Flash models only; ~5–15 requests/min). | — |
-| `GEMINI_MODEL` | Gemini model id | `gemini-3.8-flash` |
+| `GEMINI_MODEL` | Ordered, comma-separated fallback chain. The first model judges; the next is tried when one is overloaded, rate-limited or slow. | `gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash` |
+| `GEMINI_THINKING` | `low`, `medium` or `high`. `low` cut verdict time from ~30 s to ~10 s with no visible loss in tells. | `low` |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Alternative judge (Claude). Used automatically when the key is set. | `claude-opus-5-5` |
 | `LLM_PROVIDER` | `auto` (Anthropic if its key is set, else Gemini), `gemini`, or `anthropic` | `auto` |
 | `MONAD_RPC_URL` | JSON-RPC endpoint | `https://testnet-rpc.monad.xyz` |
@@ -88,7 +89,17 @@ npx tsc --noEmit && npx eslint src && npm run build
 node scripts/e2e.mjs http://localhost:3000
 ```
 
-`e2e.mjs` creates a twin with throwaway keys, signs the owner proof the same way the browser does, sets the bar, funds a demo pot, sends a deliberately off-voice challenger, and prints scores, tells and transaction links. It is the quickest way to check the judge prompt after changes.
+`e2e.mjs` is both the smoke test and the judge calibration probe. It creates a twin ("Dave") with throwaway keys, signs the owner proof the same way the browser does, then plays three voices against it and prints scores, tells, style evidence, the judging model and transaction links:
+
+| Voice | What it is | First measured (Gemini, 8 Oct) |
+|---|---|---|
+| owner | Dave answering as himself | 87.0% (model 92, style 78%) |
+| friend | a decent imitation that overdoes his tics | 53.3% (model 64, style 33%) |
+| impostor | polite email voice | 5.9% (model 2, style 13%) |
+
+It exits non-zero unless owner > friend > impostor, so run it after any change to the prompt, the style weights or the model chain. It costs three judge calls and about 0.35 testnet MON, and retries by itself when the judge returns 503.
+
+`npx tsx src/lib/style.check.ts` (from `app/`, also in CI) asserts the style fingerprint's invariants without any network: no high floor for unrelated voices, and no claim about how someone writes "I" unless both sides wrote it.
 
 The repo's CI (`.github/workflows/ci.yml`) runs `forge test`, `tsc` and `eslint` on every push.
 
@@ -106,7 +117,7 @@ The repo's CI (`.github/workflows/ci.yml`) runs `forge test`, `tsc` and `eslint`
 
 **Port 3000 in use.** `next dev` honours `PORT`; `.claude/launch.json` sets `autoPort` so the preview picks a free one.
 
-**Judge errors.** "The judge is busy" (HTTP 503) is a provider rate limit; on Gemini's free tier that's a handful of requests per minute, so a party of ten should expect to see it and retry. `Judge declined` means the model's safety classifiers refused; `Judge returned no parsable verdict` / a Zod error means the structured output failed validation. All are logged server-side. Each verdict is roughly 1,500 input + 300 output tokens; `/api/health` shows which provider is active.
+**Judge errors.** "The judge is swamped" (HTTP 503) means every model in `GEMINI_MODEL` was overloaded or rate-limited. On the free tier single-model overloads ("is currently experiencing high demand") are routine, which is why there is a chain; the server log line `[judge] used <model> after: ...` shows each fallback. If the whole chain fails often, reorder it to put a quieter model first (`gemini-3.6-flash` answered in ~5 s when `3.8` took 14 s and `3.7` was down). Each attempt records the model that judged it (`judge_model`, shown on the verdict page), because a bar set by one model and a challenge judged by another is not a perfectly level comparison. `Judge declined` means the model's safety classifiers refused; `Judge returned no parsable verdict` / a Zod error means the structured output failed validation. All are logged server-side. Each verdict is roughly 1,500 input + 300 output tokens; `/api/health` shows which provider is active.
 
 **Verify button says "Mismatch".** The stored verdict no longer hashes to what the twin posted. Either the database row was edited after the fact, or the hashed field set in `app/src/lib/judge.ts` and `app/src/components/verify-verdict.tsx` has drifted; they must list the same fields in the same order (`scenarios, answers, llm, similarity, scoreBps`).
 

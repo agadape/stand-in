@@ -44,5 +44,8 @@ export type JudgePrompt = {
   candidate: string;
 };
 
-/** Temporary conditions (rate limits, missing configuration) the player can retry. */
+/** A provider's unvalidated output plus the exact model that produced it. */
+export type JudgeResult = { raw: unknown; model: string };
+
+/** Temporary conditions (rate limits, overload, missing configuration) the player can retry. */
 export class JudgeUnavailableError extends Error {}

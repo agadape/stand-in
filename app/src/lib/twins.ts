@@ -6,6 +6,7 @@ import { db, schema } from "./db";
 import type { Persona, Twin } from "./db/schema";
 import { explorerAddress, explorerTx } from "./chain";
 import { scenarioById } from "./scenarios";
+import { notes } from "./style";
 
 export function slugify(name: string) {
   const base = name
@@ -125,12 +126,19 @@ export async function attemptRecord(id: number) {
     txHash: attempt.txHash,
     txUrl: explorerTx(attempt.txHash as Hex),
     verdictHash: attempt.verdictHash,
+    judgeModel: attempt.judgeModel,
     scenarioIds: attempt.scenarioIds,
     scenarios: attempt.scenarioIds.map((sid) => scenarioById(sid) ?? { id: sid, prompt: sid }),
     answers: attempt.answers,
     llm: attempt.llm,
     similarity: attempt.style.similarity,
-    styleNotes: attempt.style.notes,
+    // Re-worded for a public page: the reader isn't the player, so no "You".
+    styleNotes: notes(
+      twin.name,
+      attempt.style.persona,
+      attempt.style.candidate,
+      attempt.mode === "owner" ? "This time" : attempt.displayName,
+    ),
     createdAt: attempt.createdAt.getTime(),
     twin: {
       slug: twin.slug,

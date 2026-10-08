@@ -9,7 +9,8 @@ Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis)
 - [x] `StandIn` deployed to Monad testnet and source-verified on MonadVision: [`0x9390…16C2`](https://testnet.monadvision.com/address/0x9390ad4e2F8d61387a00CB168c58733831a416C2)
 - [x] Contract tests (18, incl. fuzz), app type-check, lint and production build all green; CI runs them on every push
 - [x] Chain path exercised against the real contract: twin creation by the twin's own wallet, card read back from chain
-- [ ] Judge path (prove → challenge → payout) end to end: `scripts/e2e.mjs`, needs a judge key (`GEMINI_API_KEY`, free tier)
+- [x] Judge path end to end on Gemini's free tier (`scripts/e2e.mjs`): owner 87% / friend imitation 53% / email-voice impostor 6%, verdicts verified against the chain in the browser
+- [ ] A passing challenger and live payout through the app (contract-tested; no fixture has beaten the owner yet)
 - [ ] Passkey flows on real phones (Mera PRF)
 - [ ] Hosted deployment and demo video
 

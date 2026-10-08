@@ -26,7 +26,8 @@ export function judgeLabel() {
   return judgeProvider() === "gemini" ? `Gemini (${env().GEMINI_MODEL})` : `Claude (${env().ANTHROPIC_MODEL})`;
 }
 
-export async function runJudge(prompt: JudgePrompt): Promise<LlmVerdict> {
-  const raw = judgeProvider() === "gemini" ? await runGemini(prompt) : await runAnthropic(prompt);
-  return LlmVerdictSchema.parse(raw);
+/** Runs the configured judge and returns its validated verdict with the model that wrote it. */
+export async function runJudge(prompt: JudgePrompt): Promise<{ verdict: LlmVerdict; model: string }> {
+  const { raw, model } = judgeProvider() === "gemini" ? await runGemini(prompt) : await runAnthropic(prompt);
+  return { verdict: LlmVerdictSchema.parse(raw), model };
 }

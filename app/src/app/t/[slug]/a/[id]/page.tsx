@@ -41,6 +41,7 @@ export default async function AttemptPage({ params }: Props) {
         styleNotes: record.styleNotes,
         styleSimilarity: record.similarity,
         verdictHash: record.verdictHash,
+        judgeModel: record.judgeModel,
         txUrl: record.txUrl,
       }}
       twinName={record.twin.name}

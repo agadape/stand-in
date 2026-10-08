@@ -8,6 +8,8 @@ export type { LlmVerdict } from "./llm";
 
 export type Verdict = {
   llm: LlmVerdict;
+  /** The exact model that judged; with a fallback chain it can differ between attempts. */
+  model: string;
   style: { persona: StyleFeatures; candidate: StyleFeatures; similarity: number; notes: string[] };
   scoreBps: number;
   verdictHash: Hex;
@@ -46,7 +48,7 @@ function candidateBlock(scenarios: Scenario[], answers: string[]) {
 }
 
 export async function judge(persona: Persona, scenarios: Scenario[], answers: string[]): Promise<Verdict> {
-  const llm = await runJudge({
+  const { verdict: llm, model } = await runJudge({
     rules: RULES,
     persona: personaBlock(persona),
     candidate: candidateBlock(scenarios, answers),
@@ -79,5 +81,5 @@ export async function judge(persona: Persona, scenarios: Scenario[], answers: st
     ),
   );
 
-  return { llm, style, scoreBps, verdictHash };
+  return { llm, model, style, scoreBps, verdictHash };
 }

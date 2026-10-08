@@ -15,6 +15,7 @@ export type VerdictView = {
   styleNotes: string[];
   styleSimilarity: number;
   verdictHash: string;
+  judgeModel?: string | null;
   txUrl: string;
 };
 
@@ -118,6 +119,7 @@ export function Verdict({
           </a>
         </p>
         <p className="break-all font-mono">verdict hash {result.verdictHash}</p>
+        {result.judgeModel && <p>Judged by {result.judgeModel}</p>}
       </Card>
 
       <div className="space-y-3">

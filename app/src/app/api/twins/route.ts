@@ -5,6 +5,9 @@ import { assertCanCreateTwin, clientIpHash, limitResponse } from "@/lib/limits";
 import { createTwin } from "@/lib/twins";
 import { QUIZ } from "@/lib/scenarios";
 
+// Creating a twin funds its wallet and waits for two transactions.
+export const maxDuration = 60;
+
 const Body = z.object({
   name: z.string().trim().min(1).max(40),
   bio: z.string().trim().max(280).default(""),

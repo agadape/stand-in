@@ -8,7 +8,11 @@ const schema = z.object({
   // The judge. "auto" picks Anthropic if ANTHROPIC_API_KEY is set, else Gemini.
   LLM_PROVIDER: z.enum(["auto", "anthropic", "gemini"]).default("auto"),
   GEMINI_API_KEY: z.string().optional(),
-  GEMINI_MODEL: z.string().default("gemini-3.8-flash"),
+  // Ordered fallback chain: free-tier models are often overloaded, so the next one is
+  // tried on a 503/429/timeout. First entry is the model you want judging normally.
+  GEMINI_MODEL: z.string().default("gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash"),
+  // "low" roughly halves latency with no visible loss in verdict quality so far.
+  GEMINI_THINKING: z.enum(["low", "medium", "high"]).default("low"),
   ANTHROPIC_MODEL: z.string().default("claude-opus-5-5"),
 
   MONAD_RPC_URL: z.string().url().default("https://testnet-rpc.monad.xyz"),

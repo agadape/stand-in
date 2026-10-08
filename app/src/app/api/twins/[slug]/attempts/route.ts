@@ -12,6 +12,9 @@ import { assertCanAttempt, clientIpHash, limitResponse } from "@/lib/limits";
 import { ANSWERS_PER_ATTEMPT, scenarioById } from "@/lib/scenarios";
 import { twinBySlug } from "@/lib/twins";
 
+// A verdict is a model call (up to ~50 s across the fallback chain) plus a transaction.
+export const maxDuration = 120;
+
 const Body = z.object({
   mode: z.enum(["owner", "challenger"]),
   address: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
@@ -103,6 +106,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       verdictHash: verdict.verdictHash,
       txHash,
       paidWei: paidWei.toString(),
+      judgeModel: verdict.model,
       ipHash,
       createdAt: new Date(),
     })
@@ -121,6 +125,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       styleNotes: verdict.style.notes,
       styleSimilarity: verdict.style.similarity,
       verdictHash: verdict.verdictHash,
+      judgeModel: verdict.model,
       txHash,
       txUrl: explorerTx(txHash),
     },
