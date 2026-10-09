@@ -33,3 +33,4 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - run: npx next typegen && npx tsc --noEmit
       - run: npx eslint src
+      - run: npx tsx src/lib/style.check.ts

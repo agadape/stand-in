@@ -25,6 +25,8 @@ export const twins = sqliteTable("twins", {
   personaHash: text("persona_hash").notNull(),
   ownerProven: integer("owner_proven", { mode: "boolean" }).notNull().default(false),
   ownerScoreBps: integer("owner_score_bps").notNull().default(0),
+  // Salted hash of the creator's IP, for rate limits only. Never the raw address.
+  ipHash: text("ip_hash"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
 
@@ -47,6 +49,9 @@ export const attempts = sqliteTable("attempts", {
   verdictHash: text("verdict_hash").notNull(),
   txHash: text("tx_hash").notNull(),
   paidWei: text("paid_wei").notNull().default("0"),
+  // Which model wrote the verdict; with a fallback chain it can differ per attempt.
+  judgeModel: text("judge_model"),
+  ipHash: text("ip_hash"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
 

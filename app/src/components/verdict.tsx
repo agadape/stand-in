@@ -1,7 +1,23 @@
 "use client";
 
-import { formatMon, pct, type AttemptResult, type Scenario } from "@/lib/api";
+import { formatMon, pct, type LlmVerdict, type Scenario } from "@/lib/api";
 import { Card, LinkButton, Pill, ScoreBar } from "./ui";
+import { VerifyVerdict } from "./verify-verdict";
+
+export type VerdictView = {
+  id: number;
+  mode: "owner" | "challenger";
+  scoreBps: number;
+  ownerScoreBps: number;
+  passed: boolean;
+  paidWei: string;
+  llm: LlmVerdict;
+  styleNotes: string[];
+  styleSimilarity: number;
+  verdictHash: string;
+  judgeModel?: string | null;
+  txUrl: string;
+};
 
 export function Verdict({
   result,
@@ -9,31 +25,40 @@ export function Verdict({
   slug,
   scenarios,
   answers,
+  displayName,
   onRetry,
 }: {
-  result: AttemptResult;
+  result: VerdictView;
   twinName: string;
   slug: string;
   scenarios: Scenario[];
   answers: string[];
-  onRetry: () => void;
+  /** Shown on the public attempt page, where the viewer isn't necessarily the player. */
+  displayName?: string;
+  onRetry?: () => void;
 }) {
   const paid = BigInt(result.paidWei);
   const owner = result.mode === "owner";
+  const who = displayName ?? "You";
+  const second = displayName === undefined;
 
   const headline = owner
-    ? `You're ${pct(result.scoreBps)} you.`
+    ? second
+      ? `You're ${pct(result.scoreBps)} you.`
+      : `${twinName} is ${pct(result.scoreBps)} ${twinName}.`
     : result.passed
-      ? `You passed as ${twinName}.`
-      : `Not ${twinName}.`;
+      ? `${who} passed as ${twinName}.`
+      : second
+        ? `Not ${twinName}.`
+        : `${who} is not ${twinName}.`;
 
   const sub = owner
     ? "That's the bar. Anyone who scores higher takes the pot."
     : result.passed
       ? paid > 0n
-        ? `${twinName}'s twin just paid you ${formatMon(paid)}.`
-        : "The pot was empty, but you beat the real one."
-      : `${twinName} scored ${pct(result.ownerScoreBps)} as themselves. You didn't get there.`;
+        ? `${twinName}'s twin paid ${second ? "you" : who} ${formatMon(paid)}.`
+        : "The pot was empty, but the real one got beaten."
+      : `${twinName} scored ${pct(result.ownerScoreBps)} as themselves. ${second ? "You" : who} didn't get there.`;
 
   return (
     <div className="space-y-6">
@@ -84,6 +109,8 @@ export function Verdict({
         </section>
       )}
 
+      <VerifyVerdict attemptId={result.id} />
+
       <Card className="space-y-1 text-xs text-muted">
         <p>
           Verdict posted on Monad by the twin&apos;s wallet:{" "}
@@ -92,19 +119,24 @@ export function Verdict({
           </a>
         </p>
         <p className="break-all font-mono">verdict hash {result.verdictHash}</p>
+        {result.judgeModel && <p>Judged by {result.judgeModel}</p>}
       </Card>
 
       <div className="space-y-3">
         {owner ? (
-          <LinkButton href={`/t/${slug}`}>Back to your twin</LinkButton>
+          <LinkButton href={`/t/${slug}`}>Back to {second ? "your" : `${twinName}'s`} twin</LinkButton>
         ) : (
           <>
-            <button
-              onClick={onRetry}
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-accent px-5 font-semibold text-white hover:bg-accent-strong"
-            >
-              Try again
-            </button>
+            {onRetry ? (
+              <button
+                onClick={onRetry}
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-accent px-5 font-semibold text-white hover:bg-accent-strong"
+              >
+                Try again
+              </button>
+            ) : (
+              <LinkButton href={`/t/${slug}/play`}>Be {twinName}</LinkButton>
+            )}
             <LinkButton href="/new" variant="secondary">
               Make your own twin
             </LinkButton>

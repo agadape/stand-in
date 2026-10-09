@@ -5,6 +5,8 @@ import { registerTwin, readTwin } from "./contract";
 import { db, schema } from "./db";
 import type { Persona, Twin } from "./db/schema";
 import { explorerAddress, explorerTx } from "./chain";
+import { scenarioById } from "./scenarios";
+import { notes } from "./style";
 
 export function slugify(name: string) {
   const base = name
@@ -20,7 +22,7 @@ export function personaHash(persona: Persona) {
   return keccak256(stringToHex(JSON.stringify(persona)));
 }
 
-export async function createTwin(owner: Address, persona: Persona) {
+export async function createTwin(owner: Address, persona: Persona, ipHash: string | null) {
   const slug = slugify(persona.name);
   const hash = personaHash(persona);
   const onchain = await registerTwin(slug, owner, hash);
@@ -36,6 +38,7 @@ export async function createTwin(owner: Address, persona: Persona) {
       createTxHash: onchain.txHash,
       persona,
       personaHash: hash,
+      ipHash,
       createdAt: new Date(),
     })
     .returning()
@@ -97,3 +100,54 @@ export async function publicTwin(twin: Twin) {
 }
 
 export type PublicTwin = Awaited<ReturnType<typeof publicTwin>>;
+
+/**
+ * One attempt, in full, for its public page and for the verify button. Contains the
+ * candidate's own answers and the twin's verdict, never the owner's private samples.
+ * The fields hashed on-chain are exactly: scenarios, answers, llm, similarity, scoreBps.
+ */
+export async function attemptRecord(id: number) {
+  const row = await db()
+    .select({ attempt: schema.attempts, twin: schema.twins })
+    .from(schema.attempts)
+    .innerJoin(schema.twins, eq(schema.attempts.twinId, schema.twins.id))
+    .where(eq(schema.attempts.id, id))
+    .get();
+  if (!row) return null;
+  const { attempt, twin } = row;
+  return {
+    id: attempt.id,
+    mode: attempt.mode,
+    displayName: attempt.displayName,
+    address: attempt.address,
+    scoreBps: attempt.scoreBps,
+    passed: attempt.passed,
+    paidWei: attempt.paidWei,
+    txHash: attempt.txHash,
+    txUrl: explorerTx(attempt.txHash as Hex),
+    verdictHash: attempt.verdictHash,
+    judgeModel: attempt.judgeModel,
+    scenarioIds: attempt.scenarioIds,
+    scenarios: attempt.scenarioIds.map((sid) => scenarioById(sid) ?? { id: sid, prompt: sid }),
+    answers: attempt.answers,
+    llm: attempt.llm,
+    similarity: attempt.style.similarity,
+    // Re-worded for a public page: the reader isn't the player, so no "You".
+    styleNotes: notes(
+      twin.name,
+      attempt.style.persona,
+      attempt.style.candidate,
+      attempt.mode === "owner" ? "This time" : attempt.displayName,
+    ),
+    createdAt: attempt.createdAt.getTime(),
+    twin: {
+      slug: twin.slug,
+      name: twin.name,
+      chainTwinId: twin.chainTwinId,
+      twinAddress: twin.twinAddress,
+      ownerScoreBps: twin.ownerScoreBps,
+    },
+  };
+}
+
+export type AttemptRecord = NonNullable<Awaited<ReturnType<typeof attemptRecord>>>;

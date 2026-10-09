@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api, formatMon, pct, type LeaderboardRow, type TwinCard } from "@/lib/api";
@@ -139,13 +140,13 @@ export function TwinView({
             {leaderboard.map((row, i) => (
               <li key={row.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
                 <span className="w-5 font-mono text-sm text-muted">{i + 1}</span>
-                <div className="min-w-0 flex-1">
+                <Link href={`/t/${twin.slug}/a/${row.id}`} className="min-w-0 flex-1">
                   <p className="truncate font-medium">
                     {row.displayName}
                     {row.mode === "owner" && <span className="ml-2 text-xs text-gold">the real one</span>}
                   </p>
                   <p className="truncate text-xs text-muted">“{row.verdictLine}”</p>
-                </div>
+                </Link>
                 <div className="text-right">
                   <p className="font-mono text-sm font-semibold">{pct(row.scoreBps)}</p>
                   <a
@@ -154,7 +155,13 @@ export function TwinView({
                     rel="noreferrer"
                     className="text-xs text-muted underline decoration-dotted"
                   >
-                    {BigInt(row.paidWei) > 0n ? `paid ${formatMon(row.paidWei)}` : row.passed ? "passed" : "tx"}
+                    {row.mode === "owner"
+                      ? "set the bar"
+                      : BigInt(row.paidWei) > 0n
+                        ? `paid ${formatMon(row.paidWei)}`
+                        : row.passed
+                          ? "passed"
+                          : "tx"}
                   </a>
                 </div>
               </li>

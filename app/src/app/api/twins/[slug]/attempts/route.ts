@@ -7,8 +7,13 @@ import { explorerTx } from "@/lib/chain";
 import { postOwnerProof, postVerdict } from "@/lib/contract";
 import { db, schema } from "@/lib/db";
 import { judge } from "@/lib/judge";
+import { JudgeUnavailableError } from "@/lib/llm";
+import { assertCanAttempt, clientIpHash, limitResponse } from "@/lib/limits";
 import { ANSWERS_PER_ATTEMPT, scenarioById } from "@/lib/scenarios";
 import { twinBySlug } from "@/lib/twins";
+
+// A verdict is a model call (up to ~50 s across the fallback chain) plus a transaction.
+export const maxDuration = 120;
 
 const Body = z.object({
   mode: z.enum(["owner", "challenger"]),
@@ -52,7 +57,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     }
   }
 
-  const verdict = await judge(twin.persona, scenarios.map((s) => s!), answers);
+  const ipHash = clientIpHash(request);
+  try {
+    await assertCanAttempt(twin.id, address, ipHash);
+  } catch (error) {
+    return limitResponse(error) ?? Promise.reject(error);
+  }
+
+  let verdict;
+  try {
+    verdict = await judge(twin.persona, scenarios.map((s) => s!), answers);
+  } catch (error) {
+    if (error instanceof JudgeUnavailableError) return NextResponse.json({ error: error.message }, { status: 503 });
+    throw error;
+  }
 
   let txHash: Hex;
   let paidWei = 0n;
@@ -88,6 +106,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       verdictHash: verdict.verdictHash,
       txHash,
       paidWei: paidWei.toString(),
+      judgeModel: verdict.model,
+      ipHash,
       createdAt: new Date(),
     })
     .returning()
@@ -105,6 +125,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       styleNotes: verdict.style.notes,
       styleSimilarity: verdict.style.similarity,
       verdictHash: verdict.verdictHash,
+      judgeModel: verdict.model,
       txHash,
       txUrl: explorerTx(txHash),
     },

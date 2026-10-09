@@ -11,14 +11,19 @@ export type StyleFeatures = {
   laugh: number; // lol / lmao / haha / 😂 etc.
   ellipsis: number; // ... or …
   question: number; // messages with ?
-  lowerI: number; // standalone "i" instead of "I"
+  /** Share of messages that say "I" at all, in either case (i, I, i'm, im, ive). */
+  firstPerson: number;
+  /** Of the messages that say "I", the share that write it lowercase. 0 when none do. */
+  lowerI: number;
   abbrev: number; // u, ur, rn, idk, tbh, ngl, omg, wya, brb, imo, smh, btw
 };
 
 const EMOJI = /\p{Extended_Pictographic}/u;
 const LAUGH = /\b(lol+|lmao+|lmfao|haha+|hehe+|rofl|dead|😂|🤣|💀)\b|😂|🤣|💀/i;
 const ABBREV = /\b(u|ur|rn|idk|tbh|ngl|omg|wya|brb|imo|smh|btw|pls|plz|thx|ty|k|kk|wtf|af|fr|ikr|nvm|ofc)\b/i;
-const LOWER_I = /(^|[^a-zA-Z'])i([^a-zA-Z']|$)/;
+// "I" as a word, with or without a contraction, plus the apostrophe-less "im" / "ive".
+const FIRST_PERSON = /(?:^|[^a-zA-Z])(i|I)(?:m|ve)?(?=$|[^a-zA-Z])/;
+const FIRST_PERSON_LOWER = /(?:^|[^a-zA-Z])i(?:m|ve)?(?=$|[^a-zA-Z])/;
 
 function rate(texts: string[], test: (t: string) => boolean) {
   if (!texts.length) return 0;
@@ -28,6 +33,7 @@ function rate(texts: string[], test: (t: string) => boolean) {
 export function features(texts: string[]): StyleFeatures {
   const clean = texts.map((t) => t.trim()).filter(Boolean);
   const avgChars = clean.length ? clean.reduce((n, t) => n + t.length, 0) / clean.length : 0;
+  const sayingI = clean.filter((t) => FIRST_PERSON.test(t));
   return {
     lowerStart: rate(clean, (t) => /^[a-z]/.test(t)),
     avgChars,
@@ -37,12 +43,15 @@ export function features(texts: string[]): StyleFeatures {
     laugh: rate(clean, (t) => LAUGH.test(t)),
     ellipsis: rate(clean, (t) => /\.{3}|…/.test(t)),
     question: rate(clean, (t) => t.includes("?")),
-    lowerI: rate(clean, (t) => LOWER_I.test(t)),
+    firstPerson: clean.length ? sayingI.length / clean.length : 0,
+    lowerI: rate(sayingI, (t) => FIRST_PERSON_LOWER.test(t)),
     abbrev: rate(clean, (t) => ABBREV.test(t)),
   };
 }
 
-const WEIGHTS: Record<keyof StyleFeatures, number> = {
+type Scored = Exclude<keyof StyleFeatures, "firstPerson">;
+
+const WEIGHTS: Record<Scored, number> = {
   lowerStart: 2,
   avgChars: 1.5,
   emoji: 1.5,
@@ -55,9 +64,22 @@ const WEIGHTS: Record<keyof StyleFeatures, number> = {
   abbrev: 1.5,
 };
 
-function normalised(f: StyleFeatures): Record<keyof StyleFeatures, number> {
+function normalised(f: StyleFeatures): Record<Scored, number> {
   return { ...f, avgChars: Math.min(f.avgChars / 160, 1) };
 }
+
+/** How someone writes "I" is only evidence when both sides actually wrote it. */
+function bothSayI(persona: StyleFeatures, candidate: StyleFeatures) {
+  return persona.firstPerson > 0 && candidate.firstPerson > 0;
+}
+
+/**
+ * A weighted mean habit difference of this much or more counts as "nothing alike".
+ * Without it the score has a high floor: most habits are absent on both sides (no emoji,
+ * no ellipsis, no "!"), which reads as agreement, so an email-style reply measured 65%
+ * similar to a lowercase one-word texter. First-pass value; tune from playtest data.
+ */
+const SATURATION = 0.4;
 
 /** 0..1, where 1 means the candidate's habits match the persona's exactly. */
 export function similarity(persona: StyleFeatures, candidate: StyleFeatures): number {
@@ -65,38 +87,50 @@ export function similarity(persona: StyleFeatures, candidate: StyleFeatures): nu
   const b = normalised(candidate);
   let total = 0;
   let weight = 0;
-  for (const key of Object.keys(WEIGHTS) as (keyof StyleFeatures)[]) {
+  for (const key of Object.keys(WEIGHTS) as Scored[]) {
+    if (key === "lowerI" && !bothSayI(persona, candidate)) continue;
     total += WEIGHTS[key] * Math.abs(a[key] - b[key]);
     weight += WEIGHTS[key];
   }
-  return Math.max(0, 1 - total / weight);
+  return Math.max(0, 1 - total / weight / SATURATION);
 }
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
-/** Plain-language comparisons for the evidence panel; only the habits that differ clearly. */
-export function notes(name: string, persona: StyleFeatures, candidate: StyleFeatures): string[] {
+/**
+ * Plain-language comparisons for the evidence panel; only the habits that differ clearly.
+ * `who` labels the candidate: "You" for the player's own screen, a name on public pages.
+ */
+export function notes(name: string, persona: StyleFeatures, candidate: StyleFeatures, who = "You"): string[] {
   const out: string[] = [];
-  const diff = (key: keyof StyleFeatures) => Math.abs(persona[key] - candidate[key]);
+  const diff = (key: Scored) => Math.abs(persona[key] - candidate[key]);
 
   if (diff("lowerStart") > 0.3) {
-    out.push(`${name} starts ${pct(persona.lowerStart)} of texts lowercase. You: ${pct(candidate.lowerStart)}.`);
+    out.push(`${name} starts ${pct(persona.lowerStart)} of texts lowercase. ${who}: ${pct(candidate.lowerStart)}.`);
   }
   if (Math.abs(persona.avgChars - candidate.avgChars) > 40) {
     out.push(
-      `${name} averages ${Math.round(persona.avgChars)} characters a text. You: ${Math.round(candidate.avgChars)}.`,
+      `${name} averages ${Math.round(persona.avgChars)} characters a text. ${who}: ${Math.round(candidate.avgChars)}.`,
     );
   }
-  if (diff("emoji") > 0.3) out.push(`Emoji in ${pct(persona.emoji)} of ${name}'s texts. You: ${pct(candidate.emoji)}.`);
+  if (diff("emoji") > 0.3) out.push(`Emoji in ${pct(persona.emoji)} of ${name}'s texts. ${who}: ${pct(candidate.emoji)}.`);
   if (diff("endPunct") > 0.3) {
-    out.push(`${name} ends ${pct(persona.endPunct)} of texts with punctuation. You: ${pct(candidate.endPunct)}.`);
+    out.push(`${name} ends ${pct(persona.endPunct)} of texts with punctuation. ${who}: ${pct(candidate.endPunct)}.`);
   }
-  if (diff("laugh") > 0.3) out.push(`${name} laughs in text ${pct(persona.laugh)} of the time. You: ${pct(candidate.laugh)}.`);
-  if (diff("lowerI") > 0.3) {
-    out.push(candidate.lowerI > persona.lowerI ? `${name} capitalises "I". You didn't.` : `${name} writes "i". You capitalised it.`);
+  if (diff("laugh") > 0.3) out.push(`${name} laughs in text ${pct(persona.laugh)} of the time. ${who}: ${pct(candidate.laugh)}.`);
+  if (bothSayI(persona, candidate) && diff("lowerI") > 0.5) {
+    out.push(
+      candidate.lowerI > persona.lowerI
+        ? `${name} capitalises "I". ${who}: lowercase "i".`
+        : `${name} writes "i" lowercase. ${who}: capital "I".`,
+    );
   }
-  if (diff("abbrev") > 0.3) out.push(`Abbreviations (u, rn, idk) in ${pct(persona.abbrev)} of ${name}'s texts. You: ${pct(candidate.abbrev)}.`);
-  if (diff("exclaim") > 0.3) out.push(`Exclamation marks: ${name} ${pct(persona.exclaim)}, you ${pct(candidate.exclaim)}.`);
+  if (diff("abbrev") > 0.3) {
+    out.push(`Abbreviations (u, rn, idk) in ${pct(persona.abbrev)} of ${name}'s texts. ${who}: ${pct(candidate.abbrev)}.`);
+  }
+  if (diff("exclaim") > 0.3) {
+    out.push(`Exclamation marks in ${pct(persona.exclaim)} of ${name}'s texts. ${who}: ${pct(candidate.exclaim)}.`);
+  }
 
   return out.slice(0, 4);
 }

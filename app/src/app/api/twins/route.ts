@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Address } from "viem";
+import { assertCanCreateTwin, clientIpHash, limitResponse } from "@/lib/limits";
 import { createTwin } from "@/lib/twins";
 import { QUIZ } from "@/lib/scenarios";
+
+// Creating a twin funds its wallet and waits for two transactions.
+export const maxDuration = 60;
 
 const Body = z.object({
   name: z.string().trim().min(1).max(40),
@@ -18,8 +22,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
   const { name, bio, ownerAddress, samples, quiz } = parsed.data;
+  const ipHash = clientIpHash(request);
 
-  const twin = await createTwin(ownerAddress as Address, { version: 1, name, bio, samples, quiz });
+  try {
+    await assertCanCreateTwin(ownerAddress, ipHash);
+  } catch (error) {
+    return limitResponse(error) ?? Promise.reject(error);
+  }
+
+  const twin = await createTwin(ownerAddress as Address, { version: 1, name, bio, samples, quiz }, ipHash);
 
   return NextResponse.json({
     slug: twin.slug,
