@@ -21,10 +21,14 @@ const { privateKeyToAccount, generatePrivateKey } = require("viem/accounts");
 const base = (process.argv[2] ?? process.env.STANDIN_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const owner = privateKeyToAccount(generatePrivateKey());
 
+// Vercel preview deployments sit behind Deployment Protection. Set STANDIN_BYPASS to the
+// project's "Protection Bypass for Automation" secret to test one from the shell.
+const bypass = process.env.STANDIN_BYPASS ? { "x-vercel-protection-bypass": process.env.STANDIN_BYPASS } : {};
+
 async function call(method, path, body) {
   const res = await fetch(`${base}${path}`, {
     method,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...bypass },
     body: body ? JSON.stringify(body) : undefined,
   });
   const json = await res.json().catch(() => ({}));

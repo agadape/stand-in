@@ -102,7 +102,7 @@ node scripts/e2e.mjs http://localhost:3000
 | friend | a decent imitation that overdoes his tics | 53.3% (model 64, style 33%) |
 | impostor | polite email voice | 5.9% (model 2, style 13%) |
 
-It exits non-zero unless owner > friend > impostor, so run it after any change to the prompt, the style weights or the model chain. It costs three judge calls and about 0.35 testnet MON, and retries by itself when the judge returns 503.
+It exits non-zero unless owner > friend > impostor, so run it after any change to the prompt, the style weights or the model chain. To run it against a Vercel preview (which sits behind Deployment Protection), set `STANDIN_BYPASS` to the project's Protection Bypass for Automation secret (Vercel → project → Settings → Deployment Protection). It costs three judge calls and about 0.35 testnet MON, and retries by itself when the judge returns 503.
 
 `npx tsx src/lib/style.check.ts` (from `app/`, also in CI) asserts the style fingerprint's invariants without any network: no high floor for unrelated voices, and no claim about how someone writes "I" unless both sides wrote it.
 
