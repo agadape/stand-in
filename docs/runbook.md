@@ -59,19 +59,24 @@ Current testnet deployment: [`0x9390ad4e2F8d61387a00CB168c58733831a416C2`](https
 
 ## Production database (Turso)
 
-The schema is SQLite, so production uses Turso (hosted libsql). One-time setup:
+The schema is SQLite, so production uses Turso (hosted libsql), provisioned through the Vercel Marketplace on the free **Starter** plan ($0, no payment method). That route needs no Turso account or CLI (the Turso CLI has no native Windows build; it needs WSL) and Vercel injects the credentials into the project itself.
+
+One-time setup, from the repo root:
 
 ```bash
-npm i -g @tursodatabase/cli
-turso auth login
-turso db create standin
-turso db show standin --url          # → DATABASE_URL (libsql://...)
-turso db tokens create standin       # → DATABASE_AUTH_TOKEN
+# 1. A person accepts Turso's marketplace terms in the browser (the CLI prints the link):
+vercel integration add tursocloud/database --plan starter --name standin -m region=iad1 --no-claim --no-env-pull
+# 2. Re-run the same command after accepting; it creates the database and connects it to
+#    the project as TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in every environment.
+# 3. Create the tables:
+vercel env pull .env.turso --environment development --yes
+node scripts/db-push.mjs --env .env.turso
+rm .env.turso
 ```
 
-Put both into `app/.env.local`, apply the schema with `node scripts/db-push.mjs` (drizzle-kit does not read `.env.local` by itself), then set the same two values on Vercel with `vercel env add DATABASE_URL production` and `vercel env add DATABASE_AUTH_TOKEN production` (type the values; don't pipe them from PowerShell, it adds a BOM). Re-run `db-push` after every schema change, locally and against Turso.
+The app reads `DATABASE_URL` / `DATABASE_AUTH_TOKEN` first and falls back to the `TURSO_*` names (`app/src/lib/env.ts`), so production uses Turso while `app/.env.local` keeps local dev on `file:./standin.db`. Region `iad1` matches where the Vercel functions run. Re-run step 3 after every schema change. `vercel integration open tursocloud` opens the Turso dashboard through Vercel SSO.
 
-Pointing local dev at the Turso database is fine and often convenient for a team: everyone sees the same twins. Use `DATABASE_URL=file:./standin.db` for offline hacking.
+To share one database across the team in local dev, copy the two `TURSO_*` values into `app/.env.local` as `DATABASE_URL` and `DATABASE_AUTH_TOKEN`.
 
 ## Running and testing
 

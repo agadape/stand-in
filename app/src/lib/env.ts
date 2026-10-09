@@ -44,12 +44,25 @@ const schema = z.object({
 
 export type Env = z.infer<typeof schema>;
 
+/**
+ * Turso installed through the Vercel Marketplace injects TURSO_DATABASE_URL and
+ * TURSO_AUTH_TOKEN. Explicit DATABASE_* values still win, so local dev can keep
+ * pointing at a file.
+ */
+function source() {
+  return {
+    ...process.env,
+    DATABASE_URL: process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL,
+    DATABASE_AUTH_TOKEN: process.env.DATABASE_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN,
+  };
+}
+
 let cached: Env | undefined;
 
 // Parsed lazily so `next build` succeeds on a machine without secrets. In development
 // it is re-parsed on every call: hot reload keeps this module's instance alive while
 // `.env.local` and the schema change underneath it, and a stale cache misleads.
 export function env(): Env {
-  if (!cached || process.env.NODE_ENV !== "production") cached = schema.parse(process.env);
+  if (!cached || process.env.NODE_ENV !== "production") cached = schema.parse(source());
   return cached;
 }
