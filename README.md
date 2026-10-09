@@ -4,15 +4,18 @@
 
 Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis), Track 03: Social, Attention & Culture.
 
-## Status (7 Oct 2026)
+**Play it: <https://stand-in-ashen.vercel.app>** (Monad testnet, test money only). Try being Dave: <https://stand-in-ashen.vercel.app/t/dave-75e42b>
+
+## Status (9 Oct 2026)
 
 - [x] `StandIn` deployed to Monad testnet and source-verified on MonadVision: [`0x9390…16C2`](https://testnet.monadvision.com/address/0x9390ad4e2F8d61387a00CB168c58733831a416C2)
 - [x] Contract tests (18, incl. fuzz), app type-check, lint and production build all green; CI runs them on every push
 - [x] Chain path exercised against the real contract: twin creation by the twin's own wallet, card read back from chain
 - [x] Judge path end to end on Gemini's free tier (`scripts/e2e.mjs`): owner 87% / friend imitation 53% / email-voice impostor 6%, verdicts verified against the chain in the browser
 - [ ] A passing challenger and live payout through the app (contract-tested; no fixture has beaten the owner yet)
+- [x] Hosted on Vercel with a Turso database (free tiers); the full loop passes against production infrastructure
 - [ ] Passkey flows on real phones (Mera PRF)
-- [ ] Hosted deployment and demo video
+- [ ] Demo video
 
 Operational details (env vars, wallets, deploy, troubleshooting) live in [docs/runbook.md](docs/runbook.md).
 

@@ -9,8 +9,10 @@ const schema = z.object({
   LLM_PROVIDER: z.enum(["auto", "anthropic", "gemini"]).default("auto"),
   GEMINI_API_KEY: z.string().optional(),
   // Ordered fallback chain: free-tier models are often overloaded, so the next one is
-  // tried on a 503/429/timeout. First entry is the model you want judging normally.
-  GEMINI_MODEL: z.string().default("gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash"),
+  // tried on a 503/429/timeout. Only models that judge alike belong here: measured with
+  // app/scripts/judge-compare.ts, 3.8 and 3.7 score an exaggerated imitation ~58-60%
+  // against a bar of ~87%, while 3.5-flash scores it 81% and would hand out wins.
+  GEMINI_MODEL: z.string().default("gemini-3.8-flash,gemini-3.7-flash"),
   // "low" roughly halves latency with no visible loss in verdict quality so far.
   GEMINI_THINKING: z.enum(["low", "medium", "high"]).default("low"),
   ANTHROPIC_MODEL: z.string().default("claude-opus-5-5"),
