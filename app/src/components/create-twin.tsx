@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import type { Provider } from "@/lib/llm";
 import { createPasskeyAccount, passkeysSupported, signInWithPasskey } from "@/lib/passkey";
 import { QUIZ } from "@/lib/scenarios";
 import { rememberOwned } from "@/lib/session";
@@ -10,7 +11,14 @@ import { Button, Card, ErrorNote, Field, inputClass } from "./ui";
 
 const MIN_SAMPLES = 8;
 
-export function CreateTwin() {
+// Where the persona goes besides our database: every judging call carries it.
+const SENT_TO: Record<Provider, string> = {
+  gemini:
+    "Google's Gemini every time someone is judged. Google may use free-tier requests to improve its products, so leave out anything sensitive.",
+  anthropic: "Anthropic's Claude every time someone is judged, so leave out anything sensitive.",
+};
+
+export function CreateTwin({ judge }: { judge: Provider | null }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
@@ -88,7 +96,7 @@ export function CreateTwin() {
               <span className={samples.length >= MIN_SAMPLES ? "text-ok" : ""}>
                 {samples.length}/{MIN_SAMPLES}
               </span>
-              . These stay private: your twin uses them, nobody else sees them.
+              .
             </>
           }
         >
@@ -114,6 +122,12 @@ export function CreateTwin() {
           </Field>
         ))}
       </Card>
+
+      <p className="text-xs text-muted">
+        Other players aren&apos;t shown your texts or quiz answers, only your twin&apos;s verdicts. Both are stored for
+        your twin and sent to{" "}
+        {judge ? SENT_TO[judge] : "an AI model every time someone is judged, so leave out anything sensitive."}
+      </p>
 
       <ErrorNote>{error}</ErrorNote>
 
