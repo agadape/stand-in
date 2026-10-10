@@ -50,7 +50,7 @@ async function once(model: string, voice: Voice) {
       return { overall: verdict.llm.overall, score: verdict.scoreBps / 100, ms: Date.now() - started };
     } catch (error) {
       if (!(error instanceof JudgeUnavailableError) || attempt === 3) {
-        return { error: error instanceof Error ? error.message.slice(0, 60) : String(error) };
+        return { error: error instanceof Error ? error.message.slice(0, 120) : String(error) };
       }
       await sleep(20_000);
     }

@@ -106,6 +106,8 @@ It exits non-zero unless owner > friend > impostor, so run it after any change t
 
 `npx tsx src/lib/style.check.ts` (from `app/`, also in CI) asserts the style fingerprint's invariants without any network: no high floor for unrelated voices, and no claim about how someone writes "I" unless both sides wrote it.
 
+`npx tsx src/lib/redact.check.ts` (same place, also in CI) covers the privacy guard in `app/src/lib/redact.ts`. The judge sees the owner's pasted texts and quiz answers and is told never to quote them, but on 10 Oct it quoted a quiz answer in a public tell anyway. Before a verdict is hashed and stored, any three consecutive words copied from a private text (or a whole two-word text) are replaced with "…" in the tells and the verdict line, unless the candidate, the scenario or the owner's public bio said the same words. Single words are not treated as private.
+
 ### Which models may judge
 
 The owner's bar and a challenger's attempt can be judged by different models when the first one is overloaded, so every model in `GEMINI_MODEL` has to score alike or a fallback hands out wins. `app/scripts/judge-compare.ts` sends identical answers to each model on its own (no transactions, no database):
@@ -128,7 +130,17 @@ Measured 9 Oct 2026 (thinking `low`, two runs each, the Dave fixture; final scor
 | `gemini-3.5-flash` | 86.5 | 80.6 | 1.0 | too lenient: cannot tell the imitation from the owner |
 | `gemini-3.6-flash` | — | — | — | free-tier quota exhausted after a handful of calls |
 
-Small samples from one fixture, so re-run before trusting a new model. The friend voice is the discriminating case; every model agrees on the owner and the impostor. Adding a lenient model buys availability at the cost of fairness. Free-tier daily request caps differ per model and are only visible at <https://aistudio.google.com/rate-limit>.
+Small samples from one fixture, so re-run before trusting a new model. The friend voice is the discriminating case; the Flash models agree on the owner and the impostor. Adding a lenient model buys availability at the cost of fairness.
+
+The lite models are not a way out. Run on all three voices on 10 Oct (one run each): `gemini-3.5-flash-lite` scored the owner 75.4 and the friend 66.7, a gap of 8.7 where 3.8-flash leaves about 29, and `gemini-3.1-flash-lite` scored the owner 68.9, below the 71.2 it gave the friend the day before.
+
+### How many attempts a day the free tier allows
+
+Each judged attempt (an owner proving themselves, or a challenge) is one request to the first model that answers. **`gemini-3.8-flash` allows 20 requests per day on the free tier** (read from its 429 on 10 Oct; the window appeared to reset at 00:00 UTC). The cap for `gemini-3.7-flash` has not been hit yet, so it is still unknown; all caps are listed at <https://aistudio.google.com/rate-limit>.
+
+- The key in `app/.env.local` and the key on Vercel draw on the same allowance if they belong to the same Google project, so `e2e.mjs` and `judge-compare.ts` runs take attempts away from players. Do not run them on a playtest or demo day.
+- `npx tsx --env-file=.env.local scripts/quota-probe.ts` (from `app/`) sends one tiny request per model and prints the full limit message of any that refuses.
+- When every model in the chain is out of quota, players see "The judge has used up its free requests for now. It's back in about N hours."
 
 The repo's CI (`.github/workflows/ci.yml`) runs `forge test`, `tsc` and `eslint` on every push.
 
