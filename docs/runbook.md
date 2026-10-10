@@ -9,7 +9,7 @@ All runtime configuration lives in `app/.env.local` (never committed). `node scr
 | Variable | Purpose | Default |
 |---|---|---|
 | `GEMINI_API_KEY` | Judge model key. Free tier at <https://aistudio.google.com/apikey> (Flash models only; ~5–15 requests/min). | — |
-| `GEMINI_MODEL` | Ordered, comma-separated fallback chain. The first model judges; the next is tried when one is overloaded, rate-limited or slow. | `gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash` |
+| `GEMINI_MODEL` | Ordered, comma-separated fallback chain. The first model judges (and is retried through short overload spikes); the next is tried when it stays overloaded, hits a quota or times out. Only list models that judge alike. | `gemini-3.8-flash,gemini-3.7-flash` |
 | `GEMINI_THINKING` | `low`, `medium` or `high`. `low` cut verdict time from ~30 s to ~10 s with no visible loss in tells. | `low` |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Alternative judge (Claude). Used automatically when the key is set. | `claude-opus-5-5` |
 | `LLM_PROVIDER` | `auto` (Anthropic if its key is set, else Gemini), `gemini`, or `anthropic` | `auto` |
@@ -106,6 +106,30 @@ It exits non-zero unless owner > friend > impostor, so run it after any change t
 
 `npx tsx src/lib/style.check.ts` (from `app/`, also in CI) asserts the style fingerprint's invariants without any network: no high floor for unrelated voices, and no claim about how someone writes "I" unless both sides wrote it.
 
+### Which models may judge
+
+The owner's bar and a challenger's attempt can be judged by different models when the first one is overloaded, so every model in `GEMINI_MODEL` has to score alike or a fallback hands out wins. `app/scripts/judge-compare.ts` sends identical answers to each model on its own (no transactions, no database):
+
+```bash
+cd app
+npx tsx --env-file=.env.local scripts/judge-compare.ts                       # every model in the chain, all three voices
+npx tsx --env-file=.env.local scripts/judge-compare.ts gemini-3.7-flash 2 friend   # screen one candidate
+```
+
+Measured 9 Oct 2026 (thinking `low`, two runs each, the Dave fixture; final scores, bar ≈ 87%):
+
+| Model | Owner | Friend imitation | Impostor | Use |
+|---|---|---|---|---|
+| `gemini-3.8-flash` | 86.8 | 57.6 | 0.0 | primary |
+| `gemini-3.7-flash` | — | 60.5 | — | fallback (matches 3.8 on the voice that matters) |
+| `gemini-3.5-flash-lite` | — | 71.2 | — | lenient |
+| `gemini-3.1-flash-lite` | — | 71.2 | — | lenient |
+| `gemini-3-flash-preview` | — | 77.7 | — | lenient |
+| `gemini-3.5-flash` | 86.5 | 80.6 | 1.0 | too lenient: cannot tell the imitation from the owner |
+| `gemini-3.6-flash` | — | — | — | free-tier quota exhausted after a handful of calls |
+
+Small samples from one fixture, so re-run before trusting a new model. The friend voice is the discriminating case; every model agrees on the owner and the impostor. Adding a lenient model buys availability at the cost of fairness. Free-tier daily request caps differ per model and are only visible at <https://aistudio.google.com/rate-limit>.
+
 The repo's CI (`.github/workflows/ci.yml`) runs `forge test`, `tsc` and `eslint` on every push.
 
 ## Troubleshooting
@@ -122,7 +146,7 @@ The repo's CI (`.github/workflows/ci.yml`) runs `forge test`, `tsc` and `eslint`
 
 **Port 3000 in use.** `next dev` honours `PORT`; `.claude/launch.json` sets `autoPort` so the preview picks a free one.
 
-**Judge errors.** "The judge is swamped" (HTTP 503) means every model in `GEMINI_MODEL` was overloaded or rate-limited. On the free tier single-model overloads ("is currently experiencing high demand") are routine, which is why there is a chain; the server log line `[judge] used <model> after: ...` shows each fallback. If the whole chain fails often, reorder it to put a quieter model first (`gemini-3.6-flash` answered in ~5 s when `3.8` took 14 s and `3.7` was down). Each attempt records the model that judged it (`judge_model`, shown on the verdict page), because a bar set by one model and a challenge judged by another is not a perfectly level comparison. `Judge declined` means the model's safety classifiers refused; `Judge returned no parsable verdict` / a Zod error means the structured output failed validation. All are logged server-side. Each verdict is roughly 1,500 input + 300 output tokens; `/api/health` shows which provider is active.
+**Judge errors.** "The judge is swamped" (HTTP 503) means every model in `GEMINI_MODEL` was overloaded or rate-limited. On the free tier single-model overloads ("is currently experiencing high demand") are routine, which is why there is a chain; the server log line `[judge] used <model> after: ...` shows each fallback. A 429 "exceeded a quota" in that log means the model's free daily allowance is gone, which no retry fixes. If the whole chain fails often, add a model only after screening it with `judge-compare.ts` (see "Which models may judge"). Each attempt records the model that judged it (`judge_model`, shown on the verdict page), because a bar set by one model and a challenge judged by another is not a perfectly level comparison. `Judge declined` means the model's safety classifiers refused; `Judge returned no parsable verdict` / a Zod error means the structured output failed validation. All are logged server-side. Each verdict is roughly 1,500 input + 300 output tokens; `/api/health` shows which provider is active.
 
 **Verify button says "Mismatch".** The stored verdict no longer hashes to what the twin posted. Either the database row was edited after the fact, or the hashed field set in `app/src/lib/judge.ts` and `app/src/components/verify-verdict.tsx` has drifted; they must list the same fields in the same order (`scenarios, answers, llm, similarity, scoreBps`).
 

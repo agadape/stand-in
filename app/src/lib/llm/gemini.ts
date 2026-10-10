@@ -3,16 +3,22 @@ import { env } from "../env";
 import { JudgeUnavailableError, LLM_VERDICT_JSON_SCHEMA, type JudgePrompt, type JudgeResult } from "./types";
 
 const PER_CALL_TIMEOUT_MS = 25_000;
-// Stop trying further models once this much time has gone; the player is waiting.
+// Stop trying once this much time has gone; the player is waiting.
 const TOTAL_BUDGET_MS = 50_000;
+// Pause before each pass over the chain. Overloads are short spikes, so when every
+// model was busy a second and third pass a few seconds later usually gets through.
+const ROUND_DELAYS_MS = [0, 3_000, 6_000];
 
 /**
  * Gemini as the judge, through the Interactions API with a JSON response schema.
  *
  * Flash models are on Google's free tier, which is what the hosted demo runs on, and
- * on that tier "model is experiencing high demand" (503) is routine. So GEMINI_MODEL is
- * an ordered list: each model gets one attempt with no SDK retries, and an overload,
- * rate limit or timeout moves on to the next. Anything else is a real error.
+ * on that tier "model is experiencing high demand" (503) is routine. GEMINI_MODEL is an
+ * ordered list of models that judge alike (see app/scripts/judge-compare.ts): each gets
+ * one attempt per pass with no SDK retries, so a busy model costs a second or two before
+ * the next one answers. A model that reports a quota error is dropped for the rest of
+ * the request, since waiting cannot help. Anything that is not overload, quota or
+ * timeout is a real error and is thrown.
  */
 export async function runGemini(prompt: JudgePrompt): Promise<JudgeResult> {
   const e = env();
@@ -21,26 +27,33 @@ export async function runGemini(prompt: JudgePrompt): Promise<JudgeResult> {
   const input = `${prompt.rules}\n\n---\n\n${prompt.persona}\n\n---\n\n${prompt.candidate}`;
   const started = Date.now();
   const skipped: string[] = [];
+  const outOfQuota = new Set<string>();
+  const outOfTime = () => Date.now() - started > TOTAL_BUDGET_MS;
 
-  for (const model of models) {
-    if (Date.now() - started > TOTAL_BUDGET_MS) break;
-    try {
-      const interaction = await client.interactions.create(
-        {
-          model,
-          input,
-          generation_config: { thinking_level: e.GEMINI_THINKING },
-          response_format: { type: "text", mime_type: "application/json", schema: LLM_VERDICT_JSON_SCHEMA },
-        },
-        { maxRetries: 0, timeout: PER_CALL_TIMEOUT_MS },
-      );
-      const text = interaction.output_text;
-      if (!text) throw new Error(`${model} returned no text`);
-      if (skipped.length) console.warn(`[judge] used ${model} after: ${skipped.join("; ")}`);
-      return { raw: JSON.parse(text), model };
-    } catch (error) {
-      if (!isTransient(error)) throw error;
-      skipped.push(`${model} (${describe(error)})`);
+  for (const delay of ROUND_DELAYS_MS) {
+    if (outOfQuota.size === models.length || outOfTime()) break;
+    if (delay) await sleep(delay);
+    for (const model of models) {
+      if (outOfQuota.has(model) || outOfTime()) continue;
+      try {
+        const interaction = await client.interactions.create(
+          {
+            model,
+            input,
+            generation_config: { thinking_level: e.GEMINI_THINKING },
+            response_format: { type: "text", mime_type: "application/json", schema: LLM_VERDICT_JSON_SCHEMA },
+          },
+          { maxRetries: 0, timeout: PER_CALL_TIMEOUT_MS },
+        );
+        const text = interaction.output_text;
+        if (!text) throw new Error(`${model} returned no text`);
+        if (skipped.length) console.warn(`[judge] used ${model} after: ${skipped.join("; ")}`);
+        return { raw: JSON.parse(text), model };
+      } catch (error) {
+        if (!isTransient(error)) throw error;
+        skipped.push(`${model} (${describe(error)})`);
+        if (isQuota(error)) outOfQuota.add(model);
+      }
     }
   }
 
@@ -48,21 +61,31 @@ export async function runGemini(prompt: JudgePrompt): Promise<JudgeResult> {
   throw new JudgeUnavailableError("The judge is swamped right now (free-tier model overload). Try again in a minute.");
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function statusOf(error: unknown): number | undefined {
   const e = error as { status?: number; statusCode?: number };
   return e?.status ?? e?.statusCode;
 }
 
-function describe(error: unknown) {
-  const status = statusOf(error);
-  const message = error instanceof Error ? error.message : String(error);
-  return `${status ?? "error"}: ${message.slice(0, 80)}`;
+function textOf(error: unknown) {
+  return error instanceof Error ? `${error.name} ${error.message}` : String(error);
 }
 
-/** Overload, rate limit, quota or timeout: worth trying another model. */
+function describe(error: unknown) {
+  return `${statusOf(error) ?? "error"}: ${textOf(error).slice(0, 80)}`;
+}
+
+/** A daily or per-minute allowance is used up; the same model will keep refusing. */
+function isQuota(error: unknown) {
+  return statusOf(error) === 429 || /RESOURCE_EXHAUSTED|quota|rate limit/i.test(textOf(error));
+}
+
+/** Overload, quota or timeout: worth another try, on this model or the next. */
 function isTransient(error: unknown) {
   const status = statusOf(error);
-  if (status === 429 || status === 500 || status === 503 || status === 504) return true;
-  const text = error instanceof Error ? `${error.name} ${error.message}` : String(error);
-  return /RESOURCE_EXHAUSTED|rate limit|quota|high demand|overloaded|unavailable|timed? ?out|abort/i.test(text);
+  if (status === 500 || status === 503 || status === 504) return true;
+  return isQuota(error) || /high demand|overloaded|unavailable|timed? ?out|abort/i.test(textOf(error));
 }
