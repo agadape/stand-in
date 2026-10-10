@@ -27,7 +27,8 @@ export async function runGemini(prompt: JudgePrompt): Promise<JudgeResult> {
   const input = `${prompt.rules}\n\n---\n\n${prompt.persona}\n\n---\n\n${prompt.candidate}`;
   const started = Date.now();
   const skipped: string[] = [];
-  const outOfQuota = new Set<string>();
+  // Model -> seconds until it says it will answer again (Infinity when it does not say).
+  const outOfQuota = new Map<string, number>();
   const outOfTime = () => Date.now() - started > TOTAL_BUDGET_MS;
 
   for (const delay of ROUND_DELAYS_MS) {
@@ -52,13 +53,34 @@ export async function runGemini(prompt: JudgePrompt): Promise<JudgeResult> {
       } catch (error) {
         if (!isTransient(error)) throw error;
         skipped.push(`${model} (${describe(error)})`);
-        if (isQuota(error)) outOfQuota.add(model);
+        if (isQuota(error)) outOfQuota.set(model, retryAfterSeconds(error) ?? Infinity);
       }
     }
   }
 
   console.warn(`[judge] all Gemini models unavailable: ${skipped.join("; ")}`);
+  if (outOfQuota.size === models.length) {
+    // Free-tier allowances are per day and small, so "try again in a minute" would be a lie.
+    const wait = Math.min(...outOfQuota.values());
+    throw new JudgeUnavailableError(
+      `The judge has used up its free requests for now.${Number.isFinite(wait) ? ` It's back in about ${roughly(wait)}.` : " Try again later."}`,
+    );
+  }
   throw new JudgeUnavailableError("The judge is swamped right now (free-tier model overload). Try again in a minute.");
+}
+
+/** "Please retry in 17h28m35s" -> seconds, when the error says. */
+function retryAfterSeconds(error: unknown): number | undefined {
+  const m = /retry in (?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?/i.exec(textOf(error));
+  if (!m || (!m[1] && !m[2] && !m[3])) return undefined;
+  return Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0);
+}
+
+function roughly(seconds: number) {
+  if (seconds < 90) return "a minute";
+  if (seconds < 3600) return `${Math.round(seconds / 60)} minutes`;
+  const hours = Math.round(seconds / 3600);
+  return hours === 1 ? "an hour" : `${hours} hours`;
 }
 
 function sleep(ms: number) {
@@ -75,7 +97,8 @@ function textOf(error: unknown) {
 }
 
 function describe(error: unknown) {
-  return `${statusOf(error) ?? "error"}: ${textOf(error).slice(0, 80)}`;
+  // Long enough to keep the limit a 429 names ("20 requests per day on Free Tier").
+  return `${statusOf(error) ?? "error"}: ${textOf(error).slice(0, 160)}`;
 }
 
 /** A daily or per-minute allowance is used up; the same model will keep refusing. */
