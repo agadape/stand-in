@@ -22,9 +22,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Link href="/" className="text-sm font-semibold tracking-tight">
             Stand-In
           </Link>
-          <Link href="/new" className="text-sm text-muted hover:text-foreground">
-            Make your pet
-          </Link>
+          <nav className="flex items-center gap-4 text-sm text-muted">
+            <Link href="/rooms" className="hover:text-foreground">
+              Rooms
+            </Link>
+            <Link href="/wall" className="hover:text-foreground">
+              Wall
+            </Link>
+            <Link href="/new" className="hover:text-foreground">
+              Make your pet
+            </Link>
+          </nav>
         </header>
         <main className="mx-auto w-full max-w-md flex-1 px-4 py-6">{children}</main>
         <footer className="mx-auto w-full max-w-md px-4 pb-8 text-xs text-muted">

@@ -66,7 +66,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
   let verdict;
   try {
-    verdict = await judge(twin.persona, scenarios.map((s) => s!), answers);
+    verdict = await judge(twin.persona, scenarios.map((s) => s!), answers, mode === "challenger");
   } catch (error) {
     if (error instanceof JudgeUnavailableError) return NextResponse.json({ error: error.message }, { status: 503 });
     throw error;

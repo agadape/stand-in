@@ -102,8 +102,9 @@ export function Verdict({
               ))}
             </ul>
             <p className="mt-3 text-xs text-muted">
-              Style match {Math.round(result.styleSimilarity * 100)}%, counted from casing, length, emoji and
-              punctuation habits. It makes up 35% of the score; the twin&apos;s read is the other 65%.
+              {result.judgeModel?.startsWith("stylometry")
+                ? "No AI in this score. It is counted from writing habits: which spellings you pick, how you laugh, casing, punctuation, length, emoji. The same answers always get the same score."
+                : `Style match ${Math.round(result.styleSimilarity * 100)}%, counted from casing, length, emoji and punctuation habits. It makes up 35% of the score; the twin's read is the other 65%.`}
             </p>
           </Card>
         </section>

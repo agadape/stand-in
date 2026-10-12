@@ -132,13 +132,11 @@ export async function attemptRecord(id: number) {
     answers: attempt.answers,
     llm: attempt.llm,
     similarity: attempt.style.similarity,
-    // Re-worded for a public page: the reader isn't the player, so no "You".
-    styleNotes: notes(
-      twin.name,
-      attempt.style.persona,
-      attempt.style.candidate,
-      attempt.mode === "owner" ? "This time" : attempt.displayName,
-    ),
+    // The stylometry judge's notes name nobody and are stored as written. The model
+    // judge's are re-worded for a public page: the reader isn't the player, so no "You".
+    styleNotes: attempt.judgeModel?.startsWith("stylometry")
+      ? attempt.style.notes
+      : notes(twin.name, attempt.style.persona, attempt.style.candidate, attempt.mode === "owner" ? "This time" : attempt.displayName),
     createdAt: attempt.createdAt.getTime(),
     twin: {
       slug: twin.slug,

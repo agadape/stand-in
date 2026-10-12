@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import QRCode from "qrcode";
 import { TwinView } from "@/components/twin-view";
 import { bondsOf } from "@/lib/bonds";
 import { leaderboardRows, publicTwin, twinBySlug } from "@/lib/twins";
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ welcome?: string }>;
+  searchParams: Promise<{ welcome?: string; g?: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -27,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function TwinPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { welcome } = await searchParams;
+  const { welcome, g } = await searchParams;
   const twin = await twinBySlug(slug);
   if (!twin) notFound();
 
@@ -38,13 +37,16 @@ export default async function TwinPage({ params, searchParams }: Props) {
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const meetUrl = `${proto}://${host}/t/${twin.slug}/meet`;
 
-  const [card, rows, bonds, qrSvg] = await Promise.all([
-    publicTwin(twin),
-    leaderboardRows(twin.id),
-    bondsOf(twin),
-    QRCode.toString(meetUrl, { type: "svg", margin: 1, color: { dark: "#0b0b12", light: "#ffffff" } }),
-  ]);
+  const [card, rows, bonds] = await Promise.all([publicTwin(twin), leaderboardRows(twin.id), bondsOf(twin)]);
+  const gatheringId = /^\d{1,9}$/.test(g ?? "") ? Number(g) : 0;
   return (
-    <TwinView twin={card} leaderboard={rows} bonds={bonds} meetUrl={meetUrl} qrSvg={qrSvg} welcome={welcome === "1"} />
+    <TwinView
+      twin={card}
+      leaderboard={rows}
+      bonds={bonds}
+      meetUrl={meetUrl}
+      gatheringId={gatheringId}
+      welcome={welcome === "1"}
+    />
   );
 }

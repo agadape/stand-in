@@ -1,8 +1,9 @@
 import { z } from "zod";
 import type { Persona, PetChat } from "./db/schema";
 import { env } from "./env";
-import { runJson } from "./llm";
+import { JudgeUnavailableError, runJson } from "./llm";
 import { redactPrivate } from "./redact";
+import { features, similarity } from "./style";
 
 const ChatSchema = z.object({
   messages: z.array(z.object({ from: z.enum(["a", "b"]), text: z.string().min(1).max(300) })).min(4).max(12),
@@ -27,7 +28,7 @@ const CHAT_JSON_SCHEMA = {
   required: ["messages", "chemistry", "summary"],
 } as const;
 
-const TRIES = 4;
+const TRIES = 2;
 
 const RULES =`Two people just met in real life and tapped phones in an app called Stand-In. Each has an AI pet that texts exactly like its owner. Write the first text conversation between the two pets.
 
@@ -59,7 +60,13 @@ export async function petChat(a: Persona, b: Persona): Promise<{ chat: PetChat; 
   let best: { chat: PetChat; model: string; cuts: number } | undefined;
   for (let attempt = 0; attempt < tries && (!best || best.cuts > 0); attempt++) {
     const rules = attempt === 0 ? RULES : `${RULES}\nYour last try copied phrases from the real messages. Use none of their wording this time.`;
-    const { raw, model } = await runJson(rules, personas, CHAT_JSON_SCHEMA);
+    const answer = await runJson(rules, personas, CHAT_JSON_SCHEMA).catch((error) => {
+      if (error instanceof JudgeUnavailableError) return null;
+      throw error;
+    });
+    // Out of model allowance: keep what we have, or let the meeting go ahead without a chat.
+    if (!answer) break;
+    const { raw, model } = answer;
     const parsed = ChatSchema.safeParse(raw);
     if (!parsed.success) continue;
     const messages = parsed.data.messages.map((m) => ({ from: m.from, text: clean(m.text) }));
@@ -68,6 +75,18 @@ export async function petChat(a: Persona, b: Persona): Promise<{ chat: PetChat; 
       messages.filter((m, i) => m.text !== parsed.data.messages[i].text).length + (summary === parsed.data.summary ? 0 : 1);
     if (!best || cuts < best.cuts) best = { chat: { messages, chemistry: parsed.data.chemistry, summary }, model, cuts };
   }
-  if (!best) throw new Error("The pets' chat came back malformed every time");
+  // A meeting is a fact about two people; it must not fail because a chat model is busy.
+  if (!best) return { chat: shyChat(a, b), model: "none" };
   return { chat: best.chat, model: best.model };
+}
+
+/** No model answered: the pets stay quiet, and chemistry comes from how alike the owners type. */
+function shyChat(a: Persona, b: Persona): PetChat {
+  const texts = (p: Persona) => [...p.samples, ...p.quiz.map((q) => q.answer)];
+  const alike = similarity(features(texts(a)), features(texts(b)));
+  return {
+    messages: [],
+    chemistry: Math.round(35 + alike * 50),
+    summary: `${a.name}'s and ${b.name}'s pets were too shy to talk this time.`,
+  };
 }

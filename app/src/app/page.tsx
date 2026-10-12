@@ -6,16 +6,16 @@ const steps = [
     body: "Paste texts you've sent and answer six questions. Your pet learns to text like you. Face ID is the whole account; no wallet, no seed phrase.",
   },
   {
-    title: "Meet someone, scan or tap",
-    body: "Your pet has a code. Someone you meet scans it, or taps an NFC sticker or bracelet that carries it.",
+    title: "Meet someone, scan their code",
+    body: "Your pet shows a code that changes every 20 seconds and works once. A screenshot is useless a minute later, so scanning it means you were looking at that phone.",
   },
   {
     title: "Your pets do the talking",
-    body: "When you've both said yes, your two pets have their first chat in your voices and tell you how well you'd get along.",
+    body: "Your two pets have their first chat in your voices and tell you how well you'd get along.",
   },
   {
-    title: "Friends, on-chain",
-    body: "Your pet's own wallet records the friendship on Monad. Your friend list is a public record of people you actually met.",
+    title: "Proof of Met, on-chain",
+    body: "The meeting is written to a public contract on Monad, signed by both pets. Your friend list is a record of people you actually stood next to.",
   },
 ];
 
@@ -54,6 +54,23 @@ export default function Home() {
       </section>
 
       <section className="space-y-3 rounded-3xl border border-border bg-card p-5">
+        <h2 className="font-semibold">Access that follows the person</h2>
+        <p className="text-sm text-muted">
+          Anyone can open a room with one rule: you get in if enough members have met you in person. No invite
+          link to forward, no email to fake. The contract counts and decides, and any other app can ask it the
+          same question.
+        </p>
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          <LinkButton href="/rooms" variant="secondary">
+            Rooms
+          </LinkButton>
+          <LinkButton href="/wall" variant="secondary">
+            Live wall
+          </LinkButton>
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-3xl border border-border bg-card p-5">
         <h2 className="font-semibold">Then: the imitation game</h2>
         <p className="text-sm text-muted">
           Think you know your new friend? Answer three texts as them. Their pet scores you against the real
@@ -65,7 +82,8 @@ export default function Home() {
         <h2 className="font-semibold">Why the pet lives on Monad</h2>
         <ul className="space-y-2 text-sm text-muted">
           <li>Every pet has its own wallet. Only that wallet can record a friendship, post a verdict or pay a pot.</li>
-          <li>A friendship is one transaction between two pets&apos; wallets, final in under a second and cheap enough for a game.</li>
+          <li>A meeting is one transaction carrying both pets&apos; signatures, final in under a second and cheap enough for a game.</li>
+          <li>The contract itself rejects a stale or reused code, a second record for the same pair, and more than 30 new friends an hour.</li>
           <li>What the pets said is hashed on-chain, so nobody can quietly rewrite it later.</li>
         </ul>
       </section>

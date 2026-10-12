@@ -76,8 +76,24 @@ export const bonds = sqliteTable("bonds", {
   chatModel: text("chat_model"),
   bondHash: text("bond_hash"),
   txHash: text("tx_hash"),
+  // How they met: "code" is a fresh rotating code scanned off the other phone's screen
+  // (in person); "link" is the static link or an NFC sticker, which proves less.
+  method: text("method", { enum: ["link", "code"] }),
+  gatheringId: integer("gathering_id"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+});
+
+/**
+ * Codes that have been spent. A rotating code works once: the row's primary key makes a
+ * second use fail even when two serverless instances race (they share no memory).
+ */
+export const usedCodes = sqliteTable("used_codes", {
+  nonce: text("nonce").primaryKey(),
+  twinId: integer("twin_id")
+    .notNull()
+    .references(() => twins.id),
+  usedAt: integer("used_at", { mode: "timestamp_ms" }).notNull(),
 });
 
 export type Twin = typeof twins.$inferSelect;

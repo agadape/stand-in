@@ -82,6 +82,14 @@ export type AttemptRecord = {
 
 export type OwnerProof = { issuedAt: number; signature: string };
 
+/** A pet named by slug, with its owner's passkey proof for one action. */
+export type OwnerInput = { slug: string; address: string; proof: OwnerProof };
+
+/** One rotating code: when it goes on screen (seconds), its one-time number, the pet's signature. */
+export type MeetCode = { issuedAt: number; nonce: string; signature: string };
+
+export type JoinStatus = { ok: boolean; member: boolean; vouches: number; needed: number };
+
 export type CreateTwinInput = {
   name: string;
   bio: string;
@@ -147,8 +155,27 @@ export const api = {
     }),
 
   /** `from`'s owner befriends `to`; `done` is true once both said yes and the pets have talked. */
-  acceptBond: (input: { from: string; to: string; address: string; proof: OwnerProof }) =>
+  acceptBond: (input: { from: string; to: string; address: string; proof: OwnerProof; code?: MeetCode; gatheringId?: number }) =>
     request<{ bond: { id: number; done: boolean } }>("/api/bonds", { method: "POST", body: JSON.stringify(input) }),
+
+  /** Owner-only: ten minutes of rotating codes, each shown for `shownMs`. */
+  getCodes: (slug: string, input: { address: string; proof: OwnerProof; gatheringId?: number }) =>
+    request<{ codes: MeetCode[]; shownMs: number; gathering: { id: number; name: string } | null }>(
+      `/api/twins/${slug}/codes`,
+      { method: "POST", body: JSON.stringify(input) },
+    ),
+
+  createRoom: (input: OwnerInput & { name: string; threshold: number; inPersonOnly: boolean }) =>
+    request<{ id: number }>("/api/rooms", { method: "POST", body: JSON.stringify(input) }),
+
+  checkRoom: (id: number, slug: string) =>
+    request<JoinStatus>(`/api/rooms/${id}/join?slug=${encodeURIComponent(slug)}`, { cache: "no-store" }),
+
+  joinRoom: (id: number, input: OwnerInput) =>
+    request<{ txUrl: string }>(`/api/rooms/${id}/join`, { method: "POST", body: JSON.stringify(input) }),
+
+  createGathering: (input: OwnerInput & { name: string; hours: number }) =>
+    request<{ id: number }>("/api/gatherings", { method: "POST", body: JSON.stringify(input) }),
 
   getAttempt: (id: number) => request<{ attempt: AttemptRecord }>(`/api/attempts/${id}`, { cache: "no-store" }),
 };

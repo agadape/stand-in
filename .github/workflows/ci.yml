@@ -35,3 +35,4 @@ jobs:
       - run: npx eslint src
       - run: npx tsx src/lib/style.check.ts
       - run: npx tsx src/lib/redact.check.ts
+      - run: npx tsx src/lib/stylometry.check.ts

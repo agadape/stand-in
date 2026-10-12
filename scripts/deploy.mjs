@@ -1,7 +1,8 @@
 // Deploys StandIn to the chain configured in app/.env.local, writes the address back
 // into .env.local, and verifies the source on MonadVision (Sourcify).
 //
-//   node scripts/deploy.mjs
+//   node scripts/deploy.mjs                           (StandIn -> STANDIN_ADDRESS)
+//   node scripts/deploy.mjs ProofOfMet MET_ADDRESS    (another contract and its variable)
 //
 // Uses `forge create`, which sends the compiled artifact byte-for-byte; `forge script`
 // produced bytecode Sourcify could not reproduce. Uses DEPLOYER_PRIVATE_KEY from the
@@ -11,6 +12,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const [contract = "StandIn", variable = "STANDIN_ADDRESS"] = process.argv.slice(2);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const contracts = join(root, "contracts");
 const envPath = join(root, "app/.env.local");
@@ -33,10 +35,10 @@ const chainId = pick(/^MONAD_CHAIN_ID=(\d+)/m) ?? "10143";
 const rpc = pick(/^MONAD_RPC_URL=(\S+)/m) ?? "https://testnet-rpc.monad.xyz";
 const explorer = pick(/^NEXT_PUBLIC_EXPLORER_URL=(\S+)/m) ?? "https://testnet.monadvision.com";
 
-console.log(`Deploying StandIn to chain ${chainId} via ${rpc}`);
+console.log(`Deploying ${contract} to chain ${chainId} via ${rpc}`);
 const create = spawnSync(
   "forge",
-  ["create", "src/StandIn.sol:StandIn", "--rpc-url", rpc, "--private-key", key, "--broadcast", "--json"],
+  ["create", `src/${contract}.sol:${contract}`, "--rpc-url", rpc, "--private-key", key, "--broadcast", "--json"],
   { cwd: contracts, encoding: "utf8" },
 );
 if (create.status !== 0) {
@@ -50,10 +52,14 @@ if (!address) {
   process.exit(1);
 }
 
-writeFileSync(envPath, env.replace(/^STANDIN_ADDRESS=.*$/m, `STANDIN_ADDRESS=${address}`));
-console.log(`\nStandIn: ${address}`);
+const line = new RegExp(`^${variable}=.*$`, "m");
+writeFileSync(
+  envPath,
+  line.test(env) ? env.replace(line, `${variable}=${address}`) : `${env.trimEnd()}\n${variable}=${address}\n`,
+);
+console.log(`\n${contract}: ${address}`);
 console.log(`Deploy tx: ${explorer}/tx/${txHash}`);
-console.log("Wrote STANDIN_ADDRESS to app/.env.local");
+console.log(`Wrote ${variable} to app/.env.local`);
 
 console.log("\nVerifying on MonadVision (Sourcify)...");
 const verify = spawnSync(
@@ -61,7 +67,7 @@ const verify = spawnSync(
   [
     "verify-contract",
     address,
-    "src/StandIn.sol:StandIn",
+    `src/${contract}.sol:${contract}`,
     "--chain",
     chainId,
     "--verifier",

@@ -25,6 +25,10 @@ export function standInAddress(): Address {
   return env().STANDIN_ADDRESS as Address;
 }
 
+export function metAddress(): Address {
+  return env().MET_ADDRESS as Address;
+}
+
 export function explorerTx(hash: Hex) {
   return `${env().NEXT_PUBLIC_EXPLORER_URL}/tx/${hash}`;
 }
