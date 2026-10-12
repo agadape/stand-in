@@ -2,14 +2,17 @@ import { verifyMessage, type Address, type Hex } from "viem";
 
 const MAX_AGE_MS = 10 * 60 * 1000;
 
+/** "bond:<other slug>" is befriending that twin; the other slug is signed so a proof can't be reused on someone else. */
+export type OwnerAction = "prove" | "fund" | `bond:${string}`;
+
 /** The exact text a passkey account signs to prove it controls an address for one action. */
-export function ownerMessage(slug: string, action: "prove" | "fund", issuedAt: number) {
+export function ownerMessage(slug: string, action: OwnerAction, issuedAt: number) {
   return `Stand-In\nslug: ${slug}\naction: ${action}\nissued: ${issuedAt}`;
 }
 
 export async function verifyOwner(params: {
   slug: string;
-  action: "prove" | "fund";
+  action: OwnerAction;
   issuedAt: number;
   address: Address;
   signature: Hex;

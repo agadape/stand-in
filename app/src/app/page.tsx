@@ -2,20 +2,20 @@ import { LinkButton } from "@/components/ui";
 
 const steps = [
   {
-    title: "Make your twin",
-    body: "Paste texts you've sent and answer six questions. Face ID is the whole account; no wallet, no seed phrase.",
+    title: "Make your pet",
+    body: "Paste texts you've sent and answer six questions. Your pet learns to text like you. Face ID is the whole account; no wallet, no seed phrase.",
   },
   {
-    title: "Set the bar",
-    body: "Answer three scenarios as yourself. Your own score is what everyone else has to beat.",
+    title: "Meet someone, scan or tap",
+    body: "Your pet has a code. Someone you meet scans it, or taps an NFC sticker or bracelet that carries it.",
   },
   {
-    title: "Send the link",
-    body: "Friends answer the same kind of scenarios as you. Your twin scores them and shows its evidence.",
+    title: "Your pets do the talking",
+    body: "When you've both said yes, your two pets have their first chat in your voices and tell you how well you'd get along.",
   },
   {
-    title: "The twin pays",
-    body: "Out-score the real you and the twin's own wallet sends you the pot, in the same transaction as the verdict.",
+    title: "Friends, on-chain",
+    body: "Your pet's own wallet records the friendship on Monad. Your friend list is a public record of people you actually met.",
   },
 ];
 
@@ -23,17 +23,17 @@ export default function Home() {
   return (
     <div className="space-y-10">
       <section className="space-y-5 pt-6">
-        <p className="text-sm font-semibold uppercase tracking-wide text-accent-strong">A party game on Monad</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-accent-strong">A social game on Monad</p>
         <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight">
-          Be more you
+          You meet.
           <br />
-          than you.
+          Your pets talk.
         </h1>
         <p className="text-lg text-muted">
-          Your friends try to pass as you. Your AI twin decides who&apos;s real, and pays whoever pulls it off.
+          An AI pet that texts like you. Scan someone you just met and watch your pets hit it off, or not.
         </p>
         <div className="space-y-3 pt-2">
-          <LinkButton href="/new">Make your twin</LinkButton>
+          <LinkButton href="/new">Make your pet</LinkButton>
           <p className="text-center text-xs text-muted">Takes about two minutes. Testnet money only.</p>
         </div>
       </section>
@@ -54,11 +54,19 @@ export default function Home() {
       </section>
 
       <section className="space-y-3 rounded-3xl border border-border bg-card p-5">
-        <h2 className="font-semibold">Why the twin lives on Monad</h2>
+        <h2 className="font-semibold">Then: the imitation game</h2>
+        <p className="text-sm text-muted">
+          Think you know your new friend? Answer three texts as them. Their pet scores you against the real
+          person, shows what gave you away, and pays you a pot from its own wallet if you out-score them.
+        </p>
+      </section>
+
+      <section className="space-y-3 rounded-3xl border border-border bg-card p-5">
+        <h2 className="font-semibold">Why the pet lives on Monad</h2>
         <ul className="space-y-2 text-sm text-muted">
-          <li>Every twin has its own wallet. Only that wallet can post a verdict or pay the pot; the app can&apos;t.</li>
-          <li>The payout and the verdict are one transaction, final in under a second, cheap enough for a game.</li>
-          <li>Each verdict&apos;s hash is on-chain, so anyone holding the stored verdict can check it wasn&apos;t edited.</li>
+          <li>Every pet has its own wallet. Only that wallet can record a friendship, post a verdict or pay a pot.</li>
+          <li>A friendship is one transaction between two pets&apos; wallets, final in under a second and cheap enough for a game.</li>
+          <li>What the pets said is hashed on-chain, so nobody can quietly rewrite it later.</li>
         </ul>
       </section>
     </div>

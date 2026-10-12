@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
-import { OWNED_KEY, parseOwned } from "./session";
+import { OWNED_KEY, parseOwned, type Owned } from "./session";
 
 function subscribe(onChange: () => void) {
   window.addEventListener("storage", onChange);
@@ -20,6 +20,12 @@ function snapshot() {
   } catch {
     return "";
   }
+}
+
+/** The pets this browser created, by slug. `null` until the client has mounted. */
+export function useOwned(): Record<string, Owned> | null {
+  const raw = useSyncExternalStore(subscribe, snapshot, () => null);
+  return useMemo(() => (raw === null ? null : parseOwned(raw)), [raw]);
 }
 
 /**

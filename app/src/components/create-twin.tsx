@@ -19,7 +19,7 @@ const SENT_TO: Record<Provider, string> = {
   anthropic: "Anthropic's Claude every time someone is judged, so leave out anything sensitive.",
 };
 
-export function CreateTwin({ judge }: { judge: Provider | null }) {
+export function CreateTwin({ judge, next }: { judge: Provider | null; next: string | null }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
@@ -59,7 +59,7 @@ export function CreateTwin({ judge }: { judge: Provider | null }) {
       });
       passkey.end();
       rememberOwned(created.slug, passkey.address, name.trim());
-      router.push(`/t/${created.slug}?welcome=1`);
+      router.push(next ?? `/t/${created.slug}?welcome=1`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
       setBusy(null);
@@ -69,10 +69,10 @@ export function CreateTwin({ judge }: { judge: Provider | null }) {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Make your twin</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Make your pet</h1>
         <p className="text-muted">
-          Paste some texts you&apos;ve actually sent and answer six questions. Your twin learns how you sound,
-          then judges everyone who claims to be you.
+          Paste some texts you&apos;ve actually sent and answer six questions. Your pet learns how you sound,
+          chats with the pets of people you meet, and judges anyone who claims to be you.
         </p>
       </div>
 
@@ -125,22 +125,23 @@ export function CreateTwin({ judge }: { judge: Provider | null }) {
       </Card>
 
       <p className="text-xs text-muted">
-        Other players aren&apos;t shown your texts or quiz answers, only your twin&apos;s verdicts. Both are stored for
-        your twin and sent to{" "}
-        {judge ? SENT_TO[judge] : "an AI model every time someone is judged, so leave out anything sensitive."}
+        Other players aren&apos;t shown your texts or quiz answers, only what your pet writes in your voice: its
+        verdicts and its chats with friends&apos; pets. Both are stored for your pet and sent to{" "}
+        {judge ? SENT_TO[judge] : "an AI model every time someone is judged, so leave out anything sensitive."} Pet
+        chats are written by an AI model hosted by Groq or Google.
       </p>
 
       <ErrorNote>{error}</ErrorNote>
 
       <div className="space-y-3">
         <Button onClick={() => submit("create")} disabled={!ready} loading={busy !== null}>
-          {busy === "passkey" ? "Waiting for your passkey…" : busy === "chain" ? "Your twin is registering on Monad…" : "Create with Face ID / fingerprint"}
+          {busy === "passkey" ? "Waiting for your passkey…" : busy === "chain" ? "Your pet is hatching on Monad…" : "Create with Face ID / fingerprint"}
         </Button>
         <Button variant="ghost" onClick={() => submit("signin")} disabled={!ready || busy !== null}>
           I already have a Stand-In passkey
         </Button>
         <p className="text-center text-xs text-muted">
-          No wallet, no seed phrase. The passkey is the account; your twin gets its own wallet and pays the gas.
+          No wallet, no seed phrase. The passkey is the account; your pet gets its own wallet and pays the gas.
         </p>
       </div>
     </div>

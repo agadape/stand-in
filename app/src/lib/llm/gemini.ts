@@ -20,11 +20,15 @@ const ROUND_DELAYS_MS = [0, 3_000, 6_000];
  * the request, since waiting cannot help. Anything that is not overload, quota or
  * timeout is a real error and is thrown.
  */
-export async function runGemini(prompt: JudgePrompt): Promise<JudgeResult> {
+export function runGemini(prompt: JudgePrompt): Promise<JudgeResult> {
+  return geminiJson(`${prompt.rules}\n\n---\n\n${prompt.persona}\n\n---\n\n${prompt.candidate}`, LLM_VERDICT_JSON_SCHEMA);
+}
+
+/** One JSON answer in the given schema from the Gemini chain, with the fallback described above. */
+export async function geminiJson(input: string, schema: object): Promise<JudgeResult> {
   const e = env();
   const models = e.GEMINI_MODEL.split(",").map((m) => m.trim()).filter(Boolean);
   const client = new GoogleGenAI({ apiKey: e.GEMINI_API_KEY });
-  const input = `${prompt.rules}\n\n---\n\n${prompt.persona}\n\n---\n\n${prompt.candidate}`;
   const started = Date.now();
   const skipped: string[] = [];
   // Model -> seconds until it says it will answer again (Infinity when it does not say).
@@ -42,7 +46,7 @@ export async function runGemini(prompt: JudgePrompt): Promise<JudgeResult> {
             model,
             input,
             generation_config: { thinking_level: e.GEMINI_THINKING },
-            response_format: { type: "text", mime_type: "application/json", schema: LLM_VERDICT_JSON_SCHEMA },
+            response_format: { type: "text", mime_type: "application/json", schema },
           },
           { maxRetries: 0, timeout: PER_CALL_TIMEOUT_MS },
         );

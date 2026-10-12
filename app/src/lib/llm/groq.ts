@@ -14,10 +14,15 @@ const PER_CALL_TIMEOUT_MS = 25_000;
  * rate-limited, overloaded or slow. JSON mode plus the schema in the prompt works on
  * every chat model there; runJudge validates the shape afterwards.
  */
-export async function runGroq(prompt: JudgePrompt): Promise<JudgeResult> {
+export function runGroq(prompt: JudgePrompt): Promise<JudgeResult> {
+  return groqJson(prompt.rules, `${prompt.persona}\n\n---\n\n${prompt.candidate}`, LLM_VERDICT_JSON_SCHEMA);
+}
+
+/** One JSON answer from the Groq chain: `system` sets the task, `schema` the shape. */
+export async function groqJson(system: string, user: string, schema: object, temperature = 0.3): Promise<JudgeResult> {
   const e = env();
   const models = e.GROQ_MODEL.split(",").map((m) => m.trim()).filter(Boolean);
-  const system = `${prompt.rules}\n\nYour JSON must match this schema:\n${JSON.stringify(LLM_VERDICT_JSON_SCHEMA)}`;
+  system = `${system}\n\nYour JSON must match this schema:\n${JSON.stringify(schema)}`;
   const skipped: string[] = [];
 
   for (const model of models) {
@@ -30,10 +35,10 @@ export async function runGroq(prompt: JudgePrompt): Promise<JudgeResult> {
           model,
           messages: [
             { role: "system", content: system },
-            { role: "user", content: `${prompt.persona}\n\n---\n\n${prompt.candidate}` },
+            { role: "user", content: user },
           ],
           response_format: { type: "json_object" },
-          temperature: 0.3,
+          temperature,
           // Only the gpt-oss models take a reasoning effort.
           ...(model.startsWith("openai/gpt-oss") ? { reasoning_effort: e.GROQ_REASONING } : {}),
         }),

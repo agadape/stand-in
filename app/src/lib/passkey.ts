@@ -11,7 +11,7 @@ import { HDKey } from "@scure/bip32";
 import { entropyToMnemonic, mnemonicToSeedSync } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import type { Address, Hex, LocalAccount } from "viem";
-import { ownerMessage } from "./auth";
+import { ownerMessage, type OwnerAction } from "./auth";
 
 /**
  * A passkey is the whole account. Mera's PRF output (32 bytes the authenticator derives
@@ -65,7 +65,7 @@ export async function signInWithPasskey(): Promise<PasskeyAccount> {
 export async function signOwnerProof(
   passkey: PasskeyAccount,
   slug: string,
-  action: "prove" | "fund",
+  action: OwnerAction,
 ): Promise<{ issuedAt: number; signature: Hex }> {
   const issuedAt = Date.now();
   const signature = await passkey.account.signMessage({ message: ownerMessage(slug, action, issuedAt) });
