@@ -148,10 +148,10 @@ export function CreateRoom() {
         placeholder="Inner Circle Jogja"
         aria-label="Room name"
       />
-      <label className="flex items-center justify-between gap-3 text-sm">
+      <label className="flex min-h-11 items-center justify-between gap-3 text-sm">
         <span>Members who must have met you</span>
         <select
-          className="rounded-xl border border-border bg-background px-3 py-2"
+          className="min-h-11 rounded-xl border border-border bg-background px-3 py-2 text-base"
           value={threshold}
           onChange={(e) => setThreshold(Number(e.target.value))}
         >
@@ -162,9 +162,9 @@ export function CreateRoom() {
           ))}
         </select>
       </label>
-      <label className="flex items-center justify-between gap-3 text-sm">
+      <label className="flex min-h-11 items-center justify-between gap-3 text-sm">
         <span>Only count meetings in person (a scanned code)</span>
-        <input type="checkbox" className="size-5 accent-accent" checked={inPersonOnly} onChange={(e) => setInPersonOnly(e.target.checked)} />
+        <input type="checkbox" className="size-6 accent-accent" checked={inPersonOnly} onChange={(e) => setInPersonOnly(e.target.checked)} />
       </label>
       <ErrorNote>{error}</ErrorNote>
       <Button onClick={create} loading={busy} disabled={name.trim().length < 2}>

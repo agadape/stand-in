@@ -89,7 +89,7 @@ export function ShowCode({
       )}
       <svg
         viewBox={`-2 -2 ${qr.size + 4} ${qr.size + 4}`}
-        className="mx-auto w-64 rounded-2xl bg-white"
+        className="mx-auto w-full max-w-64 rounded-2xl bg-white"
         role="img"
         aria-label={`${pet.name}'s meeting code`}
         shapeRendering="crispEdges"

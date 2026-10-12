@@ -52,10 +52,10 @@ export function CreateGathering() {
         placeholder="Campus night, Friday"
         aria-label="Gathering name"
       />
-      <label className="flex items-center justify-between gap-3 text-sm">
+      <label className="flex min-h-11 items-center justify-between gap-3 text-sm">
         <span>Runs for</span>
         <select
-          className="rounded-xl border border-border bg-background px-3 py-2"
+          className="min-h-11 rounded-xl border border-border bg-background px-3 py-2 text-base"
           value={hours}
           onChange={(e) => setHours(Number(e.target.value))}
         >
