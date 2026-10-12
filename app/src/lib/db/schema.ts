@@ -96,6 +96,78 @@ export const usedCodes = sqliteTable("used_codes", {
   usedAt: integer("used_at", { mode: "timestamp_ms" }).notNull(),
 });
 
+// ------------------------------------------------------------------- the Isekai
+
+/**
+ * What the world, the other agents and the chat model get to see of someone: a lossy
+ * card, never their texts or quiz answers. `voice` is a description of how they write
+ * ("lowercase, very short, laughs a lot"), not samples of it.
+ */
+export type PersonaCard = { name: string; about: string; voice: string; interests: string[] };
+
+/** What an owner may set. These shape what the agent does next; none of them is a command. */
+export type Dials = { openness: number; pace: number; avoid: string; paused: boolean };
+
+/** Someone living in the world: a user's pet (twinId set) or a synthetic resident. */
+export const agents = sqliteTable("world_agents", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  twinId: integer("twin_id").references(() => twins.id),
+  name: text("name").notNull(),
+  card: text("card", { mode: "json" }).$type<PersonaCard>().notNull(),
+  dials: text("dials", { mode: "json" }).$type<Dials>().notNull(),
+  place: text("place").notNull(),
+  // Stable look for residents who have no wardrobe: a hue for the pet's body.
+  hue: integer("hue").notNull().default(250),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+/** How two agents stand, built up only by what happened between them. a < b by agent id. */
+export const pairs = sqliteTable("world_pairs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  aId: integer("a_id")
+    .notNull()
+    .references(() => agents.id),
+  bId: integer("b_id")
+    .notNull()
+    .references(() => agents.id),
+  score: integer("score").notNull().default(0),
+  encounters: integer("encounters").notNull().default(0),
+  // The last thing that happened between them, fed back so the next talk continues it.
+  lastSummary: text("last_summary"),
+  // Set once they cross the threshold: each human's yes to being introduced.
+  aConsent: integer("a_consent", { mode: "boolean" }).notNull().default(false),
+  bConsent: integer("b_consent", { mode: "boolean" }).notNull().default(false),
+  introducedAt: integer("introduced_at", { mode: "timestamp_ms" }),
+  txHash: text("tx_hash"),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+/** The chronicle: everything that happened, in order. */
+export const events = sqliteTable("world_events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tick: integer("tick").notNull(),
+  kind: text("kind", { enum: ["talk", "move", "stage", "intro"] }).notNull(),
+  aId: integer("a_id").notNull(),
+  bId: integer("b_id"),
+  place: text("place").notNull(),
+  text: text("text").notNull(),
+  lines: text("lines", { mode: "json" }).$type<{ from: "a" | "b"; text: string }[]>(),
+  delta: integer("delta"),
+  // Which model wrote the talk; null when the model was unavailable and rules filled in.
+  model: text("model"),
+  at: integer("at", { mode: "timestamp_ms" }).notNull(),
+});
+
+/** One row: the world's clock. Claiming a tick is an UPDATE that only one request can win. */
+export const worldClock = sqliteTable("world_clock", {
+  id: integer("id").primaryKey(),
+  tick: integer("tick").notNull().default(0),
+  lastTickAt: integer("last_tick_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export type Agent = typeof agents.$inferSelect;
+export type Pair = typeof pairs.$inferSelect;
+export type WorldEvent = typeof events.$inferSelect;
 export type Twin = typeof twins.$inferSelect;
 export type Bond = typeof bonds.$inferSelect;
 export type Attempt = typeof attempts.$inferSelect;

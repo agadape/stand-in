@@ -26,6 +26,12 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M5 6h.01M5 12h.01M5 18h.01M9 6h10M9 12h10M9 18h10" />
     </svg>
   ),
+  World: (
+    <svg {...icon} aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
+    </svg>
+  ),
   Rooms: (
     <svg {...icon} aria-hidden>
       <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M3 21h18M14.500 12h.01" />
@@ -55,11 +61,13 @@ function useTabs(): { pet: Tab[]; site: Tab[] } {
     pet: home
       ? [
           { href: home, label: "Pet" },
+          { href: "/world", label: "World" },
           { href: `${home}/wardrobe`, label: "Wardrobe" },
           { href: `${home}/activity`, label: "Activity" },
         ]
       : [],
     site: [
+      ...(home ? [] : [{ href: "/world", label: "World" }]),
       { href: "/rooms", label: "Rooms" },
       { href: "/wall", label: "Wall" },
       ...(home ? [] : [{ href: "/new", label: "Make your pet" }]),
@@ -75,7 +83,7 @@ export function BottomNav() {
 
   return (
     <nav aria-label="Your pet" className="fixed inset-x-0 bottom-0 z-10 border-t-2 border-border bg-background md:hidden">
-      <ul className="mx-auto grid w-full max-w-md grid-cols-3 gap-2 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <ul className="mx-auto grid w-full max-w-md grid-cols-4 gap-1 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {pet.map((tab) => {
           const active = path === tab.href;
           return (

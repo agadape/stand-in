@@ -11,7 +11,10 @@ export type OwnerAction =
   | "code"
   | "room:create"
   | `room:join:${number}`
-  | "gathering:create";
+  | "gathering:create"
+  // The Isekai: turning the agent's dials, and agreeing to be introduced to a pair.
+  | "world:dials"
+  | `world:consent:${number}`;
 
 /** The exact text a passkey account signs to prove it controls an address for one action. */
 export function ownerMessage(slug: string, action: OwnerAction, issuedAt: number) {
