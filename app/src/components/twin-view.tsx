@@ -8,6 +8,7 @@ import type { BondRow } from "@/lib/bonds";
 import { signInWithPasskey, signOwnerProof } from "@/lib/passkey";
 import { useIsOwner } from "@/lib/use-session";
 import { befriend } from "./meet";
+import { ShowCode } from "./show-code";
 import { Address, Button, Card, ErrorNote, LinkButton, Pill } from "./ui";
 
 export function TwinView({
@@ -15,14 +16,15 @@ export function TwinView({
   leaderboard,
   bonds,
   meetUrl,
-  qrSvg,
+  gatheringId,
   welcome,
 }: {
   twin: TwinCard;
   leaderboard: LeaderboardRow[];
   bonds: BondRow[];
   meetUrl: string;
-  qrSvg: string;
+  /** Set when the owner arrived from a gathering's page: their codes are stamped with it. */
+  gatheringId: number;
   welcome: boolean;
 }) {
   const router = useRouter();
@@ -131,20 +133,17 @@ export function TwinView({
       )}
 
       {isOwner === null ? null : isOwner ? (
-        <Card className="space-y-3 text-center">
-          <h2 className="font-semibold">Met someone? Let them scan this.</h2>
-          <div
-            className="mx-auto w-48 overflow-hidden rounded-2xl bg-white p-2"
-            role="img"
-            aria-label={`QR code for ${meetUrl}`}
-            // An SVG string from the qrcode package, built on the server from our own URL.
-            dangerouslySetInnerHTML={{ __html: qrSvg }}
-          />
-          <p className="text-xs text-muted">
-            Or write this link to an NFC sticker or bracelet and tap phones on it:
-            <br />
-            <span className="break-all font-mono">{meetUrl}</span>
-          </p>
+        <Card className="space-y-4 text-center">
+          <h2 className="font-semibold">Met someone? Let them scan your code.</h2>
+          <ShowCode pet={twin} gatheringId={gatheringId} />
+          <details className="text-left text-xs text-muted">
+            <summary className="cursor-pointer text-center">Using an NFC sticker or bracelet instead?</summary>
+            <p className="mt-2">
+              Write this link to it. A sticker can&apos;t change, so friendships made through it need you to accept
+              each one, and are recorded as a link rather than as meeting in person.
+            </p>
+            <p className="mt-2 break-all font-mono">{meetUrl}</p>
+          </details>
         </Card>
       ) : (
         <LinkButton href={`/t/${twin.slug}/meet`}>Become friends with {twin.name}</LinkButton>
@@ -154,13 +153,23 @@ export function TwinView({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Friends {friends.length > 0 && `· ${friends.length}`}</h2>
         {friends.length === 0 ? (
           <p className="text-sm text-muted">Nobody yet. Friends are people {twin.name} met and scanned.</p>
+        ) : null}
+        {friends.length === 0 ? (
+          <LinkButton href="/rooms" variant="ghost">
+            See rooms you can join by meeting people
+          </LinkButton>
         ) : (
           <ul className="space-y-2">
             {friends.map((f) => (
               <li key={f.id}>
                 <Link href={`/b/${f.id}`} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{f.other.name}</p>
+                    <p className="truncate font-medium">
+                      {f.other.name}
+                      <span className={`ml-2 text-xs font-normal ${f.inPerson ? "text-ok" : "text-muted"}`}>
+                        {f.inPerson ? "met in person" : "link"}
+                      </span>
+                    </p>
                     <p className="truncate text-xs text-muted">“{f.summary}”</p>
                   </div>
                   <span className="font-mono text-sm font-semibold text-pink">{f.chemistry}%</span>

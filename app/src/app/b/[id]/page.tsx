@@ -42,7 +42,25 @@ export default async function BondPage({ params }: Props) {
         </div>
       </Card>
 
-      <section className="space-y-3">
+      <p
+        className={`rounded-2xl border px-4 py-3 text-center text-sm ${
+          bond.inPerson ? "border-ok/40 bg-ok/10 text-ok" : "border-border bg-card text-muted"
+        }`}
+      >
+        {bond.inPerson
+          ? "Met in person: a fresh code was scanned off one phone's screen, and the contract checked it."
+          : "Friends by link: both said yes, but nothing shows they were in the same place."}
+        {bond.gatheringId > 0 && (
+          <>
+            {" "}
+            <Link href={`/e/${bond.gatheringId}`} className="underline decoration-dotted">
+              At a gathering.
+            </Link>
+          </>
+        )}
+      </p>
+
+      <section className={`space-y-3 ${chat.messages.length === 0 ? "hidden" : ""}`}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">What their pets said</h2>
         <ol className="space-y-2">
           {chat.messages.map((m, i) => (
@@ -67,7 +85,8 @@ export default async function BondPage({ params }: Props) {
 
       <Card className="space-y-2 text-sm text-muted">
         <p>
-          {a.name}&apos;s pet recorded this friendship on Monad in a note to {b.name}&apos;s pet.{" "}
+          One pet&apos;s wallet wrote this meeting to the ProofOfMet contract, carrying the other pet&apos;s
+          signature. Anyone can ask the contract whether these two have met.{" "}
           <a href={bond.txUrl} target="_blank" rel="noreferrer" className="text-foreground underline decoration-dotted">
             See the transaction
           </a>

@@ -22,8 +22,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   let gathering = null;
   if (gatheringId) {
     gathering = await getGathering(gatheringId);
-    const now = Date.now() / 1000;
-    if (!gathering || now < gathering.startsAt || now > gathering.endsAt) {
+    if (!gathering?.open) {
       return NextResponse.json({ error: "That gathering isn't running right now." }, { status: 409 });
     }
   }

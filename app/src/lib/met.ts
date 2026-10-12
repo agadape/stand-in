@@ -153,7 +153,17 @@ export async function recordMeet(params: {
 
 // ------------------------------------------------------------------- gatherings
 
-export type Gathering = { id: number; host: Address; name: string; startsAt: number; endsAt: number; meets: number; attendees: number };
+export type Gathering = {
+  id: number;
+  host: Address;
+  name: string;
+  startsAt: number;
+  endsAt: number;
+  meets: number;
+  attendees: number;
+  /** Still running at the moment it was read. */
+  open: boolean;
+};
 
 export async function createGathering(host: Twin, name: string, hours: number) {
   await ensureGas(host.twinAddress as Address);
@@ -178,7 +188,17 @@ export async function createGathering(host: Twin, name: string, hours: number) {
 export async function getGathering(id: number): Promise<Gathering | null> {
   try {
     const g = await publicClient().readContract({ address: metAddress(), abi: metAbi, functionName: "getGathering", args: [BigInt(id)] });
-    return { id, host: g.host, name: g.name, startsAt: Number(g.startsAt), endsAt: Number(g.endsAt), meets: g.meets, attendees: g.attendees };
+    const now = Date.now() / 1000;
+    return {
+      id,
+      host: g.host,
+      name: g.name,
+      startsAt: Number(g.startsAt),
+      endsAt: Number(g.endsAt),
+      meets: g.meets,
+      attendees: g.attendees,
+      open: now >= Number(g.startsAt) && now <= Number(g.endsAt),
+    };
   } catch {
     return null;
   }

@@ -14,7 +14,13 @@ export async function wall(gatheringId: number) {
     return { address, name: pet?.name ?? `${address.slice(0, 6)}…`, slug: pet?.slug ?? null };
   });
   return {
-    gathering: gathering && { id: gathering.id, name: gathering.name, startsAt: gathering.startsAt, endsAt: gathering.endsAt },
+    gathering: gathering && {
+      id: gathering.id,
+      name: gathering.name,
+      startsAt: gathering.startsAt,
+      endsAt: gathering.endsAt,
+      open: gathering.open,
+    },
     nodes,
     edges: meets.map((m) => ({ a: m.a, b: m.b, at: m.at, inPerson: m.inPerson })),
     counts: { meets: meets.length, pets: nodes.length, inPerson: meets.filter((m) => m.inPerson).length },
