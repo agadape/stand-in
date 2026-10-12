@@ -32,6 +32,35 @@ export function davePersona(ownerAddress) {
   };
 }
 
+// A second person, as unlike Dave as possible, for the pets' chat (meet-e2e.mjs, petchat-try.ts).
+export function sarahPersona(ownerAddress) {
+  return {
+    name: "Sarah",
+    bio: "plans everything, cries at dog videos",
+    ownerAddress,
+    samples: [
+      "Okay so I made a spreadsheet for the trip 😭",
+      "WAIT. Did you see the puppy video I sent??",
+      "I'm literally already here, where are you",
+      "No because why would he say that 💀",
+      "Brunch Saturday? I booked 11:30 just in case",
+      "I love you but please answer your phone",
+      "Omg yes!! Obsessed.",
+      "Reminder: bring the charger this time 🙃",
+      "Honestly I think I need a nap and a snack",
+      "That's so real actually",
+    ],
+    quiz: [
+      { question: "How do you say hi in a text?", answer: "Hiii!!" },
+      { question: "What do you type when something is actually funny?", answer: "I'm CRYING 😭" },
+      { question: "Describe your weekend in one text.", answer: "Farmers market, cleaned everything, cried at a dog video." },
+      { question: "A word or phrase you overuse?", answer: "literally" },
+      { question: "Something you would never say?", answer: "let's just wing it" },
+      { question: "Your go-to text when you're running late.", answer: "I'm never late. But if I am: SO sorry, 3 min!!" },
+    ],
+  };
+}
+
 // One answer per scenario id (app/src/lib/scenarios.ts) for each voice: [owner, friend, impostor].
 export const VOICES = {
   "ride-2am": ["bro its 2am. where r u. ok omw", "bro lol its so late, fine im coming omw fr fr", "Of course! I'll be there in about 15 minutes. Stay safe."],

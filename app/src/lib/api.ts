@@ -146,6 +146,10 @@ export const api = {
       body: JSON.stringify(input),
     }),
 
+  /** `from`'s owner befriends `to`; `done` is true once both said yes and the pets have talked. */
+  acceptBond: (input: { from: string; to: string; address: string; proof: OwnerProof }) =>
+    request<{ bond: { id: number; done: boolean } }>("/api/bonds", { method: "POST", body: JSON.stringify(input) }),
+
   getAttempt: (id: number) => request<{ attempt: AttemptRecord }>(`/api/attempts/${id}`, { cache: "no-store" }),
 };
 

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import QRCode from "qrcode";
 import { TwinView } from "@/components/twin-view";
+import { bondsOf } from "@/lib/bonds";
 import { leaderboardRows, publicTwin, twinBySlug } from "@/lib/twins";
 
 type Props = {
@@ -12,8 +15,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const twin = await twinBySlug(slug);
   if (!twin) return { title: "Not found" };
-  const title = `Be ${twin.name}`;
-  const description = `Answer three texts as ${twin.name}. Their AI twin decides if you pulled it off.`;
+  const title = `${twin.name}'s pet`;
+  const description = `Meet ${twin.name}'s AI pet on Stand-In: scan to become friends, or try to text like ${twin.name}.`;
   return {
     title,
     description,
@@ -28,6 +31,20 @@ export default async function TwinPage({ params, searchParams }: Props) {
   const twin = await twinBySlug(slug);
   if (!twin) notFound();
 
-  const [card, rows] = await Promise.all([publicTwin(twin), leaderboardRows(twin.id)]);
-  return <TwinView twin={card} leaderboard={rows} welcome={welcome === "1"} />;
+  // The link a scan or an NFC tag opens. Built from the request so previews and
+  // production each point at themselves.
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const meetUrl = `${proto}://${host}/t/${twin.slug}/meet`;
+
+  const [card, rows, bonds, qrSvg] = await Promise.all([
+    publicTwin(twin),
+    leaderboardRows(twin.id),
+    bondsOf(twin),
+    QRCode.toString(meetUrl, { type: "svg", margin: 1, color: { dark: "#0b0b12", light: "#ffffff" } }),
+  ]);
+  return (
+    <TwinView twin={card} leaderboard={rows} bonds={bonds} meetUrl={meetUrl} qrSvg={qrSvg} welcome={welcome === "1"} />
+  );
 }

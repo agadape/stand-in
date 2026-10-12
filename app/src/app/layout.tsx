@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: { default: "Stand-In", template: "%s · Stand-In" },
   description:
-    "Your friends try to pass as you. Your AI twin decides who's real, and pays whoever pulls it off.",
+    "Meet someone, scan or tap, and your AI pets do the talking. Every friendship is recorded on Monad.",
 };
 
 export const viewport: Viewport = { themeColor: "#0b0b12" };
@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Stand-In
           </Link>
           <Link href="/new" className="text-sm text-muted hover:text-foreground">
-            Make your twin
+            Make your pet
           </Link>
         </header>
         <main className="mx-auto w-full max-w-md flex-1 px-4 py-6">{children}</main>
