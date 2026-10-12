@@ -94,7 +94,7 @@ export function ShowCode({
         aria-label={`${pet.name}'s meeting code`}
         shapeRendering="crispEdges"
       >
-        <path d={qr.d} fill="#0b0b12" />
+        <path d={qr.d} fill="#151515" />
       </svg>
       <p className="font-mono text-sm text-muted" aria-live="off">
         New code in {secondsLeft}s

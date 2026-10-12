@@ -1,3 +1,4 @@
+import { Pet } from "@/components/pet";
 import { LinkButton } from "@/components/ui";
 
 const steps = [
@@ -22,7 +23,8 @@ const steps = [
 export default function Home() {
   return (
     <div className="space-y-10">
-      <section className="space-y-5 pt-6">
+      <section className="space-y-5 pt-2">
+        <Pet mood="happy" outfit={{ neck: "bowtie", head: "partyhat" }} className="mx-auto w-48" label="A Stand-In pet in a party hat" />
         <p className="text-sm font-semibold uppercase tracking-wide text-accent-strong">A social game on Monad</p>
         <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight">
           You meet.

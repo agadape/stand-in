@@ -1,6 +1,7 @@
 "use client";
 
 import { formatMon, pct, type LlmVerdict, type Scenario } from "@/lib/api";
+import { Pet } from "./pet";
 import { Card, LinkButton, Pill, ScoreBar } from "./ui";
 import { VerifyVerdict } from "./verify-verdict";
 
@@ -62,6 +63,12 @@ export function Verdict({
 
   return (
     <div className="space-y-6">
+      {/* The pet's reaction comes first: pleased with its owner, smug at a catch, floored when fooled. */}
+      <Pet
+        mood={owner ? "happy" : result.passed ? "shocked" : "suspicious"}
+        className="mx-auto w-40"
+        label={`${twinName}'s pet ${owner ? "is pleased" : result.passed ? "is shocked" : "is not convinced"}`}
+      />
       <div className="space-y-2">
         <Pill tone={owner ? "gold" : result.passed ? "ok" : "bad"}>
           {owner ? "Bar set" : result.passed ? "Passed" : "Caught"}
@@ -131,7 +138,7 @@ export function Verdict({
             {onRetry ? (
               <button
                 onClick={onRetry}
-                className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-accent px-5 font-semibold text-white hover:bg-accent-strong"
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-accent px-5 font-semibold text-accent-ink hover:bg-accent-strong"
               >
                 Try again
               </button>

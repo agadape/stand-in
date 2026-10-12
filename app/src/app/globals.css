@@ -1,17 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0b0b12;
-  --foreground: #f4f2ff;
-  --muted: #9a96b4;
-  --card: #15141f;
-  --border: #2a2839;
-  --accent: #836ef9;
-  --accent-strong: #a593ff;
-  --pink: #ff6b9d;
+  --background: #151515;
+  --foreground: #f1eee6;
+  --muted: #898989;
+  --card: #1e1e1e;
+  --border: #343434;
+  /* Signal lime: primary actions, progress, unlocked. Text on it is ink, never white. */
+  --accent: #d7ff64;
+  --accent-strong: #e6ff9c;
+  --accent-ink: #151515;
+  --paper: #f1eee6;
+  --pink: #d7ff64;
   --gold: #ffcc4d;
-  --ok: #3ddc97;
-  --bad: #ff5c5c;
+  --ok: #d7ff64;
+  /* Exposure red: being caught, losing, real warnings only. */
+  --bad: #ff5d50;
 }
 
 @theme inline {
@@ -22,6 +26,8 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+  --color-paper: var(--paper);
   --color-pink: var(--pink);
   --color-gold: var(--gold);
   --color-ok: var(--ok);
@@ -43,4 +49,65 @@ body {
 textarea,
 input {
   font: inherit;
+}
+
+/* The pet. Idle breathing and blinking, one short hop per reaction; all of it off under reduced motion. */
+.pet-body {
+  transform-origin: 100px 184px;
+  animation: pet-breathe 3.2s ease-in-out infinite;
+}
+.pet-eyes {
+  transform-origin: 100px 104px;
+  animation: pet-blink 4.6s infinite;
+}
+.pet-happy .pet-body,
+.pet-victory .pet-body {
+  animation: pet-hop 0.7s ease-out 2, pet-breathe 3.2s ease-in-out 1.4s infinite;
+}
+.pet-shocked .pet-body {
+  animation: pet-jolt 0.35s ease-out 1, pet-breathe 3.2s ease-in-out 0.35s infinite;
+}
+.pet-aura {
+  transform-origin: 100px 100px;
+  animation: pet-twinkle 2.4s ease-in-out infinite;
+}
+
+@keyframes pet-breathe {
+  50% {
+    transform: scale(1.025, 0.975);
+  }
+}
+@keyframes pet-blink {
+  0%,
+  94%,
+  100% {
+    transform: scaleY(1);
+  }
+  97% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes pet-hop {
+  40% {
+    transform: translateY(-14px) scale(0.97, 1.03);
+  }
+}
+@keyframes pet-jolt {
+  30% {
+    transform: translateY(-8px) scale(1.06, 0.94);
+  }
+}
+@keyframes pet-twinkle {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-body,
+  .pet-eyes,
+  .pet-aura {
+    animation: none !important;
+  }
 }
