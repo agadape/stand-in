@@ -125,7 +125,7 @@ export function TwinView({
           <h2 className="font-semibold">Met someone? Let them scan your code.</h2>
           <ShowCode pet={twin} gatheringId={gatheringId} />
           <details className="text-left text-xs text-muted">
-            <summary className="cursor-pointer text-center">Using an NFC sticker or bracelet instead?</summary>
+            <summary className="cursor-pointer py-3 text-center">Using an NFC sticker or bracelet instead?</summary>
             <p className="mt-2">
               Write this link to it. A sticker can&apos;t change, so friendships made through it need you to accept
               each one, and are recorded as a link rather than as meeting in person.

@@ -16,7 +16,7 @@ export function PetScene({
   name,
   friends,
   mood = "idle",
-  className = "w-56",
+  className = "w-48",
 }: {
   slug: string;
   name: string;

@@ -207,7 +207,7 @@ export function Play({ slug, mode }: { slug: string; mode: "owner" | "challenger
           ) : pasteMode ? (
             <Field label="Address the twin should pay" hint="Any Monad address. Nothing is sent from it.">
               <input
-                className={`${inputClass} font-mono text-sm`}
+                className={`${inputClass} font-mono`}
                 value={address}
                 onChange={(e) => setAddress(e.target.value.trim())}
                 placeholder="0x…"
