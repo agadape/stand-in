@@ -90,7 +90,7 @@ export function Verdict({
         {result.llm.answers.map((a, i) => (
           <Card key={a.scenarioId} className="space-y-2">
             <p className="text-xs text-muted">{scenarios[i]?.prompt}</p>
-            <p className="rounded-2xl rounded-br-sm bg-background px-4 py-3 text-sm">{answers[i]}</p>
+            <p className="rounded-2xl rounded-br-sm bg-paper px-4 py-3 text-sm">{answers[i]}</p>
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm">{a.tell}</p>
               <span className="shrink-0 font-mono text-sm font-semibold">{a.score}</span>
@@ -138,7 +138,7 @@ export function Verdict({
             {onRetry ? (
               <button
                 onClick={onRetry}
-                className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-accent px-5 font-semibold text-accent-ink hover:bg-accent-strong"
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl border-b-4 border-accent-shadow bg-accent px-5 text-sm font-extrabold uppercase tracking-wide text-white hover:brightness-105 active:translate-y-1 active:border-b-0"
               >
                 Try again
               </button>

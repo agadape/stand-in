@@ -5,11 +5,17 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
+// Chunky game buttons: a darker bottom edge that the button sinks into when pressed.
+const base =
+  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-extrabold uppercase tracking-wide transition active:translate-y-1 active:border-b-0 disabled:cursor-not-allowed disabled:active:translate-y-0";
+
 const variants: Record<Variant, string> = {
-  primary: "bg-accent text-accent-ink hover:bg-accent-strong disabled:bg-accent/40",
-  secondary: "bg-card text-foreground border border-border hover:border-accent disabled:opacity-50",
-  ghost: "text-muted hover:text-foreground disabled:opacity-50",
-  danger: "bg-bad/15 text-bad border border-bad/40 hover:bg-bad/25 disabled:opacity-50",
+  primary:
+    "bg-accent text-white border-b-4 border-accent-shadow hover:brightness-105 disabled:bg-border disabled:border-border disabled:text-muted disabled:active:border-b-4",
+  secondary:
+    "bg-card text-blue border-2 border-b-4 border-border hover:bg-paper active:border-b-2 disabled:text-muted disabled:active:border-b-4",
+  ghost: "text-muted hover:text-foreground active:translate-y-0 disabled:opacity-50",
+  danger: "bg-bad text-white border-b-4 border-bad-shadow hover:brightness-105 disabled:opacity-50",
 };
 
 export function Button({
@@ -21,11 +27,7 @@ export function Button({
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; loading?: boolean }) {
   return (
-    <button
-      {...props}
-      disabled={disabled || loading}
-      className={`inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-semibold transition disabled:cursor-not-allowed ${variants[variant]} ${className}`}
-    >
+    <button {...props} disabled={disabled || loading} className={`${base} ${variants[variant]} ${className}`}>
       {loading && <Spinner />}
       {children}
     </button>
@@ -44,17 +46,14 @@ export function LinkButton({
   className?: string;
 }) {
   return (
-    <Link
-      href={href}
-      className={`inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 text-base font-semibold transition ${variants[variant]} ${className}`}
-    >
+    <Link href={href} className={`${base} ${variants[variant]} ${className}`}>
       {children}
     </Link>
   );
 }
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-3xl border border-border bg-card p-5 ${className}`}>{children}</div>;
+  return <div className={`rounded-3xl border-2 border-border bg-card p-5 ${className}`}>{children}</div>;
 }
 
 export function Field({
@@ -68,7 +67,7 @@ export function Field({
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="block text-sm font-medium">{label}</span>
+      <span className="block text-sm font-bold">{label}</span>
       {children}
       {hint && <span className="block text-xs text-muted">{hint}</span>}
     </label>
@@ -76,7 +75,7 @@ export function Field({
 }
 
 export const inputClass =
-  "w-full rounded-2xl border border-border bg-background px-4 py-3 text-base outline-none placeholder:text-muted/60 focus:border-accent";
+  "w-full rounded-2xl border-2 border-border bg-paper px-4 py-3 text-base outline-none placeholder:text-muted/60 focus:border-blue";
 
 export function Pill({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "gold" | "ok" | "bad" }) {
   const tones = {
@@ -85,7 +84,7 @@ export function Pill({ children, tone = "neutral" }: { children: ReactNode; tone
     ok: "bg-ok/15 text-ok",
     bad: "bg-bad/15 text-bad",
   };
-  return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${tones[tone]}`}>{children}</span>;
+  return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-extrabold uppercase tracking-wide ${tones[tone]}`}>{children}</span>;
 }
 
 export function Spinner() {
@@ -99,7 +98,17 @@ export function Spinner() {
 
 export function ErrorNote({ children }: { children: ReactNode }) {
   if (!children) return null;
-  return <p className="rounded-2xl border border-bad/40 bg-bad/10 px-4 py-3 text-sm text-bad">{children}</p>;
+  return <p className="rounded-2xl border-2 border-bad/40 bg-bad/10 px-4 py-3 text-sm text-bad">{children}</p>;
+}
+
+/** A thick progress track, as on the steps of a lesson. `value` is 0..1. */
+export function ProgressBar({ value, label }: { value: number; label: string }) {
+  const pct = Math.max(0, Math.min(1, value)) * 100;
+  return (
+    <div className="h-4 w-full overflow-hidden rounded-full bg-border" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)}>
+      <div className="h-full rounded-full bg-accent transition-all duration-300" style={{ width: `${Math.max(pct, 6)}%` }} />
+    </div>
+  );
 }
 
 /** Two scores on one track: the candidate's, and the bar the owner set. */
@@ -110,14 +119,14 @@ export function ScoreBar({ scoreBps, ownerBps, label }: { scoreBps: number; owne
     <div className="space-y-2">
       <div className="flex items-baseline justify-between text-sm">
         <span className="text-muted">{label}</span>
-        <span className="font-mono text-3xl font-semibold">{score.toFixed(1)}%</span>
+        <span className="text-3xl font-extrabold">{score.toFixed(1)}%</span>
       </div>
-      <div className="relative h-3 w-full overflow-hidden rounded-full bg-border">
+      <div className="relative h-4 w-full overflow-hidden rounded-full bg-border">
         <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${score}%` }} />
         {ownerBps > 0 && (
           <div
-            className="absolute top-0 h-full w-0.5 bg-gold"
-            style={{ left: `calc(${owner}% - 1px)` }}
+            className="absolute top-0 h-full w-1 bg-gold"
+            style={{ left: `calc(${owner}% - 2px)` }}
             title={`Owner's bar: ${owner.toFixed(1)}%`}
           />
         )}
