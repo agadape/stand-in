@@ -1,39 +1,52 @@
 # Stand-In
 
-**Be more you than you.** Your friends try to pass as you. Your AI twin decides who's real, and pays whoever pulls it off.
+**You meet. Your pets talk.** Everyone has an AI pet that texts like them. Scan the code on someone's phone and your pets have their first chat, and the meeting is written to a public contract on Monad: an on-chain graph of who has actually stood next to whom, which any app can read.
 
 Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis), Track 03: Social, Attention & Culture.
 
-**Play it: <https://stand-in-ashen.vercel.app>** (Monad testnet, test money only). Try being Dave: <https://stand-in-ashen.vercel.app/t/dave-75e42b>
+**Try it: <https://stand-in-ashen.vercel.app>** (Monad testnet, test money only).
 
-## Status (9 Oct 2026)
+## What it does
 
-- [x] `StandIn` deployed to Monad testnet and source-verified on MonadVision: [`0x9390…16C2`](https://testnet.monadvision.com/address/0x9390ad4e2F8d61387a00CB168c58733831a416C2)
-- [x] Contract tests (18, incl. fuzz), app type-check, lint and production build all green; CI runs them on every push
-- [x] Chain path exercised against the real contract: twin creation by the twin's own wallet, card read back from chain
-- [x] Judge path end to end on Gemini's free tier (`scripts/e2e.mjs`): owner 87% / friend imitation 53% / email-voice impostor 6%, verdicts verified against the chain in the browser
-- [ ] A passing challenger and live payout through the app (contract-tested; no fixture has beaten the owner yet)
-- [x] Hosted on Vercel with a Turso database (free tiers); the full loop passes against production infrastructure
-- [ ] Passkey flows on real phones (Mera PRF)
+1. **Make your pet.** Paste texts you've actually sent and answer six questions; the pet learns your voice. A passkey (Face ID, fingerprint) is the whole account: no wallet app, no seed phrase. The pet gets its own wallet.
+2. **Meet someone, scan their code.** Your pet shows a QR code that changes every 20 seconds and works once. A screenshot is dead within about a minute, so holding a working code means you were looking at that phone.
+3. **Your pets talk.** They have a first chat in your two voices and report how well you'd get along.
+4. **Proof of Met.** The scanner's pet writes the meeting to the [`ProofOfMet`](contracts/src/ProofOfMet.sol) contract, carrying the other pet's signature over the code. The contract itself checks the signature, that the code is under 15 minutes old and unused, one record per pair, and at most 30 new friends per pet per hour.
+5. **Access that follows the person.** Anyone can open a **room** with one rule: you may join if N members have met you (optionally: in person only). The contract counts and decides. **Gatherings** stamp the meetings made at an event, and the **live wall** draws the graph as it grows, read straight from the contract.
+6. **The imitation game.** Answer three texts as your new friend. Their pet scores how much you sound like them, names what gave you away ("You wrote 'nggak'. Rina writes 'gak'."), and pays you a pot from its own wallet if you out-score the real person. The score is counted from writing habits with no AI model, so the same answers always get the same score.
+
+## What other apps can read
+
+`ProofOfMet` is deployed and source-verified on Monad testnet at [`0x535c…0efd`](https://testnet.monadvision.com/address/0x535c8fbEFFe58298Ed49d75C0f9CcB7F42d00efd).
+
+| Function | Answers |
+|---|---|
+| `hasMet(a, b)` | Have these two pets met at all? |
+| `hasMetInPerson(a, b)` | Did they meet by scanning a fresh code? |
+| `mutualCount(a, b)` | How many pets have both of them met? |
+| `vouchCount(candidate, members, inPersonOnly)` | How many of these members have met the candidate? |
+| `friendsOf(pet)`, `friendCount(pet)` | A pet's friends |
+| `attended(gatheringId, pet)` | Did this pet meet someone at that gathering? |
+| `canJoin(roomId, pet)` | Would this room let the pet in, and how many vouches is it short? |
+
+## Status (12 Oct 2026)
+
+- [x] `ProofOfMet` and `StandIn` deployed to Monad testnet and source-verified (36 contract tests incl. fuzz)
+- [x] The whole meeting flow passes end to end against the real contract (`scripts/met-e2e.mjs`): only the owner can fetch codes, one scan of a fresh code completes a friendship, a reused or altered code is refused, a room turns away a pet with 1 of 2 vouches and admits it after one more meeting
+- [x] Imitation game end to end with the model-free judge (`scripts/e2e.mjs`): owner 58% / friend imitation 45% / email-voice impostor 8%
+- [ ] **Passkeys and camera scanning on real phones.** Everything above was driven by scripts with throwaway keys standing in for passkeys
+- [ ] A passing challenger and live payout through the app (contract-tested only)
+- [ ] A real gathering. The wall has only shown test pets
 - [ ] Demo video
 
-Operational details (env vars, wallets, deploy, troubleshooting) live in [docs/runbook.md](docs/runbook.md).
+## Honest limits
 
-## The game
-
-1. **Make your twin.** Paste texts you've actually sent and answer six quick questions. A passkey (Face ID, fingerprint) is the whole account: no wallet app, no seed phrase.
-2. **Set the bar.** Answer three texting scenarios *as yourself*. Your own score is what everyone else has to beat. (Most people score in the 60s–70s. Being yourself on demand is harder than it sounds.)
-3. **Send the link.** Friends answer three scenarios the way you would. Your twin scores each answer, names the tell that sold it or gave it away, and shows countable evidence ("Dave starts 90% of texts lowercase. You: 0%.").
-4. **The twin pays.** Beat the real you and the twin's own wallet sends you the pot, in the same Monad transaction as the verdict.
-
-Nobody waits for anyone: a twin is a link, one person can play alone, and a judge can try it without a wallet.
-
-## Why Monad is load-bearing
-
-- **Every twin has its own wallet.** It registers itself on-chain, posts every verdict, and pays challengers. The app operator holds no admin key on the contract: `submitVerdict`, `proveOwner` and `updatePersona` are callable only by the twin's wallet, and `reclaim` only by the owner or the twin (paying the owner).
-- **Verdict and payout are one transaction.** `submitVerdict` records the score and, if it beats the owner's bar, empties the pot into the challenger's wallet. Finality in well under a second makes "the twin just paid you" land while the player is still looking at the screen.
-- **Verdicts are checkable.** Each verdict's `keccak256` hash is stored on-chain next to the score. Every verdict screen and every public attempt page (`/t/<slug>/a/<id>`) has a **Verify on Monad** button that refetches the stored verdict, recomputes the hash in the browser, reads the hash out of the transaction's event log directly from the RPC, and compares; the app's server is not trusted anywhere in that check.
-- **Players never need gas.** Passkey accounts hold nothing and sign nothing on-chain; the twin's wallet does all the sending.
+- **The server holds the pets' keys.** A pet's wallet is derived from a server secret, so the graph is as honest as this server. What the chain adds is that the rules (freshness, single use, one record per pair, the hourly cap, room thresholds) are enforced by the contract and every record is public. Moving the pet key to the owner's passkey is the next step.
+- **A fresh code shows the screens were together, not that the people are who they say.** Someone live-streaming their screen to a friend defeats it; the 30-an-hour cap bounds the damage. One person can also make several pets, so the graph counts pets, not distinct humans.
+- **NFC stickers are static.** A meeting through the plain link needs both owners to accept and is recorded as a link, which in-person rooms don't count.
+- **Free tiers.** The pets' chat uses a free model with a small per-minute allowance; when it runs out the meeting is still recorded and the pets "stay shy". Nothing in the meeting graph or the imitation game's score depends on a model.
+- **The model-free judge is tuned on two made-up people.** It needs real players before its numbers mean much.
+- Operational details (env vars, wallets, deploy, troubleshooting) live in [docs/runbook.md](docs/runbook.md).
 
 ## Architecture
 

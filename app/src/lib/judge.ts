@@ -3,6 +3,8 @@ import type { Persona } from "./db/schema";
 import { runJudge, type LlmVerdict } from "./llm";
 import { withoutPrivateText } from "./redact";
 import type { Scenario } from "./scenarios";
+import { env } from "./env";
+import { STYLOMETRY_VERSION, stylometry } from "./stylometry";
 import { features, notes, similarity, type StyleFeatures } from "./style";
 
 export type { LlmVerdict } from "./llm";
@@ -48,7 +50,18 @@ function candidateBlock(scenarios: Scenario[], answers: string[]) {
     .join("\n\n");
 }
 
-export async function judge(persona: Persona, scenarios: Scenario[], answers: string[]): Promise<Verdict> {
+/**
+ * Scores an attempt with the configured judge. `challenger` is false when the owner is
+ * setting the bar; a challenger's answers are also checked for lines copied from the
+ * owner's real texts.
+ */
+export async function judge(persona: Persona, scenarios: Scenario[], answers: string[], challenger = true): Promise<Verdict> {
+  if (env().JUDGE === "stylometry") {
+    const { llm, style, score } = stylometry(persona, scenarios, answers, challenger);
+    const scoreBps = Math.max(0, Math.min(10_000, Math.round(score * 100)));
+    return { llm, model: STYLOMETRY_VERSION, style, scoreBps, verdictHash: hashVerdict(scenarios, answers, llm, style.similarity, scoreBps) };
+  }
+
   const { verdict, model } = await runJudge({
     rules: RULES,
     persona: personaBlock(persona),
@@ -70,19 +83,13 @@ export async function judge(persona: Persona, scenarios: Scenario[], answers: st
   const score = LLM_WEIGHT * llm.overall + STYLE_WEIGHT * sim * 100;
   const scoreBps = Math.max(0, Math.min(10_000, Math.round(score * 100)));
 
-  // Anyone holding the stored verdict can recompute this and check it against the chain.
-  // Field set and order are mirrored in components/verify-verdict.tsx.
-  const verdictHash = keccak256(
-    stringToHex(
-      JSON.stringify({
-        scenarios: scenarios.map((s) => s.id),
-        answers,
-        llm,
-        similarity: sim,
-        scoreBps,
-      }),
-    ),
-  );
+  return { llm, model, style, scoreBps, verdictHash: hashVerdict(scenarios, answers, llm, sim, scoreBps) };
+}
 
-  return { llm, model, style, scoreBps, verdictHash };
+/**
+ * Anyone holding the stored verdict can recompute this and check it against the chain.
+ * Field set and order are mirrored in components/verify-verdict.tsx.
+ */
+function hashVerdict(scenarios: Scenario[], answers: string[], llm: LlmVerdict, similarity: number, scoreBps: number): Hex {
+  return keccak256(stringToHex(JSON.stringify({ scenarios: scenarios.map((s) => s.id), answers, llm, similarity, scoreBps })));
 }

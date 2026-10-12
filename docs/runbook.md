@@ -17,6 +17,8 @@ All runtime configuration lives in `app/.env.local` (never committed). `node scr
 | `MONAD_CHAIN_ID` | `10143` testnet, `143` mainnet | `10143` |
 | `NEXT_PUBLIC_EXPLORER_URL` | Explorer base for links | `https://testnet.monadvision.com` |
 | `STANDIN_ADDRESS` | Deployed `StandIn` contract; written by `scripts/deploy.mjs` | — |
+| `MET_ADDRESS` | Deployed `ProofOfMet` contract (meetings, gatherings, rooms); written by `node scripts/deploy.mjs ProofOfMet MET_ADDRESS`. Testnet: `0x535c8fbEFFe58298Ed49d75C0f9CcB7F42d00efd` | — |
+| `JUDGE` | `stylometry` (no model, no daily cap, reproducible) or `llm` (the earlier model-plus-style judge) | `stylometry` |
 | `TWIN_KEY_SEED` | 32-byte server secret; each twin's wallet key is `keccak256(seed, "standin:twin:<slug>")` | generated |
 | `FUNDER_PRIVATE_KEY` | Wallet that pays deploys, twin gas top-ups and demo pots | generated |
 | `TWIN_GAS_TOPUP_MON` | Sent to a twin wallet when it runs low | `0.2` |
@@ -153,6 +155,13 @@ Each judged attempt (an owner proving themselves, or a challenge) is one request
 - When every model in the chain is out of quota, players see "The judge has used up its free requests for now. It's back in about N hours."
 
 The repo's CI (`.github/workflows/ci.yml`) runs `forge test`, `tsc` and `eslint` on every push.
+
+## Proof of Met
+
+- **Codes.** `POST /api/twins/<slug>/codes` (owner's passkey proof, action `code`) returns 30 codes signed by the pet's wallet, one per 20 s. A code is accepted from 5 s before it goes on screen until 45 s after it leaves (`app/src/lib/met.ts`), is burnt in the `used_codes` table, and the contract refuses it again on-chain. The contract's own window is 15 minutes, to leave room for the pets' chat before the transaction.
+- **Testing.** `node scripts/met-e2e.mjs [baseUrl]` runs three pets through codes, a gathering, a room that refuses then admits, and the wall. It costs about 1 testnet MON in gas top-ups; `node scripts/sweep-test-pets.mjs` afterwards returns what the local test pets hold to the funder. Each meeting is sent with a fixed 600,000 gas limit, and Monad charges the limit, so a meeting costs roughly 0.06 MON at testnet prices.
+- **The pets' chat** uses Groq (`GROQ_API_KEY`) with three models in turn, each limited to a few thousand tokens a minute on the free tier; if none answers, the meeting is recorded anyway with an empty chat.
+- **Model-free judge.** `npx tsx scripts/stylo-try.ts -v` (from `app/`) scores the three test voices over all scenarios offline; `src/lib/stylometry.check.ts` holds its invariants. Bump `STYLOMETRY_VERSION` when a word list or weight changes. Measured 12 Oct on the Dave fixture: owner 50 to 64, friend 41 to 50, impostor 5 to 8; one friend attempt in eight beat the owner's lowest.
 
 ## Troubleshooting
 

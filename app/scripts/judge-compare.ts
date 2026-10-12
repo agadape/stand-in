@@ -42,6 +42,8 @@ async function once(model: string, voice: Voice) {
   // Normally a one-model chain, so no fallback can hide the answer; "a+b" tests a real chain.
   // Prefix a Groq-hosted model with "groq:" (e.g. groq:openai/gpt-oss-120b).
   const chain = model.replace(/^groq:/, "").replaceAll("+", ",");
+  // "stylometry" is the model-free judge; anything else is a model judging.
+  process.env.JUDGE = model === "stylometry" ? "stylometry" : "llm";
   if (model.startsWith("groq:")) {
     process.env.LLM_PROVIDER = "groq";
     process.env.GROQ_MODEL = chain;
@@ -52,7 +54,7 @@ async function once(model: string, voice: Voice) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     const started = Date.now();
     try {
-      const verdict = await judge(persona, scenarios, answersFor(voice, scenarios));
+      const verdict = await judge(persona, scenarios, answersFor(voice, scenarios), voice !== "owner");
       if (model.includes("+")) console.log(`  (answered by ${verdict.model})`);
       return { overall: verdict.llm.overall, score: verdict.scoreBps / 100, ms: Date.now() - started };
     } catch (error) {
