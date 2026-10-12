@@ -1,21 +1,29 @@
 @import "tailwindcss";
 
+/*
+ * A bright, chunky game look: white ground, thick rounded borders, buttons with a
+ * darker bottom edge that press down. Green means "go on", blue is the second choice,
+ * red only for being caught and for errors. The pet is Monad purple.
+ */
 :root {
-  --background: #151515;
-  --foreground: #f1eee6;
-  --muted: #898989;
-  --card: #1e1e1e;
-  --border: #343434;
-  /* Signal lime: primary actions, progress, unlocked. Text on it is ink, never white. */
-  --accent: #d7ff64;
-  --accent-strong: #e6ff9c;
-  --accent-ink: #151515;
-  --paper: #f1eee6;
-  --pink: #d7ff64;
-  --gold: #ffcc4d;
-  --ok: #d7ff64;
-  /* Exposure red: being caught, losing, real warnings only. */
-  --bad: #ff5d50;
+  --background: #ffffff;
+  --foreground: #3c3c3c;
+  --muted: #777777;
+  --card: #ffffff;
+  --border: #e5e5e5;
+  --paper: #f7f7f7;
+  --accent: #58cc02;
+  --accent-shadow: #58a700;
+  /* Green dark enough to read as text on white. */
+  --accent-strong: #46a302;
+  --accent-ink: #ffffff;
+  --blue: #1cb0f6;
+  --blue-shadow: #1899d6;
+  --pink: #1cb0f6;
+  --gold: #e09400;
+  --ok: #46a302;
+  --bad: #ff4b4b;
+  --bad-shadow: #ea2b2b;
 }
 
 @theme inline {
@@ -24,30 +32,42 @@
   --color-muted: var(--muted);
   --color-card: var(--card);
   --color-border: var(--border);
+  --color-paper: var(--paper);
   --color-accent: var(--accent);
+  --color-accent-shadow: var(--accent-shadow);
   --color-accent-strong: var(--accent-strong);
   --color-accent-ink: var(--accent-ink);
-  --color-paper: var(--paper);
+  --color-blue: var(--blue);
+  --color-blue-shadow: var(--blue-shadow);
   --color-pink: var(--pink);
   --color-gold: var(--gold);
   --color-ok: var(--ok);
   --color-bad: var(--bad);
-  --font-sans: var(--font-geist-sans);
+  --color-bad-shadow: var(--bad-shadow);
+  --font-sans: var(--font-nunito);
   --font-mono: var(--font-geist-mono);
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 600;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 800;
 }
 
 textarea,
-input {
+input,
+select {
   font: inherit;
 }
 

@@ -2,12 +2,12 @@ import type { Outfit } from "@/lib/cosmetics";
 
 export type Mood = "idle" | "happy" | "suspicious" | "shocked" | "victory";
 
-const INK = "#151515";
-const LIME = "#D7FF64";
-const LIME_DEEP = "#B4DE3C";
-const PAPER = "#F1EEE6";
-const RED = "#FF5D50";
-const GOLD = "#FFCC4D";
+const INK = "#2B2350";
+const LIME = "#836EF9";
+const LIME_DEEP = "#6A56E0";
+const PAPER = "#FFFFFF";
+const RED = "#FF4B4B";
+const GOLD = "#FFC800";
 
 /**
  * The Stand-In pet: one creature, five moods, layered cosmetics. Plain SVG with no state,
@@ -36,7 +36,7 @@ export function Pet({
       aria-hidden={label ? undefined : true}
     >
       {outfit.aura === "aura" && (
-        <g className="pet-aura" fill={PAPER}>
+        <g className="pet-aura" fill={GOLD}>
           {[
             [26, 44, 7],
             [176, 58, 9],
@@ -59,9 +59,9 @@ export function Pet({
         <ellipse cx={armsUp ? 176 : 172} cy={armsUp ? 84 : 128} rx="11" ry="17" fill={LIME_DEEP} transform={armsUp ? "rotate(28 176 84)" : "rotate(-18 172 128)"} />
 
         <path d="M100 34C148 34 174 72 174 118C174 160 146 184 100 184C54 184 26 160 26 118C26 72 52 34 100 34Z" fill={LIME} />
-        <ellipse cx="100" cy="150" rx="40" ry="26" fill={PAPER} opacity="0.35" />
-        <circle cx="52" cy="128" r="9" fill={RED} opacity="0.3" />
-        <circle cx="148" cy="128" r="9" fill={RED} opacity="0.3" />
+        <ellipse cx="100" cy="150" rx="40" ry="26" fill={PAPER} opacity="0.22" />
+        <circle cx="52" cy="128" r="9" fill="#FF9EC4" opacity="0.7" />
+        <circle cx="148" cy="128" r="9" fill="#FF9EC4" opacity="0.7" />
 
         <Face mood={mood} />
 

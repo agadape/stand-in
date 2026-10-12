@@ -197,7 +197,7 @@ export function Play({ slug, mode }: { slug: string; mode: "owner" | "challenger
           </Field>
 
           {address ? (
-            <p className="rounded-2xl bg-background px-4 py-3 text-sm">
+            <p className="rounded-2xl bg-paper px-4 py-3 text-sm">
               Paying to <span className="font-mono text-xs">{address}</span>
             </p>
           ) : owner ? (
@@ -255,7 +255,7 @@ export function Play({ slug, mode }: { slug: string; mode: "owner" | "challenger
       </div>
 
       <Card className="space-y-4">
-        <p className="rounded-2xl rounded-bl-sm bg-background px-4 py-3 text-base">{scenario.prompt}</p>
+        <p className="rounded-2xl rounded-bl-sm border-2 border-border bg-paper px-4 py-3 text-base">{scenario.prompt}</p>
         <textarea
           autoFocus
           className={`${inputClass} min-h-32 resize-y`}

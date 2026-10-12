@@ -71,13 +71,13 @@ export default async function BondPage({ params }: Props) {
 
       <section className={`space-y-3 ${chat.messages.length === 0 ? "hidden" : ""}`}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">What their pets said</h2>
-        <ol className="space-y-2 rounded-3xl bg-paper p-4 text-accent-ink">
+        <ol className="space-y-2 rounded-3xl border-2 border-border bg-paper p-4">
           {chat.messages.map((m, i) => (
             <li key={i} className={`flex flex-col ${m.from === "a" ? "items-start" : "items-end"}`}>
-              <span className="px-2 text-xs text-accent-ink/60">{m.from === "a" ? a.name : b.name}</span>
+              <span className="px-2 text-xs text-muted">{m.from === "a" ? a.name : b.name}</span>
               <p
                 className={`max-w-[80%] rounded-3xl px-4 py-2 ${
-                  m.from === "a" ? "rounded-bl-md bg-white" : "rounded-br-md bg-accent-ink text-paper"
+                  m.from === "a" ? "rounded-bl-md border-2 border-border bg-white" : "rounded-br-md bg-blue text-white"
                 }`}
               >
                 {m.text}

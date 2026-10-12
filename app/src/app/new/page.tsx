@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CreateTwin } from "@/components/create-twin";
 import { judgeProvider, type Provider } from "@/lib/llm";
 
-export const metadata: Metadata = { title: "Make your twin" };
+export const metadata: Metadata = { title: "Make your pet" };
 
 export default async function NewTwinPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   // Named in the privacy note. Unknown is fine: the note then just says "an AI model".
