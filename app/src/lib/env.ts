@@ -44,6 +44,8 @@ const schema = z.object({
   NEXT_PUBLIC_EXPLORER_URL: z.string().url().default("https://testnet.monadvision.com"),
 
   // Abuse and cost control. Every attempt costs the funder gas and a judge call.
+  // Pets with an id at or below this stay out of the Isekai (leftover test pets on a shared database).
+  WORLD_MIN_TWIN_ID: int(0),
   LIMIT_TWINS_PER_DAY: int(50),
   LIMIT_TWINS_PER_OWNER_DAY: int(3),
   LIMIT_TWINS_PER_IP_DAY: int(5),

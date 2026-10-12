@@ -3,8 +3,8 @@ import type { Outfit } from "@/lib/cosmetics";
 export type Mood = "idle" | "happy" | "suspicious" | "shocked" | "victory";
 
 const INK = "#2B2350";
-const LIME = "#836EF9";
-const LIME_DEEP = "#6A56E0";
+const LIME = "var(--pet, #836EF9)";
+const LIME_DEEP = "var(--pet-deep, #6A56E0)";
 const PAPER = "#FFFFFF";
 const RED = "#FF4B4B";
 const GOLD = "#FFC800";
@@ -19,12 +19,15 @@ export function Pet({
   outfit = {},
   className = "",
   label,
+  hue,
 }: {
   mood?: Mood;
   outfit?: Outfit;
   className?: string;
   /** Read out to screen readers; omit when the pet is decoration next to its name. */
   label?: string;
+  /** A body colour of its own, for residents of the world. Omit for the standard purple. */
+  hue?: number;
 }) {
   const armsUp = mood === "victory";
   return (
@@ -34,6 +37,7 @@ export function Pet({
       role={label ? "img" : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
+      style={hue === undefined ? undefined : ({ "--pet": `hsl(${hue} 78% 66%)`, "--pet-deep": `hsl(${hue} 62% 52%)` } as React.CSSProperties)}
     >
       {outfit.aura === "aura" && (
         <g className="pet-aura" fill={GOLD}>

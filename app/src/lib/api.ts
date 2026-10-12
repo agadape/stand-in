@@ -3,6 +3,9 @@
  * src/app/api; keep the two in step.
  */
 
+export type { World } from "./world";
+import type { World } from "./world";
+
 export type TwinCard = {
   slug: string;
   name: string;
@@ -176,6 +179,21 @@ export const api = {
 
   createGathering: (input: OwnerInput & { name: string; hours: number }) =>
     request<{ id: number }>("/api/gatherings", { method: "POST", body: JSON.stringify(input) }),
+
+  /** The Isekai. Asking for it also advances it when a tick is due. */
+  getWorld: () => request<World>("/api/world", { cache: "no-store" }),
+
+  setDials: (input: OwnerInput & { dials: { openness: number; pace: number; avoid: string; paused: boolean }; interests: string[] }) =>
+    request<{ dials: { openness: number; pace: number; avoid: string; paused: boolean } }>("/api/world/dials", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+
+  consentIntro: (input: OwnerInput & { pairId: number }) =>
+    request<{ introduced: boolean; aConsent: boolean; bConsent: boolean }>("/api/world/consent", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
 
   getAttempt: (id: number) => request<{ attempt: AttemptRecord }>(`/api/attempts/${id}`, { cache: "no-store" }),
 };

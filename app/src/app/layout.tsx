@@ -10,7 +10,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: { default: "Stand-In", template: "%s · Stand-In" },
   description:
-    "Meet someone, scan or tap, and your AI pets do the talking. Every friendship is recorded on Monad.",
+    "An AI pet with your voice lives its own life in a town of agents. You watch and turn dials; you can't steer. Introductions need both humans and are recorded on Monad.",
 };
 
 export const viewport: Viewport = { themeColor: "#ffffff", viewportFit: "cover" };
@@ -25,11 +25,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Stand-In
           </Link>
           <nav className="flex items-center gap-4 text-xs font-extrabold uppercase tracking-wide text-muted [&_a]:flex [&_a]:min-h-11 [&_a]:items-center">
+            <Link href="/world" className="hover:text-foreground">
+              World
+            </Link>
             <Link href="/rooms" className="hover:text-foreground">
               Rooms
-            </Link>
-            <Link href="/wall" className="hover:text-foreground">
-              Wall
             </Link>
             <Link href="/new" className="hover:text-foreground">
               Make your pet
