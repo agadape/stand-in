@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Nunito } from "next/font/google";
 import Link from "next/link";
-import { BottomNav } from "@/components/bottom-nav";
+import { BottomNav, SideNav } from "@/components/bottom-nav";
 import "./globals.css";
 
 const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"] });
@@ -18,8 +18,9 @@ export const viewport: Viewport = { themeColor: "#ffffff", viewportFit: "cover" 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${nunito.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">
-        <header className="mx-auto flex w-full max-w-md items-center justify-between border-b-2 border-border px-4 py-1">
+      <body className="flex min-h-full flex-col md:pl-60">
+        <SideNav />
+        <header className="mx-auto flex w-full max-w-md items-center justify-between border-b-2 border-border px-4 py-1 md:hidden">
           <Link href="/" className="flex min-h-11 items-center text-xl font-black lowercase tracking-tight text-accent">
             Stand-In
           </Link>
@@ -35,9 +36,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
           </nav>
         </header>
-        <main className="mx-auto w-full max-w-md flex-1 px-4 py-6">{children}</main>
+        <main className="mx-auto w-full max-w-md flex-1 px-4 py-6 md:max-w-xl md:px-8 md:py-10 lg:max-w-5xl lg:px-10">{children}</main>
         {/* Bottom padding leaves room for the tab bar a pet owner gets. */}
-        <footer className="mx-auto w-full max-w-md px-4 pb-24 text-xs text-muted">
+        <footer className="mx-auto w-full max-w-md px-4 pb-24 text-xs text-muted md:hidden">
           Built on Monad for Metropolis. Testnet money only.
         </footer>
         <BottomNav />

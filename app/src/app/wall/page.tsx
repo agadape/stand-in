@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function WallPage() {
   const [all, gatherings] = await Promise.all([wall(0), listGatherings()]);
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-3xl space-y-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Live wall</h1>
         <p className="text-muted">Every meeting recorded on Monad, as it happens. Put this on a big screen.</p>

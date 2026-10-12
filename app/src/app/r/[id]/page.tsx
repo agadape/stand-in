@@ -26,7 +26,7 @@ export default async function RoomPage({ params }: Props) {
   const pets = await petsByAddress(room.members);
 
   return (
-    <div className="space-y-6">
+    <div className="narrow space-y-6">
       <div className="space-y-2">
         <p className="text-sm font-semibold uppercase tracking-wide text-accent-strong">Met-gated room</p>
         <h1 className="text-4xl font-semibold tracking-tight">{room.name}</h1>

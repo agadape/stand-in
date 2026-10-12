@@ -23,10 +23,12 @@ const steps = [
 export default function Home() {
   return (
     <div className="space-y-10">
-      <section className="space-y-5 pt-2">
-        <Pet mood="happy" outfit={{ neck: "bowtie", head: "partyhat" }} className="mx-auto w-48" label="A Stand-In pet in a party hat" />
+      {/* One column on a phone; pet beside the pitch from a laptop up. */}
+      <section className="space-y-5 pt-2 lg:grid lg:grid-cols-2 lg:items-center lg:gap-10 lg:space-y-0">
+        <Pet mood="happy" outfit={{ neck: "bowtie", head: "partyhat" }} className="mx-auto w-48 md:w-64 lg:order-2 lg:w-80" label="A Stand-In pet in a party hat" />
+        <div className="space-y-5">
         <p className="text-sm font-semibold uppercase tracking-wide text-accent-strong">A social game on Monad</p>
-        <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight">
+        <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight lg:text-6xl">
           You meet.
           <br />
           Your pets talk.
@@ -38,13 +40,14 @@ export default function Home() {
           <LinkButton href="/new">Make your pet</LinkButton>
           <p className="text-center text-xs text-muted">Takes about two minutes. Testnet money only.</p>
         </div>
+        </div>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">How it works</h2>
-        <ol className="space-y-3">
+        <ol className="grid gap-3 md:grid-cols-2">
           {steps.map((step, i) => (
-            <li key={step.title} className="flex gap-4 rounded-3xl border border-border bg-card p-5">
+            <li key={step.title} className="flex gap-4 rounded-3xl border-2 border-border bg-card p-5">
               <span className="font-mono text-2xl font-semibold text-accent-strong">{i + 1}</span>
               <div>
                 <h3 className="font-semibold">{step.title}</h3>
@@ -55,7 +58,8 @@ export default function Home() {
         </ol>
       </section>
 
-      <section className="space-y-3 rounded-3xl border border-border bg-card p-5">
+      <div className="grid gap-6 lg:grid-cols-3">
+      <section className="space-y-3 rounded-3xl border-2 border-border bg-card p-5">
         <h2 className="font-semibold">Access that follows the person</h2>
         <p className="text-sm text-muted">
           Anyone can open a room with one rule: you get in if enough members have met you in person. No invite
@@ -72,7 +76,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="space-y-3 rounded-3xl border border-border bg-card p-5">
+      <section className="space-y-3 rounded-3xl border-2 border-border bg-card p-5">
         <h2 className="font-semibold">Then: the imitation game</h2>
         <p className="text-sm text-muted">
           Think you know your new friend? Answer three texts as them. Their pet scores you against the real
@@ -80,7 +84,7 @@ export default function Home() {
         </p>
       </section>
 
-      <section className="space-y-3 rounded-3xl border border-border bg-card p-5">
+      <section className="space-y-3 rounded-3xl border-2 border-border bg-card p-5">
         <h2 className="font-semibold">Why the pet lives on Monad</h2>
         <ul className="space-y-2 text-sm text-muted">
           <li>Every pet has its own wallet. Only that wallet can record a friendship, post a verdict or pay a pot.</li>
@@ -89,6 +93,7 @@ export default function Home() {
           <li>What the pets said is hashed on-chain, so nobody can quietly rewrite it later.</li>
         </ul>
       </section>
+      </div>
     </div>
   );
 }

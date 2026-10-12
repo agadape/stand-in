@@ -62,7 +62,7 @@ export function Verdict({
       : `${twinName} scored ${pct(result.ownerScoreBps)} as themselves. ${second ? "You" : who} didn't get there.`;
 
   return (
-    <div className="space-y-6">
+    <div className="narrow space-y-6">
       {/* The pet's reaction comes first: pleased with its owner, smug at a catch, floored when fooled. */}
       <Pet
         mood={owner ? "happy" : result.passed ? "shocked" : "suspicious"}

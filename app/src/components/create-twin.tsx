@@ -105,7 +105,7 @@ export function CreateTwin({ judge, next }: { judge: Provider | null; next: stri
   }
 
   return (
-    <div className="flex min-h-[70dvh] flex-col gap-6">
+    <div className="narrow flex min-h-[70dvh] flex-col gap-6">
       <div className="flex items-center gap-3">
         {step === 0 ? (
           <Link href="/" aria-label="Close" className="flex size-11 shrink-0 items-center justify-center text-2xl text-muted">

@@ -26,7 +26,7 @@ export default async function BondPage({ params }: Props) {
     chat.messages.length === 0 ? "idle" : chat.chemistry >= 75 ? "victory" : chat.chemistry >= 45 ? "happy" : "suspicious";
 
   return (
-    <div className="space-y-6 pt-4">
+    <div className="narrow space-y-6 pt-4">
       <div className="space-y-2 text-center">
         {/* How the pets feel about each other follows the chemistry they reported. */}
         <div className="flex items-end justify-center gap-2" aria-hidden>

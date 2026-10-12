@@ -9,5 +9,9 @@ export default async function PlayPage({
 }) {
   const { slug } = await params;
   const { mode } = await searchParams;
-  return <Play slug={slug} mode={mode === "owner" ? "owner" : "challenger"} />;
+  return (
+    <div className="narrow">
+      <Play slug={slug} mode={mode === "owner" ? "owner" : "challenger"} />
+    </div>
+  );
 }

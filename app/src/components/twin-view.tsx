@@ -92,15 +92,26 @@ export function TwinView({
         </Card>
       )}
 
-      <section className="space-y-4">
-        <PetScene slug={twin.slug} name={twin.name} friends={friends.length} />
+      {/* Phone: one column. Laptop: the pet stays on the left while the actions scroll on the right. */}
+      <div className="space-y-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10 lg:space-y-0">
+      <section className="space-y-4 lg:sticky lg:top-10">
+        <PetScene slug={twin.slug} name={twin.name} friends={friends.length} className="w-48 lg:w-72" />
         <div className="text-center">
           <h1 className="text-4xl font-semibold tracking-tight">{twin.name}</h1>
           {twin.bio && <p className="mt-1 text-muted">{twin.bio}</p>}
         </div>
         <SocialProgress friends={friends.length} />
+        <div className="grid grid-cols-2 gap-3 max-lg:hidden">
+          <LinkButton href={`/t/${twin.slug}/wardrobe`} variant="secondary">
+            Wardrobe
+          </LinkButton>
+          <LinkButton href={`/t/${twin.slug}/activity`} variant="secondary">
+            Activity
+          </LinkButton>
+        </div>
       </section>
 
+      <div className="space-y-6">
       <ErrorNote>{error}</ErrorNote>
 
       {isOwner && requests.length > 0 && (
@@ -137,7 +148,7 @@ export function TwinView({
         <LinkButton href={`/t/${twin.slug}/meet`}>Become friends with {twin.name}</LinkButton>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:hidden">
         <LinkButton href={`/t/${twin.slug}/wardrobe`} variant="secondary">
           Wardrobe
         </LinkButton>
@@ -196,6 +207,8 @@ export function TwinView({
         </a>
         . It records every meeting and pays out the imitation game itself.
       </p>
+      </div>
+      </div>
     </div>
   );
 }
