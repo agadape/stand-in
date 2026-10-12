@@ -37,7 +37,9 @@ export const STAGES = [
 /** At this score both humans are asked whether they want to be introduced. */
 export const THRESHOLD = 80;
 
+/** The default pace; WORLD_TICK_MS overrides it. */
 export const TICK_MS = 6_000;
+const tickMs = () => env().WORLD_TICK_MS || TICK_MS;
 export const DEFAULT_DIALS: Dials = { openness: 60, pace: 50, avoid: "", paused: false };
 
 export function stageOf(score: number) {
@@ -185,7 +187,7 @@ export async function advance(): Promise<boolean> {
   let claimed = await db()
     .update(schema.worldClock)
     .set({ tick: sql`${schema.worldClock.tick} + 1`, lastTickAt: new Date(now) })
-    .where(and(eq(schema.worldClock.id, 1), lt(schema.worldClock.lastTickAt, new Date(now - TICK_MS))))
+    .where(and(eq(schema.worldClock.id, 1), lt(schema.worldClock.lastTickAt, new Date(now - tickMs()))))
     .returning()
     .get();
   if (!claimed) {
@@ -245,7 +247,9 @@ export async function advance(): Promise<boolean> {
         const owned = (a.twinId ? 1 : 0) + (b.twinId ? 1 : 0);
         const chatty = (a.dials.openness + b.dials.openness) / 200;
         // People who already like each other find each other in a room.
-        const drawn = 1 + (pairOf(a.id, b.id)?.score ?? 0) / 30;
+        // A pair that has already reached the threshold has had its story; let others have theirs.
+        const known = pairOf(a.id, b.id)?.score ?? 0;
+        const drawn = known >= THRESHOLD ? 0.3 : 1 + Math.min(known, 60) / 40;
         candidates.push({ a, b, weight: (1 + 2 * owned) * (0.4 + chatty) * drawn });
       }
     }
@@ -310,7 +314,7 @@ export async function snapshot() {
   ]);
   return {
     tick: clock?.tick ?? 0,
-    tickMs: TICK_MS,
+    tickMs: tickMs(),
     threshold: THRESHOLD,
     places: PLACES,
     agents: agentRows.map(({ agent, slug, owner }) => ({

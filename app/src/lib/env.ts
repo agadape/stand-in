@@ -46,6 +46,8 @@ const schema = z.object({
   // Abuse and cost control. Every attempt costs the funder gas and a judge call.
   // Pets with an id at or below this stay out of the Isekai (leftover test pets on a shared database).
   WORLD_MIN_TWIN_ID: int(0),
+  // How often the town may tick, in milliseconds. One model call per tick, so mind the rate limit.
+  WORLD_TICK_MS: int(6000),
   LIMIT_TWINS_PER_DAY: int(50),
   LIMIT_TWINS_PER_OWNER_DAY: int(3),
   LIMIT_TWINS_PER_IP_DAY: int(5),
