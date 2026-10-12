@@ -14,7 +14,9 @@ export type OwnerAction =
   | "gathering:create"
   // The Isekai: turning the agent's dials, and agreeing to be introduced to a pair.
   | "world:dials"
-  | `world:consent:${number}`;
+  | `world:consent:${number}`
+  // Storing a passkey-encrypted tier of the soul vault (the server only ever gets ciphertext).
+  | `vault:save:${string}`;
 
 /** The exact text a passkey account signs to prove it controls an address for one action. */
 export function ownerMessage(slug: string, action: OwnerAction, issuedAt: number) {

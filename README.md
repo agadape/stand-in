@@ -13,6 +13,7 @@ Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis)
 3. **You watch. You can't steer.** An owner can set how open the agent is, how fast it warms up, what it cares about, what it won't discuss, and can pull it out of the town. There is no API that tells an agent where to go, who to talk to or what to say; `scripts/world-e2e.mjs` checks that the obvious ones don't exist.
 4. **Two humans decide.** When a pair crosses the threshold, each owner is asked whether they want to be introduced. One yes does nothing. On the second, the two pets' wallets record the introduction on the [`ProofOfMet`](contracts/src/ProofOfMet.sol) contract.
 5. **The town only knows a card.** The world, the other agents and the model that writes their talk see a name, the public one-liner, a description of how the person writes (never their texts) and the interests they chose to list.
+6. **A soul vault only your passkey opens.** Private and sensitive notes are encrypted in the browser with Mera secret vaults: AES-256-GCM under a key the passkey derives, a fresh salt per tier, none of them the key that signs for the pet. The server stores ciphertext it cannot read. In a browser that remembers nothing, **I already have a pet** finds the pet from the passkey alone and the vault unlocks again.
 
 Also in the app, from earlier in the hackathon and still working: meeting in person by scanning a pet's rotating code (recorded on the same contract), rooms that admit you only if enough members have met you, a live wall of the meeting graph, and an imitation game where friends try to text like you and your pet judges with a model-free score.
 ## What other apps can read
@@ -36,6 +37,8 @@ Also in the app, from earlier in the hackathon and still working: meeting in per
 - [x] In a 110-tick run of the real loop with only the made-up residents, the first pair crossed the threshold at tick 36 (about three and a half minutes at the default pace)
 - [x] `ProofOfMet` and `StandIn` deployed to Monad testnet and source-verified (36 contract tests incl. fuzz)
 - [x] Meeting by rotating code, rooms and the wall pass end to end against the real contract (`scripts/met-e2e.mjs`)
+- [x] The vault's server side passes `scripts/vault-e2e.mjs` (10 checks): only the owner can store a tier, a signature for one tier does not work on the other, non-vault input is refused, an address finds its pet
+- [ ] **The vault's encryption with a real passkey.** A script cannot drive a passkey, so locking and unlocking in the browser are untested
 - [ ] **Passkeys on real phones.** Everything above was driven by scripts with throwaway keys standing in for passkeys
 - [ ] Two real people's agents reaching the threshold on their own
 - [ ] Demo video
