@@ -26,7 +26,10 @@ const seed = pick("TWIN_KEY_SEED");
 
 const client = createPublicClient({ chain, transport: http(rpc) });
 const db = createClient({ url: `file:${join(root, "app/standin.db")}` });
-const { rows } = await db.execute("select slug from twins");
+// Slugs given on the command line (test pets an e2e run made on a hosted site that shares
+// this seed) are swept instead of the local database's.
+const named = process.argv.slice(2).map((slug) => ({ slug }));
+const { rows } = named.length ? { rows: named } : await db.execute("select slug from twins");
 
 const GAS = 21_000n;
 const maxFeePerGas = (await client.getGasPrice()) * 2n;

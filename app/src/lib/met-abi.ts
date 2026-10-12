@@ -244,7 +244,7 @@ export const metAbi = [
     ],
     "outputs": [
       {
-        "name": "",
+        "name": "friends",
         "type": "address[]",
         "internalType": "address[]"
       }
@@ -490,14 +490,14 @@ export const metAbi = [
             "internalType": "address"
           },
           {
-            "name": "b",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
             "name": "at",
             "type": "uint64",
             "internalType": "uint64"
+          },
+          {
+            "name": "b",
+            "type": "address",
+            "internalType": "address"
           },
           {
             "name": "gatheringId",
@@ -508,11 +508,6 @@ export const metAbi = [
             "name": "method",
             "type": "uint8",
             "internalType": "enum ProofOfMet.Method"
-          },
-          {
-            "name": "chatHash",
-            "type": "bytes32",
-            "internalType": "bytes32"
           }
         ]
       }
@@ -559,14 +554,14 @@ export const metAbi = [
             "internalType": "address"
           },
           {
-            "name": "b",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
             "name": "at",
             "type": "uint64",
             "internalType": "uint64"
+          },
+          {
+            "name": "b",
+            "type": "address",
+            "internalType": "address"
           },
           {
             "name": "gatheringId",
@@ -577,11 +572,6 @@ export const metAbi = [
             "name": "method",
             "type": "uint8",
             "internalType": "enum ProofOfMet.Method"
-          },
-          {
-            "name": "chatHash",
-            "type": "bytes32",
-            "internalType": "bytes32"
           }
         ]
       }

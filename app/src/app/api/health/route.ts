@@ -5,6 +5,7 @@ import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { funderStatus } from "@/lib/limits";
 import { judgeLabel } from "@/lib/llm";
+import { STYLOMETRY_VERSION } from "@/lib/stylometry";
 
 /** Liveness for the team: judge, chain, contract, funder gas and database reachability. */
 export async function GET() {
@@ -12,7 +13,8 @@ export async function GET() {
   let ok = true;
 
   try {
-    checks.judge = judgeLabel();
+    // The imitation game's judge; the pets' chat uses a model either way.
+    checks.judge = env().JUDGE === "stylometry" ? STYLOMETRY_VERSION : judgeLabel();
   } catch (error) {
     checks.judge = { error: error instanceof Error ? error.message : String(error) };
     ok = false;

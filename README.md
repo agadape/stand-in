@@ -17,7 +17,7 @@ Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis)
 
 ## What other apps can read
 
-`ProofOfMet` is deployed and source-verified on Monad testnet at [`0x535c…0efd`](https://testnet.monadvision.com/address/0x535c8fbEFFe58298Ed49d75C0f9CcB7F42d00efd).
+`ProofOfMet` is deployed and source-verified on Monad testnet at [`0x3fC9…aBb7`](https://testnet.monadvision.com/address/0x3fC903947CAfdC359472119752b6540D431DaBb7).
 
 | Function | Answers |
 |---|---|
@@ -25,7 +25,7 @@ Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis)
 | `hasMetInPerson(a, b)` | Did they meet by scanning a fresh code? |
 | `mutualCount(a, b)` | How many pets have both of them met? |
 | `vouchCount(candidate, members, inPersonOnly)` | How many of these members have met the candidate? |
-| `friendsOf(pet)`, `friendCount(pet)` | A pet's friends |
+| `friendsOf(pet)`, `friendCount(pet)` | A pet's friends (`friendsOf` and `mutualCount` walk the meeting list: free off-chain, linear if called from a contract) |
 | `attended(gatheringId, pet)` | Did this pet meet someone at that gathering? |
 | `canJoin(roomId, pet)` | Would this room let the pet in, and how many vouches is it short? |
 

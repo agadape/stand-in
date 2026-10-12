@@ -48,6 +48,9 @@ contract ProofOfMetTest is Test {
     }
 
     function test_codeMeetIsInPerson() public {
+        // The chat's hash is committed in the event.
+        vm.expectEmit(true, true, true, true);
+        emit ProofOfMet.Met(1, a, b, ProofOfMet.Method.Code, 0, CHAT);
         _meetInPerson(A_KEY, b, "n1");
         assertTrue(met.hasMet(a, b));
         assertTrue(met.hasMet(b, a));
@@ -58,7 +61,7 @@ contract ProofOfMetTest is Test {
         ProofOfMet.Meet memory m = met.meetBetween(b, a);
         assertEq(m.a, a);
         assertEq(m.b, b);
-        assertEq(m.chatHash, CHAT);
+        assertEq(m.at, block.timestamp);
     }
 
     function test_linkMeetIsNotInPerson() public {

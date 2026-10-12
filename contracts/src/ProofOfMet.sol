@@ -15,13 +15,21 @@ contract ProofOfMet {
         Code // a fresh rotating code was scanned: the two screens were in the same place
     }
 
+    /// @dev Two storage slots: (a, at) and (b, gatheringId, method). The hash of the pets'
+    ///      chat is in the Met event only; nothing on-chain needs to read it back.
     struct Meet {
         address a; // the pet that showed its code (or approved the link)
-        address b; // the pet that scanned and recorded the meeting
         uint64 at;
+        address b; // the pet that scanned and recorded the meeting
         uint64 gatheringId; // 0 when not at a gathering
         Method method;
-        bytes32 chatHash; // keccak256 of the two pets' first chat, kept off-chain
+    }
+
+    /// @dev One slot per pet: its friend count and its hourly cap.
+    struct Pace {
+        uint64 hourStart;
+        uint32 count;
+        uint32 friends;
     }
 
     struct Gathering {
@@ -50,10 +58,8 @@ contract ProofOfMet {
 
     Meet[] private _meets;
     mapping(bytes32 pair => uint256 indexPlusOne) private _pairIndex;
-    mapping(address pet => address[]) private _friends;
     mapping(address pet => mapping(bytes32 nonce => bool)) public codeUsed;
-    mapping(address pet => uint256) private _hourStart;
-    mapping(address pet => uint256) private _hourCount;
+    mapping(address pet => Pace) private _pace;
 
     Gathering[] private _gatherings; // id is index + 1
     mapping(uint256 gatheringId => mapping(address pet => bool)) public attended;
@@ -136,11 +142,9 @@ contract ProofOfMet {
         _countNewFriend(a);
         _countNewFriend(b);
 
-        _meets.push(Meet(a, b, uint64(block.timestamp), gatheringId, method, chatHash));
+        _meets.push(Meet(a, uint64(block.timestamp), b, gatheringId, method));
         meetId = _meets.length;
         _pairIndex[pair] = meetId;
-        _friends[a].push(b);
-        _friends[b].push(a);
         emit Met(meetId, a, b, method, gatheringId, chatHash);
     }
 
@@ -156,21 +160,32 @@ contract ProofOfMet {
 
     function meetBetween(address a, address b) external view returns (Meet memory) {
         uint256 i = _pairIndex[_pair(a, b)];
-        if (i == 0) return Meet(address(0), address(0), 0, 0, Method.Link, bytes32(0));
+        if (i == 0) return Meet(address(0), 0, address(0), 0, Method.Link);
         return _meets[i - 1];
     }
 
-    function friendsOf(address pet) external view returns (address[] memory) {
-        return _friends[pet];
+    /// @notice Everyone `pet` has met.
+    /// @dev Friend lists are not stored: on Monad every extra storage slot a meeting
+    ///      touches is paid for by two people standing in a hallway. This walks the list of
+    ///      meetings instead, which is free to call off-chain and linear in total meetings
+    ///      if another contract calls it. hasMet, vouchCount and friendCount stay O(1).
+    function friendsOf(address pet) public view returns (address[] memory friends) {
+        friends = new address[](_pace[pet].friends);
+        uint256 found;
+        for (uint256 i = 0; i < _meets.length && found < friends.length; i++) {
+            Meet storage m = _meets[i];
+            if (m.a == pet) friends[found++] = m.b;
+            else if (m.b == pet) friends[found++] = m.a;
+        }
     }
 
     function friendCount(address pet) external view returns (uint256) {
-        return _friends[pet].length;
+        return _pace[pet].friends;
     }
 
-    /// @notice How many pets both `a` and `b` have met.
+    /// @notice How many pets both `a` and `b` have met. Linear in meetings, like friendsOf.
     function mutualCount(address a, address b) external view returns (uint256 n) {
-        address[] storage mine = _friends[a];
+        address[] memory mine = friendsOf(a);
         for (uint256 i = 0; i < mine.length; i++) {
             if (mine[i] != b && hasMet(mine[i], b)) n++;
         }
@@ -281,12 +296,15 @@ contract ProofOfMet {
     }
 
     function _countNewFriend(address pet) private {
-        if (block.timestamp >= _hourStart[pet] + 1 hours) {
-            _hourStart[pet] = block.timestamp;
-            _hourCount[pet] = 0;
+        Pace memory pace = _pace[pet];
+        if (block.timestamp >= uint256(pace.hourStart) + 1 hours) {
+            pace.hourStart = uint64(block.timestamp);
+            pace.count = 0;
         }
-        if (_hourCount[pet] >= MAX_NEW_PER_HOUR) revert TooManyNewFriends();
-        _hourCount[pet] += 1;
+        if (pace.count >= MAX_NEW_PER_HOUR) revert TooManyNewFriends();
+        pace.count += 1;
+        pace.friends += 1;
+        _pace[pet] = pace;
     }
 
     /// @dev Signatures are over the EIP-191 personal-message form of a 32-byte digest.

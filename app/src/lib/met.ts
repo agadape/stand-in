@@ -36,6 +36,27 @@ export type Method = keyof typeof METHOD;
 
 const tip = (attempt: number) => ({ maxPriorityFeePerGas: parseGwei(String(2 + attempt)) });
 
+/**
+ * Monad charges for the gas limit, not for the gas used, so every unit of headroom is paid
+ * for. This asks the node what the call needs and adds a tenth, for state that shifts
+ * between the estimate and the block (someone else meeting the same pet a moment earlier
+ * makes a storage write cheaper or dearer). `fallback` is used if the node will not estimate.
+ */
+async function gasFor(from: Address, functionName: string, args: readonly unknown[], fallback: bigint) {
+  try {
+    const estimate = await publicClient().estimateContractGas({
+      address: metAddress(),
+      abi: metAbi,
+      functionName,
+      args,
+      account: from,
+    } as Parameters<ReturnType<typeof publicClient>["estimateContractGas"]>[0]);
+    return (estimate * 110n) / 100n;
+  } catch {
+    return fallback;
+  }
+}
+
 /** Same bytes as ProofOfMet.codeDigest. `issuedAt` is in seconds, as the chain counts. */
 function codeDigest(pet: Address, gatheringId: number, issuedAtSec: number, nonce: Hex) {
   return keccak256(
@@ -126,23 +147,24 @@ export async function recordMeet(params: {
       ? code.signature
       : await twinAccount(shown.slug).signMessage({ message: { raw: linkDigest(a, b) } });
 
+  const args = [
+    a,
+    METHOD[method],
+    BigInt(method === "code" ? gatheringId : 0),
+    BigInt(code?.issuedAt ?? 0),
+    pad(code?.nonce ?? "0x"),
+    chatHash,
+    signature,
+  ] as const;
+
   await ensureGas(b);
-  const hash = await withSendRetry((attempt) =>
+  const hash = await withSendRetry(async (attempt) =>
     twinWallet(scanner.slug).writeContract({
       address: metAddress(),
       abi: metAbi,
       functionName: "recordMeet",
-      args: [
-        a,
-        METHOD[method],
-        BigInt(method === "code" ? gatheringId : 0),
-        BigInt(code?.issuedAt ?? 0),
-        pad(code?.nonce ?? "0x"),
-        chatHash,
-        signature,
-      ],
-      // Storage-heavy and Monad charges the limit, so a fixed one beats a padded estimate.
-      gas: 600_000n,
+      args,
+      gas: await gasFor(b, "recordMeet", args, 450_000n),
       ...tip(attempt),
     }),
   );
@@ -169,13 +191,13 @@ export async function createGathering(host: Twin, name: string, hours: number) {
   await ensureGas(host.twinAddress as Address);
   const startsAt = BigInt(Math.floor(Date.now() / 1000) - 60);
   const endsAt = startsAt + BigInt(Math.round(hours * 3600));
-  const hash = await withSendRetry((attempt) =>
+  const hash = await withSendRetry(async (attempt) =>
     twinWallet(host.slug).writeContract({
       address: metAddress(),
       abi: metAbi,
       functionName: "createGathering",
       args: [name, startsAt, endsAt],
-      gas: 400_000n,
+      gas: await gasFor(host.twinAddress as Address, "createGathering", [name, startsAt, endsAt], 250_000n),
       ...tip(attempt),
     }),
   );
@@ -216,13 +238,13 @@ export type Room = { id: number; creator: Address; name: string; threshold: numb
 
 export async function createRoom(creator: Twin, name: string, threshold: number, inPersonOnly: boolean) {
   await ensureGas(creator.twinAddress as Address);
-  const hash = await withSendRetry((attempt) =>
+  const hash = await withSendRetry(async (attempt) =>
     twinWallet(creator.slug).writeContract({
       address: metAddress(),
       abi: metAbi,
       functionName: "createRoom",
       args: [name, threshold, inPersonOnly],
-      gas: 500_000n,
+      gas: await gasFor(creator.twinAddress as Address, "createRoom", [name, threshold, inPersonOnly], 300_000n),
       ...tip(attempt),
     }),
   );
@@ -266,13 +288,13 @@ export async function canJoin(roomId: number, pet: Address) {
 
 export async function joinRoom(pet: Twin, roomId: number) {
   await ensureGas(pet.twinAddress as Address);
-  const hash = await withSendRetry((attempt) =>
+  const hash = await withSendRetry(async (attempt) =>
     twinWallet(pet.slug).writeContract({
       address: metAddress(),
       abi: metAbi,
       functionName: "join",
       args: [BigInt(roomId)],
-      gas: 400_000n,
+      gas: await gasFor(pet.twinAddress as Address, "join", [BigInt(roomId)], 200_000n),
       ...tip(attempt),
     }),
   );
