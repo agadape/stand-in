@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { BottomNav } from "@/components/bottom-nav";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
     "Meet someone, scan or tap, and your AI pets do the talking. Every friendship is recorded on Monad.",
 };
 
-export const viewport: Viewport = { themeColor: "#0b0b12" };
+export const viewport: Viewport = { themeColor: "#151515" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -35,9 +36,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </header>
         <main className="mx-auto w-full max-w-md flex-1 px-4 py-6">{children}</main>
-        <footer className="mx-auto w-full max-w-md px-4 pb-8 text-xs text-muted">
+        {/* Bottom padding leaves room for the tab bar a pet owner gets. */}
+        <footer className="mx-auto w-full max-w-md px-4 pb-24 text-xs text-muted">
           Built on Monad for Metropolis. Testnet money only.
         </footer>
+        <BottomNav />
       </body>
     </html>
   );

@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { TwinView } from "@/components/twin-view";
 import { bondsOf } from "@/lib/bonds";
-import { leaderboardRows, publicTwin, twinBySlug } from "@/lib/twins";
+import { publicTwin, twinBySlug } from "@/lib/twins";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -37,12 +37,11 @@ export default async function TwinPage({ params, searchParams }: Props) {
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const meetUrl = `${proto}://${host}/t/${twin.slug}/meet`;
 
-  const [card, rows, bonds] = await Promise.all([publicTwin(twin), leaderboardRows(twin.id), bondsOf(twin)]);
+  const [card, bonds] = await Promise.all([publicTwin(twin), bondsOf(twin)]);
   const gatheringId = /^\d{1,9}$/.test(g ?? "") ? Number(g) : 0;
   return (
     <TwinView
       twin={card}
-      leaderboard={rows}
       bonds={bonds}
       meetUrl={meetUrl}
       gatheringId={gatheringId}

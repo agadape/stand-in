@@ -32,19 +32,19 @@ export default async function Image({ params }: { params: Promise<{ slug: string
           flexDirection: "column",
           justifyContent: "space-between",
           padding: 72,
-          background: "#0b0b12",
-          color: "#f4f2ff",
+          background: "#151515",
+          color: "#f1eee6",
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ display: "flex", fontSize: 28, color: "#a593ff", letterSpacing: 2, textTransform: "uppercase" }}>
+        <div style={{ display: "flex", fontSize: 28, color: "#d7ff64", letterSpacing: 2, textTransform: "uppercase" }}>
           Stand-In · a party game on Monad
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div style={{ display: "flex", fontSize: 112, fontWeight: 700, lineHeight: 1 }}>Be {name}.</div>
-          <div style={{ display: "flex", fontSize: 40, color: "#9a96b4" }}>{line}</div>
+          <div style={{ display: "flex", fontSize: 40, color: "#898989" }}>{line}</div>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 28, color: "#9a96b4" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 28, color: "#898989" }}>
           <div style={{ display: "flex" }}>Answer three texts as {name}. Their AI twin decides.</div>
           {card && BigInt(card.potWei) > 0n ? (
             <div style={{ display: "flex", color: "#ffcc4d" }}>Pot {(Number(card.potWei) / 1e18).toFixed(2)} MON</div>

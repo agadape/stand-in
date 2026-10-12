@@ -1,26 +1,25 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { api, formatMon, pct, type LeaderboardRow, type TwinCard } from "@/lib/api";
+import { api, formatMon, pct, type TwinCard } from "@/lib/api";
 import type { BondRow } from "@/lib/bonds";
 import { signInWithPasskey, signOwnerProof } from "@/lib/passkey";
 import { useIsOwner } from "@/lib/use-session";
 import { befriend } from "./meet";
+import { PetScene, SocialProgress } from "./pet-scene";
 import { ShowCode } from "./show-code";
 import { Address, Button, Card, ErrorNote, LinkButton, Pill } from "./ui";
 
+/** Pet Home: the pet, how many friends it has met, and the one thing to do next. */
 export function TwinView({
   twin,
-  leaderboard,
   bonds,
   meetUrl,
   gatheringId,
   welcome,
 }: {
   twin: TwinCard;
-  leaderboard: LeaderboardRow[];
   bonds: BondRow[];
   meetUrl: string;
   /** Set when the owner arrived from a gathering's page: their codes are stamped with it. */
@@ -30,6 +29,8 @@ export function TwinView({
   const router = useRouter();
   const isOwner = useIsOwner(twin.slug, twin.ownerAddress);
   const [busy, setBusy] = useState<null | "fund" | `bond:${string}`>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function accept(other: string) {
     setError(null);
@@ -47,8 +48,6 @@ export function TwinView({
 
   const friends = bonds.filter((b) => b.done);
   const requests = bonds.filter((b) => !b.done && b.waitingOnMe);
-  const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   async function fundPot() {
     setError(null);
@@ -56,7 +55,7 @@ export function TwinView({
     try {
       const passkey = await signInWithPasskey();
       if (passkey.address.toLowerCase() !== twin.ownerAddress.toLowerCase()) {
-        throw new Error("That passkey isn't this twin's owner.");
+        throw new Error("That passkey isn't this pet's owner.");
       }
       const proof = await signOwnerProof(passkey, twin.slug, "fund");
       passkey.end();
@@ -87,31 +86,20 @@ export function TwinView({
         <Card className="border-accent/50 bg-accent/10">
           <p className="font-semibold">Your pet is live.</p>
           <p className="mt-1 text-sm text-muted">
-            Show your code to someone you meet and your pets will talk. To open the imitation game, set the bar
-            first: answer three scenarios as yourself.
+            Show your code to someone you meet and your pets will talk. Every friend you meet gets your pet closer
+            to something new to wear.
           </p>
         </Card>
       )}
 
-      <Card className="space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">{twin.name}</h1>
-            {twin.bio && <p className="mt-1 text-muted">{twin.bio}</p>}
-          </div>
-          <Pill tone={friends.length > 0 ? "ok" : "neutral"}>
-            {friends.length} {friends.length === 1 ? "friend" : "friends"}
-          </Pill>
+      <section className="space-y-4">
+        <PetScene slug={twin.slug} name={twin.name} friends={friends.length} />
+        <div className="text-center">
+          <h1 className="text-4xl font-semibold tracking-tight">{twin.name}</h1>
+          {twin.bio && <p className="mt-1 text-muted">{twin.bio}</p>}
         </div>
-
-        <p className="text-xs text-muted">
-          {twin.name}&apos;s AI pet texts like {twin.name} and has its own wallet on Monad,{" "}
-          <a href={twin.twinExplorerUrl} target="_blank" rel="noreferrer" className="underline decoration-dotted">
-            <Address value={twin.twinAddress} />
-          </a>
-          . It records every friendship and pays out the imitation game itself.
-        </p>
-      </Card>
+        <SocialProgress friends={friends.length} />
+      </section>
 
       <ErrorNote>{error}</ErrorNote>
 
@@ -149,128 +137,65 @@ export function TwinView({
         <LinkButton href={`/t/${twin.slug}/meet`}>Become friends with {twin.name}</LinkButton>
       )}
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Friends {friends.length > 0 && `· ${friends.length}`}</h2>
-        {friends.length === 0 ? (
-          <p className="text-sm text-muted">Nobody yet. Friends are people {twin.name} met and scanned.</p>
-        ) : null}
-        {friends.length === 0 ? (
-          <LinkButton href="/rooms" variant="ghost">
-            See rooms you can join by meeting people
-          </LinkButton>
-        ) : (
-          <ul className="space-y-2">
-            {friends.map((f) => (
-              <li key={f.id}>
-                <Link href={`/b/${f.id}`} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">
-                      {f.other.name}
-                      <span className={`ml-2 text-xs font-normal ${f.inPerson ? "text-ok" : "text-muted"}`}>
-                        {f.inPerson ? "met in person" : "link"}
-                      </span>
-                    </p>
-                    <p className="truncate text-xs text-muted">“{f.summary}”</p>
-                  </div>
-                  <span className="font-mono text-sm font-semibold text-pink">{f.chemistry}%</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <div className="flex items-center justify-between pt-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">The imitation game</h2>
-        <Pill tone={pot > 0n ? "gold" : "neutral"}>Pot {formatMon(pot)}</Pill>
+      <div className="grid grid-cols-2 gap-3">
+        <LinkButton href={`/t/${twin.slug}/wardrobe`} variant="secondary">
+          Wardrobe
+        </LinkButton>
+        <LinkButton href={`/t/${twin.slug}/activity`} variant="secondary">
+          Activity
+        </LinkButton>
       </div>
 
-      <dl className="grid grid-cols-3 gap-3 text-center">
-        <div className="rounded-2xl border border-border bg-card p-3">
-          <dt className="text-xs text-muted">
-            {twin.name} as {twin.name}
-          </dt>
-          <dd className="font-mono text-lg font-semibold">{twin.ownerProven ? pct(twin.ownerScoreBps) : "—"}</dd>
+      <Card className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">The imitation game</h2>
+          <Pill tone={pot > 0n ? "gold" : "neutral"}>Pot {formatMon(pot)}</Pill>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-3">
-          <dt className="text-xs text-muted">Best impostor</dt>
-          <dd className="font-mono text-lg font-semibold">{twin.attempts > 0 ? pct(twin.bestScoreBps) : "—"}</dd>
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-3">
-          <dt className="text-xs text-muted">Attempts</dt>
-          <dd className="font-mono text-lg font-semibold">{twin.attempts}</dd>
-        </div>
-      </dl>
-
-      {isOwner === null ? null : isOwner ? (
-        <div className="space-y-3">
-          <LinkButton variant="secondary" href={`/t/${twin.slug}/play?mode=owner`}>
-            {twin.ownerProven ? "Prove you're you again" : "Prove you're you"}
-          </LinkButton>
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="secondary" onClick={fundPot} loading={busy === "fund"}>
-              Add demo pot
-            </Button>
-            <Button variant="secondary" onClick={copyLink}>
-              {copied ? "Copied" : "Copy link"}
-            </Button>
-          </div>
-          <p className="text-center text-xs text-muted">Send the link to friends. Whoever out-scores you takes the pot.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {twin.ownerProven ? (
-            <LinkButton variant="secondary" href={`/t/${twin.slug}/play`}>
-              Be {twin.name}
+        {isOwner === null ? null : isOwner ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted">
+              {twin.ownerProven
+                ? `Your bar is ${pct(twin.ownerScoreBps)}. Send the link to friends: whoever out-scores you takes the pot.`
+                : "Answer three texts as yourself to set the bar. Then friends can try to text like you."}
+            </p>
+            <LinkButton variant="secondary" href={`/t/${twin.slug}/play?mode=owner`}>
+              {twin.ownerProven ? "Prove you're you again" : "Prove you're you"}
             </LinkButton>
-          ) : (
-            <Button disabled>Waiting for {twin.name} to set the bar</Button>
-          )}
-          <p className="text-center text-xs text-muted">
-            Answer three texts as {twin.name}. Beat {twin.ownerProven ? pct(twin.ownerScoreBps) : "their score"} and
-            the twin pays you.
-          </p>
-        </div>
-      )}
-
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Who&apos;s been {twin.name}</h2>
-        {leaderboard.length === 0 ? (
-          <p className="text-sm text-muted">Nobody yet.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="secondary" onClick={fundPot} loading={busy === "fund"}>
+                Add demo pot
+              </Button>
+              <Button variant="secondary" onClick={copyLink}>
+                {copied ? "Copied" : "Copy link"}
+              </Button>
+            </div>
+          </div>
         ) : (
-          <ol className="space-y-2">
-            {leaderboard.map((row, i) => (
-              <li key={row.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
-                <span className="w-5 font-mono text-sm text-muted">{i + 1}</span>
-                <Link href={`/t/${twin.slug}/a/${row.id}`} className="min-w-0 flex-1">
-                  <p className="truncate font-medium">
-                    {row.displayName}
-                    {row.mode === "owner" && <span className="ml-2 text-xs text-gold">the real one</span>}
-                  </p>
-                  <p className="truncate text-xs text-muted">“{row.verdictLine}”</p>
-                </Link>
-                <div className="text-right">
-                  <p className="font-mono text-sm font-semibold">{pct(row.scoreBps)}</p>
-                  <a
-                    href={row.txUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-muted underline decoration-dotted"
-                  >
-                    {row.mode === "owner"
-                      ? "set the bar"
-                      : BigInt(row.paidWei) > 0n
-                        ? `paid ${formatMon(row.paidWei)}`
-                        : row.passed
-                          ? "passed"
-                          : "tx"}
-                  </a>
-                </div>
-              </li>
-            ))}
-          </ol>
+          <div className="space-y-3">
+            <p className="text-sm text-muted">
+              Answer three texts as {twin.name}. Beat {twin.ownerProven ? pct(twin.ownerScoreBps) : "their score"} and{" "}
+              {twin.name}&apos;s pet pays you the pot.
+            </p>
+            {twin.ownerProven ? (
+              <LinkButton variant="secondary" href={`/t/${twin.slug}/play`}>
+                Be {twin.name}
+              </LinkButton>
+            ) : (
+              <Button variant="secondary" disabled>
+                Waiting for {twin.name} to set the bar
+              </Button>
+            )}
+          </div>
         )}
-      </section>
+      </Card>
+
+      <p className="text-center text-xs text-muted">
+        {twin.name}&apos;s pet texts like {twin.name} and has its own wallet on Monad,{" "}
+        <a href={twin.twinExplorerUrl} target="_blank" rel="noreferrer" className="underline decoration-dotted">
+          <Address value={twin.twinAddress} />
+        </a>
+        . It records every meeting and pays out the imitation game itself.
+      </p>
     </div>
   );
 }

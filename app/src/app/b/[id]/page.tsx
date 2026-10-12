@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Pet, type Mood } from "@/components/pet";
 import { Shortlist } from "@/components/shortlist";
 import { Card, LinkButton } from "@/components/ui";
 import { bondRecord } from "@/lib/bonds";
@@ -20,10 +21,18 @@ export default async function BondPage({ params }: Props) {
   const bond = Number.isInteger(id) ? await bondRecord(id) : null;
   if (!bond) notFound();
   const { a, b, chat } = bond;
+  // No chat (the model was busy) means no chemistry to react to.
+  const mood: Mood =
+    chat.messages.length === 0 ? "idle" : chat.chemistry >= 75 ? "victory" : chat.chemistry >= 45 ? "happy" : "suspicious";
 
   return (
     <div className="space-y-6 pt-4">
       <div className="space-y-2 text-center">
+        {/* How the pets feel about each other follows the chemistry they reported. */}
+        <div className="flex items-end justify-center gap-2" aria-hidden>
+          <Pet mood={mood} className="w-28" />
+          <Pet mood={mood} className="w-28 -scale-x-100" />
+        </div>
         <p className="text-sm font-semibold uppercase tracking-wide text-accent-strong">Friends on Monad</p>
         <h1 className="text-4xl font-semibold tracking-tight">
           <Link href={`/t/${a.slug}`}>{a.name}</Link> <span className="text-muted">×</span>{" "}
@@ -38,7 +47,7 @@ export default async function BondPage({ params }: Props) {
           <span className="font-mono text-3xl font-semibold">{chat.chemistry}%</span>
         </div>
         <div className="h-3 w-full overflow-hidden rounded-full bg-border">
-          <div className="h-full rounded-full bg-pink" style={{ width: `${chat.chemistry}%` }} />
+          <div className="h-full rounded-full bg-accent" style={{ width: `${chat.chemistry}%` }} />
         </div>
       </Card>
 
@@ -62,13 +71,13 @@ export default async function BondPage({ params }: Props) {
 
       <section className={`space-y-3 ${chat.messages.length === 0 ? "hidden" : ""}`}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">What their pets said</h2>
-        <ol className="space-y-2">
+        <ol className="space-y-2 rounded-3xl bg-paper p-4 text-accent-ink">
           {chat.messages.map((m, i) => (
             <li key={i} className={`flex flex-col ${m.from === "a" ? "items-start" : "items-end"}`}>
-              <span className="px-2 text-xs text-muted">{m.from === "a" ? a.name : b.name}</span>
+              <span className="px-2 text-xs text-accent-ink/60">{m.from === "a" ? a.name : b.name}</span>
               <p
                 className={`max-w-[80%] rounded-3xl px-4 py-2 ${
-                  m.from === "a" ? "rounded-bl-md bg-card border border-border" : "rounded-br-md bg-accent text-white"
+                  m.from === "a" ? "rounded-bl-md bg-white" : "rounded-br-md bg-accent-ink text-paper"
                 }`}
               >
                 {m.text}
