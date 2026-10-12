@@ -39,9 +39,16 @@ const voices = (process.argv[4]?.split(",").map((v) => v.trim()) ?? [...ALL_VOIC
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function once(model: string, voice: Voice) {
-  process.env.LLM_PROVIDER = "gemini";
   // Normally a one-model chain, so no fallback can hide the answer; "a+b" tests a real chain.
-  process.env.GEMINI_MODEL = model.replaceAll("+", ",");
+  // Prefix a Groq-hosted model with "groq:" (e.g. groq:openai/gpt-oss-120b).
+  const chain = model.replace(/^groq:/, "").replaceAll("+", ",");
+  if (model.startsWith("groq:")) {
+    process.env.LLM_PROVIDER = "groq";
+    process.env.GROQ_MODEL = chain;
+  } else {
+    process.env.LLM_PROVIDER = "gemini";
+    process.env.GEMINI_MODEL = chain;
+  }
   for (let attempt = 1; attempt <= 3; attempt++) {
     const started = Date.now();
     try {

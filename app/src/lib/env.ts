@@ -6,7 +6,11 @@ const int = (fallback: number) => z.coerce.number().int().nonnegative().default(
 
 const schema = z.object({
   // The judge. "auto" picks Anthropic if ANTHROPIC_API_KEY is set, else Gemini.
-  LLM_PROVIDER: z.enum(["auto", "anthropic", "gemini"]).default("auto"),
+  LLM_PROVIDER: z.enum(["auto", "anthropic", "groq", "gemini"]).default("auto"),
+  GROQ_API_KEY: z.string().optional(),
+  // Ordered fallback chain of Groq-hosted models; same rule as GEMINI_MODEL below.
+  GROQ_MODEL: z.string().default("openai/gpt-oss-120b"),
+  GROQ_REASONING: z.enum(["low", "medium", "high"]).default("low"),
   GEMINI_API_KEY: z.string().optional(),
   // Ordered fallback chain: free-tier models are often overloaded, so the next one is
   // tried on a 503/429/timeout. Only models that judge alike belong here: measured with

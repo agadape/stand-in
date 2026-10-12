@@ -134,6 +134,16 @@ Small samples from one fixture, so re-run before trusting a new model. The frien
 
 The lite models are not a way out. Run on all three voices on 10 Oct (one run each): `gemini-3.5-flash-lite` scored the owner 75.4 and the friend 66.7, a gap of 8.7 where 3.8-flash leaves about 29, and `gemini-3.1-flash-lite` scored the owner 68.9, below the 71.2 it gave the friend the day before.
 
+Groq's free open models are not a way out either. Measured 12 Oct (two runs each, all three voices; prefix a model with `groq:` in `judge-compare.ts`):
+
+| Groq model | Owner | Friend imitation | Impostor | Gap |
+|---|---|---|---|---|
+| `openai/gpt-oss-120b` | 76.4 | 72.8 | 5.2 | 3.5 |
+| `qwen/qwen3.8-27b` | 76.4 | 76.7 | 0.7 | −0.4 (the imitation wins) |
+| `openai/gpt-oss-20b` | 72.2 | 66.3 | 6.2 | 5.8 |
+
+`gpt-oss-120b` at medium reasoning did no better (final scores owner 75.4, friend 73.6; on the model's own read the friend was ahead, 78.7 to 75); at high it mostly failed JSON validation. The Groq provider stays in the code (`GROQ_API_KEY`, chosen automatically only when no Gemini or Anthropic key is set) because it answers in about a second, which is handy for local UI work.
+
 ### How many attempts a day the free tier allows
 
 Each judged attempt (an owner proving themselves, or a challenge) is one request to the first model that answers. **`gemini-3.8-flash` allows 20 requests per day on the free tier** (read from its 429 on 10 Oct; the window appeared to reset at 00:00 UTC). The cap for `gemini-3.7-flash` has not been hit yet, so it is still unknown; all caps are listed at <https://aistudio.google.com/rate-limit>.
