@@ -9,7 +9,9 @@ const schema = z.object({
   LLM_PROVIDER: z.enum(["auto", "anthropic", "groq", "gemini"]).default("auto"),
   GROQ_API_KEY: z.string().optional(),
   // Ordered fallback chain of Groq-hosted models; same rule as GEMINI_MODEL below.
-  GROQ_MODEL: z.string().default("openai/gpt-oss-120b"),
+  // Each has its own small tokens-per-minute allowance on the free tier (8,000 on the
+  // first), and a pets' chat costs about 2,500, so a busy room needs all three.
+  GROQ_MODEL: z.string().default("openai/gpt-oss-120b,qwen/qwen3.8-27b,openai/gpt-oss-20b"),
   GROQ_REASONING: z.enum(["low", "medium", "high"]).default("low"),
   GEMINI_API_KEY: z.string().optional(),
   // Ordered fallback chain: free-tier models are often overloaded, so the next one is
@@ -24,6 +26,11 @@ const schema = z.object({
   MONAD_RPC_URL: z.string().url().default("https://testnet-rpc.monad.xyz"),
   MONAD_CHAIN_ID: z.coerce.number().int().default(10143),
   STANDIN_ADDRESS: z.string().regex(address, "STANDIN_ADDRESS must be a 0x address"),
+  // ProofOfMet: the public graph of which pets met, plus gatherings and met-gated rooms.
+  MET_ADDRESS: z.string().regex(address, "MET_ADDRESS must be a 0x address"),
+  // "stylometry" scores the imitation game by counting writing habits: no model, no daily
+  // cap, and anyone can recompute a score. "llm" is the earlier model-plus-style judge.
+  JUDGE: z.enum(["stylometry", "llm"]).default("stylometry"),
   // Server secret. Each twin's wallet key is keccak256(seed, slug), so one secret
   // yields a distinct, recoverable wallet per twin. Also salts hashed client IPs.
   TWIN_KEY_SEED: z.string().regex(hex32, "TWIN_KEY_SEED must be 32 bytes hex"),

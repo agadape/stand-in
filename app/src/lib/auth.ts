@@ -3,7 +3,15 @@ import { verifyMessage, type Address, type Hex } from "viem";
 const MAX_AGE_MS = 10 * 60 * 1000;
 
 /** "bond:<other slug>" is befriending that twin; the other slug is signed so a proof can't be reused on someone else. */
-export type OwnerAction = "prove" | "fund" | `bond:${string}`;
+export type OwnerAction =
+  | "prove"
+  | "fund"
+  | `bond:${string}`
+  // Showing your rotating code, opening a room or a gathering, joining a room.
+  | "code"
+  | "room:create"
+  | `room:join:${number}`
+  | "gathering:create";
 
 /** The exact text a passkey account signs to prove it controls an address for one action. */
 export function ownerMessage(slug: string, action: OwnerAction, issuedAt: number) {
