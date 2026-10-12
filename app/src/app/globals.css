@@ -131,3 +131,10 @@ select {
     animation: none !important;
   }
 }
+
+/* Pages that are one reading column (forms, a verdict, a friendship) stay narrow on wide screens. */
+.narrow {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 36rem;
+}

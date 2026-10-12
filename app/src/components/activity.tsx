@@ -18,6 +18,7 @@ export function Activity({ twin, bonds, leaderboard }: { twin: TwinCard; bonds: 
         </p>
       </div>
 
+      <div className="space-y-8 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10 lg:space-y-0">
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
           Friends met {friends.length > 0 && `· ${friends.length}`}
@@ -101,6 +102,7 @@ export function Activity({ twin, bonds, leaderboard }: { twin: TwinCard; bonds: 
           </ol>
         )}
       </section>
+      </div>
     </div>
   );
 }

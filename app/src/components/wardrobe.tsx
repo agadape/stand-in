@@ -35,10 +35,13 @@ export function Wardrobe({ twin, friends }: { twin: { slug: string; name: string
         </p>
       </div>
 
-      <Pet outfit={outfit} className="mx-auto w-52" label={`${twin.name}'s pet in its outfit`} />
-      <SocialProgress friends={friends} />
+      <div className="space-y-6 lg:grid lg:grid-cols-[2fr_3fr] lg:items-start lg:gap-10 lg:space-y-0">
+      <div className="space-y-6 lg:sticky lg:top-10">
+        <Pet outfit={outfit} className="mx-auto w-52 lg:w-72" label={`${twin.name}'s pet in its outfit`} />
+        <SocialProgress friends={friends} />
+      </div>
 
-      <ul className="grid grid-cols-2 gap-3">
+      <ul className="grid grid-cols-2 gap-3 xl:grid-cols-3">
         {COSMETICS.map((c) => {
           const open = friends >= c.friends;
           const worn = outfit[c.slot] === c.id;
@@ -70,6 +73,7 @@ export function Wardrobe({ twin, friends }: { twin: { slug: string; name: string
           );
         })}
       </ul>
+      </div>
 
       <p className="text-center text-xs text-muted">
         {isOwner

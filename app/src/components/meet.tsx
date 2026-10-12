@@ -50,7 +50,7 @@ export function Meet({
   }
 
   return (
-    <div className="space-y-6 pt-6">
+    <div className="narrow space-y-6 pt-6">
       <div className="space-y-2 text-center">
         <p className="text-sm font-semibold uppercase tracking-wide text-accent-strong">You just met</p>
         <h1 className="text-5xl font-semibold tracking-tight">{twin.name}</h1>
