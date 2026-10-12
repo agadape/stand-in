@@ -15,6 +15,7 @@ const MIN_SAMPLES = 8;
 const SENT_TO: Record<Provider, string> = {
   gemini:
     "Google's Gemini every time someone is judged. Google may use free-tier requests to improve its products, so leave out anything sensitive.",
+  groq: "an open AI model hosted by Groq every time someone is judged, so leave out anything sensitive.",
   anthropic: "Anthropic's Claude every time someone is judged, so leave out anything sensitive.",
 };
 

@@ -1,6 +1,7 @@
 import { keccak256, stringToHex, type Hex } from "viem";
 import type { Persona } from "./db/schema";
 import { runJudge, type LlmVerdict } from "./llm";
+import { withoutPrivateText } from "./redact";
 import type { Scenario } from "./scenarios";
 import { features, notes, similarity, type StyleFeatures } from "./style";
 
@@ -23,7 +24,7 @@ A candidate claims to be the person you imitate (call them NAME; the persona blo
 
 Score each answer 0-100 for how plausibly NAME typed it: voice, rhythm, casing and punctuation habits, vocabulary and slang, humour, length, and what NAME would actually choose to say or not say. Agreeing on a topic is weak evidence; sounding like them is strong evidence.
 Penalise answers that read polished, generic or assistant-like. Also penalise answers that overdo NAME's tics; imitators exaggerate.
-For each answer write one short, specific "tell": the detail that sold it or gave it away, quoting a word or two from the candidate's answer. Never quote or paraphrase NAME's private sample messages in a tell; describe the habit instead.
+For each answer write one short, specific "tell": the detail that sold it or gave it away, quoting a word or two from the candidate's answer. NAME's sample messages and quiz answers are private: never quote or paraphrase them, in a tell or in the verdictLine; describe the habit instead.
 "overall" is your holistic 0-100 confidence that this is NAME, not an average.
 "verdictLine" is one playful sentence, under 20 words, written the way NAME texts, addressed to the candidate.
 Scenario ids in "answers" must match the ids given, in the same order.
@@ -48,11 +49,13 @@ function candidateBlock(scenarios: Scenario[], answers: string[]) {
 }
 
 export async function judge(persona: Persona, scenarios: Scenario[], answers: string[]): Promise<Verdict> {
-  const { verdict: llm, model } = await runJudge({
+  const { verdict, model } = await runJudge({
     rules: RULES,
     persona: personaBlock(persona),
     candidate: candidateBlock(scenarios, answers),
   });
+  // Before hashing and storing: what is shown publicly is exactly what is committed to.
+  const llm = withoutPrivateText(verdict, persona, scenarios, answers);
 
   const personaStyle = features([...persona.samples, ...persona.quiz.map((q) => q.answer)]);
   const candidateStyle = features(answers);

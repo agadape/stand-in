@@ -34,3 +34,4 @@ jobs:
       - run: npx next typegen && npx tsc --noEmit
       - run: npx eslint src
       - run: npx tsx src/lib/style.check.ts
+      - run: npx tsx src/lib/redact.check.ts
