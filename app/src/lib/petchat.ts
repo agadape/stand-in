@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cardText } from "./card-text";
 import type { Persona, PetChat } from "./db/schema";
 import { env } from "./env";
 import { JudgeUnavailableError, runJson } from "./llm";
@@ -39,7 +40,11 @@ The owners' sample messages and quiz answers are private and only show you the v
 Respond with JSON only.`;
 
 function block(label: "a" | "b", persona: Persona) {
-  return `Pet "${label}" belongs to ${persona.name}.${persona.bio ? ` About them: ${persona.bio}` : ""}
+  // The name and bio are typed by the owner; they go in flat and short so they read as a
+  // description and cannot open a new section of the prompt.
+  const name = cardText(persona.name, 40);
+  const bio = cardText(persona.bio, 160);
+  return `Pet "${label}" belongs to ${name}.${bio ? ` About them: ${JSON.stringify(bio)}` : ""}
 Quiz:
 ${persona.quiz.map((q) => `Q: ${q.question}\nA: ${q.answer}`).join("\n")}
 Real messages:
