@@ -3,9 +3,15 @@
  * src/app/api; keep the two in step.
  */
 
-export type { World } from "./world";
+export type { WatchWorld, World } from "./world";
 import type { WeatherKind } from "./weather";
-import type { World } from "./world";
+import type { WatchWorld, World } from "./world";
+
+/** What the world page draws: a resident's world, or the public one with its private fields missing. */
+export type WorldLike = Omit<World, "agents" | "pairs"> & {
+  agents: (WatchWorld["agents"][number] & { ownerAddress?: string | null })[];
+  pairs: (WatchWorld["pairs"][number] & { aConsent?: boolean; bConsent?: boolean })[];
+};
 
 export type TwinCard = {
   slug: string;
@@ -183,6 +189,9 @@ export const api = {
 
   /** The Isekai. Asking for it also advances it when a tick is due. */
   getWorld: () => request<World>("/api/world", { cache: "no-store" }),
+
+  /** The town for someone not signed in: read-only, without owners or half-given consent. */
+  getWatch: () => request<WatchWorld>("/api/world/watch", { cache: "no-store" }),
 
   setDials: (input: OwnerInput & { dials: { openness: number; pace: number; avoid: string; paused: boolean }; interests: string[] }) =>
     request<{ dials: { openness: number; pace: number; avoid: string; paused: boolean } }>("/api/world/dials", {

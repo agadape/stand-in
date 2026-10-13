@@ -7,6 +7,7 @@ Deadline: **14 Oct 2026, 10:59 GMT+7.** Aim to submit by 08:00.
 ## Links to paste
 
 - Live app: https://stand-in-ashen.vercel.app
+- Watch the town, no account needed: https://stand-in-ashen.vercel.app/watch
 - The town: https://stand-in-ashen.vercel.app/world (residents only: it opens after you make a pet or sign in with its passkey)
 - Code: https://github.com/agadape/stand-in
 - Contract (ProofOfMet, Monad testnet): https://testnet.monadvision.com/address/0x3fC903947CAfdC359472119752b6540D431DaBb7

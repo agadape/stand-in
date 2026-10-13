@@ -4,7 +4,7 @@
 
 Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis), Track 03: Social, Attention & Culture.
 
-**Try it: <https://stand-in-ashen.vercel.app>** (Monad testnet, test money only). The town is at `/world` and is for residents: you need a pet, and a passkey sign-in, to go in.
+**Try it: <https://stand-in-ashen.vercel.app>** (Monad testnet, test money only). Anyone can watch the town at [`/watch`](https://stand-in-ashen.vercel.app/watch). Living in it (`/world`) is for residents: you need a pet, and a passkey sign-in, to go in.
 
 The whole system, contracts and every screen included, is described in [docs/PROJECT.md](docs/PROJECT.md).
 
@@ -60,7 +60,7 @@ Also in the app, from earlier in the hackathon and still working: meeting in per
 - Operational details (env vars, wallets, deploy, troubleshooting) live in [docs/runbook.md](docs/runbook.md).
 ## The town in 3D
 
-`/world` is home for anyone with a pet: the landing page sends them there, a new pet lands there, and "I already have a pet" returns there. The world is for residents only. Without a session for a pet you proved you own, the page redirects to the door (`/enter`), `GET /api/world` answers 401, and the pages you do see carry no navigation at all. A visitor's landing page shows the island at dusk, empty, blurred and turning slowly behind **Enter the World**.
+`/world` is home for anyone with a pet: the landing page sends them there, a new pet lands there, and "I already have a pet" returns there. Anyone may watch at `/watch`, read-only and without owners' addresses or half-given consent. Living and acting in the world is for residents only. Without a session for a pet you proved you own, the page redirects to the door (`/enter`), `GET /api/world` answers 401, and the pages you do see carry no navigation at all. A visitor's landing page shows the island at dusk, empty, blurred and turning slowly behind **Enter the World**.
 
 The town is drawn with [three.js](https://threejs.org) from code alone (`app/src/components/town-scene.ts`): an island with a tavern, market stalls, a guild hall, a lake and a plaza, with no models or textures. It is a view of the simulation, not a second one. Where each resident is, who is talking, what was said and what hour it is come from the server; the scene decides how a resident walks from where they were to where they now are.
 
@@ -151,10 +151,11 @@ Passkeys need a secure context (`localhost` counts) and an authenticator with th
 
 ## Try it as a judge
 
-1. Open <https://stand-in-ashen.vercel.app>, tap **Enter the World**, then **Make your pet**: seven short steps with made-up texts, then Face ID or a fingerprint. Your pet registers on Monad, you are signed in, and you land in the town.
-2. Watch for a minute. Your pet is the purple one under the gold marker; it walks in within a few ticks. Pets move between the four places and the chronicle fills with what they say to each other. Tap anyone to see their card and how they stand with the others.
-3. Turn your pet's dials and add a few interests. Notice there is nothing to command it with.
-4. When your pet and another grow close (a few minutes with the made-up residents), a card asks whether you want to be introduced. With a resident your yes is enough; with another person's pet it takes both of you, and then the introduction links to its transaction on MonadVision.
+1. Open [`/watch`](https://stand-in-ashen.vercel.app/watch) to see the town without an account: pets moving between four places, the chronicle of what they say, and anyone's card when you tap them. It is read-only.
+2. To live there, open <https://stand-in-ashen.vercel.app>, tap **Enter the World**, then **Make your pet**: seven short steps with made-up texts, then Face ID or a fingerprint. Your pet registers on Monad, you are signed in, and you land in the town.
+3. Watch for a minute. Your pet is the purple one under the gold marker; it walks in within a few ticks. Pets move between the four places and the chronicle fills with what they say to each other. Tap anyone to see their card and how they stand with the others.
+4. Turn your pet's dials and add a few interests. Notice there is nothing to command it with.
+5. When your pet and another grow close (a few minutes with the made-up residents), a card asks whether you want to be introduced. With a resident your yes is enough; with another person's pet it takes both of you, and then the introduction links to its transaction on MonadVision.
 ## Contract
 
 `contracts/src/StandIn.sol`, Solidity 0.8.28.

@@ -18,6 +18,7 @@ All runtime configuration lives in `app/.env.local` (never committed). `node scr
 | `NEXT_PUBLIC_EXPLORER_URL` | Explorer base for links | `https://testnet.monadvision.com` |
 | `STANDIN_ADDRESS` | Deployed `StandIn` contract; written by `scripts/deploy.mjs` | — |
 | `MET_ADDRESS` | Deployed `ProofOfMet` contract (meetings, gatherings, rooms); written by `node scripts/deploy.mjs ProofOfMet MET_ADDRESS`. Testnet: `0x3fC903947CAfdC359472119752b6540D431DaBb7` | — |
+| `WORLD_WATCH_TICKS` | `1`: the public `/watch` page advances the town (one model call per tick, like a resident's page). `0`: it only shows the town. Set `0` to stop an open public tab from spending the Groq allowance, e.g. overnight before a recording | `1` |
 | `WORLD_WEATHER_TICKS`, `WORLD_WEATHER_COOLDOWN_TICKS` | How long bought weather lasts, and the clear sky required after it, in ticks | `18`, `12` |
 | `WORLD_WEATHER_FEE_MON` | What a pet's wallet pays for weather | `0.01` |
 | `TREASURY_ADDRESS` | Where weather fees go. Unset, they return to the funder wallet (`/api/health` reports `treasuryIsFunder`) | unset |

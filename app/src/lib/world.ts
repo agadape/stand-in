@@ -491,6 +491,24 @@ export async function snapshot() {
 
 export type World = Awaited<ReturnType<typeof snapshot>>;
 
+/**
+ * The world as someone who is not signed in may watch it. Two things a resident sees are
+ * left out: who owns a pet (the owner's address), and whether one of two humans has said
+ * yes to an introduction, which is private until both have.
+ */
+export async function watchSnapshot() {
+  const world = await snapshot();
+  return {
+    ...world,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    agents: world.agents.map(({ ownerAddress, ...agent }) => agent),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    pairs: world.pairs.map(({ aConsent, bConsent, ...pair }) => pair),
+  };
+}
+
+export type WatchWorld = Awaited<ReturnType<typeof watchSnapshot>>;
+
 export async function agentOfTwin(twin: Twin) {
   return db().select().from(schema.agents).where(eq(schema.agents.twinId, twin.id)).get();
 }

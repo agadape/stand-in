@@ -48,6 +48,10 @@ const schema = z.object({
   WORLD_MIN_TWIN_ID: int(0),
   // How often the town may tick, in milliseconds. One model call per tick, so mind the rate limit.
   WORLD_TICK_MS: int(6000),
+  // 1 = the public /watch page moves the town like a resident's does. 0 = it only shows
+  // the town as it is. The switch exists because a public page left open overnight spends
+  // the model allowance (one talk per tick) that a demo may need in the morning.
+  WORLD_WATCH_TICKS: int(1),
   // Weather: any resident may pay to change the town for a while. How long it lasts, in ticks.
   WORLD_WEATHER_TICKS: int(18),
   // Clear sky required after weather ends before anyone can buy more, in ticks.

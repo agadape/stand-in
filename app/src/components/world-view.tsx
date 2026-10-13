@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api, ApiError, type World } from "@/lib/api";
+import { api, ApiError, type WorldLike as World } from "@/lib/api";
 import type { TownScene } from "./town-scene";
 import { ownerProof, type MyPet } from "@/lib/owner-client";
 import { rememberOwned } from "@/lib/session";
@@ -192,10 +192,14 @@ function spot(place: string, n: number) {
 }
 
 /**
- * The Isekai, live. Everyone can watch; nobody can steer. The page polls the world, and
- * the polling is what keeps it moving.
+ * The Isekai, live. Nobody can steer. The page polls the world, and the polling is what
+ * keeps it moving.
+ *
+ * With `me` it is a resident's home. Without, it is the public window (/watch): the same
+ * town to look at, and nothing to act with. No dials, no weather to buy, no consent, no
+ * letter, and it asks a different route that leaves owners out.
  */
-export function WorldView({ initial, welcome = false, me }: { initial: World; welcome?: boolean; me: MyPet }) {
+export function WorldView({ initial, welcome = false, me }: { initial: World; welcome?: boolean; me: MyPet | null }) {
   const [world, setWorld] = useState(initial);
   const [selected, setSelected] = useState<number | null>(null);
   const [stale, setStale] = useState(false);
@@ -206,17 +210,17 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
 
   useEffect(() => {
     // Keep this device's memory of its pet in step with the session it is signed in as.
-    rememberOwned(me.slug, me.ownerAddress, me.name);
+    if (me) rememberOwned(me.slug, me.ownerAddress, me.name);
   }, [me]);
 
   useEffect(() => {
     let alive = true;
     const load = () =>
-      api.getWorld().then(
+      (me ? api.getWorld() : api.getWatch()).then(
         (w) => alive && (setWorld(w), setStale(false)),
         (error) => {
-          // Signed out (or the session ran out): back to the door.
-          if (error instanceof ApiError && error.status === 401) router.replace("/enter?next=/world");
+          // Signed out (or the session ran out): back to the door. A watcher has no session to lose.
+          if (me && error instanceof ApiError && error.status === 401) router.replace("/enter?next=/world");
           else if (alive) setStale(true);
         },
       );
@@ -225,7 +229,7 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
       alive = false;
       clearInterval(timer);
     };
-  }, [router]);
+  }, [router, me]);
 
   const byId = useMemo(() => new Map(world.agents.map((a) => [a.id, a])), [world.agents]);
   const mine = pet ? world.agents.find((a) => a.slug === pet.slug) : undefined;
@@ -278,7 +282,18 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
           </p>
         </Card>
       )}
-      {!mine && (
+      {!pet && (
+        <Card className="flex flex-wrap items-center gap-4 border-accent/50 bg-accent/10">
+          <div className="min-w-0 flex-1">
+            <p className="font-extrabold">You&apos;re watching the Isekai. Residents live here.</p>
+            <p className="mt-1 text-sm text-muted">Look around and tap anyone. To have a pet of your own in town, make one.</p>
+          </div>
+          <LinkButton href="/enter" className="!w-auto shrink-0">
+            Make your pet
+          </LinkButton>
+        </Card>
+      )}
+      {pet && !mine && (
         <Card className="flex items-center gap-4">
           <Pet mood="idle" className="w-14 shrink-0" />
           <p className="text-sm text-muted">
@@ -288,7 +303,7 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
         </Card>
       )}
 
-      <PetLetter world={world} pet={pet} />
+      {pet && <PetLetter world={world} pet={pet} />}
 
           <TownStage world={world} mineId={mine?.id ?? null} selected={focus?.id ?? null} onPick={setSelected} now={now}>
           <div className="relative aspect-square w-full overflow-hidden rounded-3xl border-2 border-border sm:aspect-[4/3]">
@@ -361,8 +376,8 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
               Back to {mine.name}
             </Button>
           ) : null}
-          {mine && <WeatherBoard world={world} pet={pet} now={now} onChanged={() => api.getWorld().then(setWorld, () => undefined)} />}
-          {mine && <Dials key={`dials-${mine.id}`} agent={mine} pet={pet} />}
+          {mine && pet && <WeatherBoard world={world} pet={pet} now={now} onChanged={() => api.getWorld().then(setWorld, () => undefined)} />}
+          {mine && pet && <Dials key={`dials-${mine.id}`} agent={mine} pet={pet} />}
         </aside>
       </div>
     </div>
@@ -430,7 +445,8 @@ function AgentPanel({
   isMine,
   onPick,
 }: {
-  pet: MyPet;
+  /** Null for someone watching from outside: they get the card and the bars, and no actions. */
+  pet: MyPet | null;
   agent: Agent;
   world: World;
   byId: Map<number, Agent>;
@@ -516,7 +532,7 @@ function AgentPanel({
           Met someone? Show my code
         </LinkButton>
       )}
-      {agent.slug && !isMine && (
+      {agent.slug && pet && !isMine && (
         <LinkButton href={`/t/${agent.slug}/meet`} variant="secondary">
           Know {agent.name}? Meet in person
         </LinkButton>
