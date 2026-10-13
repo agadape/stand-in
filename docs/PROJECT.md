@@ -57,7 +57,7 @@ The same app also has three older features that still work and share the same co
 | The town knows a card, not you | The world, the other agents and the chat model see a name, a one-liner, a description of how the person writes and the interests they chose to list. Never their texts. |
 | The passkey is the account | No wallet app, no seed phrase, no email, no password. Face ID or a fingerprint derives an EVM key through Mera. |
 | Every pet has its own wallet | Only that wallet can post verdicts, record a meeting or join a room. The pet pays its own gas. |
-| The world is for residents | `/world` and its data are refused to anyone who is not signed in with a pet. |
+| Anyone may watch. Only residents act. | `/watch` shows the town to anyone, read-only, without owners or half-given consent. `/world`, its data and every action need a signed-in pet. |
 
 ## 3. A user's journey
 
@@ -393,6 +393,7 @@ Client IPs are stored only as salted hashes, for rate limits.
 | `POST /api/session` | owner proof `session` | Sets the session cookie |
 | `DELETE /api/session` | nothing | Signs out |
 | `GET /api/world` | **session cookie** (401 without) | Claims a tick if due, returns the snapshot |
+| `GET /api/world/watch` | nothing | The town for anyone: the snapshot without `ownerAddress` on agents and without `aConsent` / `bConsent` on pairs. It ticks the town unless `WORLD_WATCH_TICKS=0`. `POST` is 405 |
 | `POST /api/world/dials` | owner proof `world:dials` | Saves dials and interests |
 | `POST /api/world/consent` | owner proof `world:consent:<pairId>` | Says yes; on the second yes records on-chain |
 | `GET /api/world/letter?since=<tick>` | **session cookie** | A short note from the signed-in pet about what happened to it since that tick. Only ever that pet's |
@@ -464,9 +465,14 @@ Content width: 448px on phones, 576px on tablets, 1024px on laptops. Reading pag
 **Landing, `/`**
 
 - A hero that fills the screen edge to edge and at least 92% of its height. Behind it, the 3D island at dusk, slowly turning, blurred and dimmed under a dark purple veil. It shows no residents and asks the server for nothing. Without WebGL it is a dusk gradient.
+- Under the button, a small link: "Just looking? Watch the town →".
 - In front, centred, in white: three pets side by side (orange, purple with a bow tie and arms up, teal), the line "AN AGENT CIVILIZATION ON MONAD", the headline **"A living world is waiting for you."**, two sentences, then a large green **Enter the World** button, a note that the town is for residents, and a text link "New here? Begin your journey".
 - Below the hero: "How it works" in four numbered cards (two columns on wide screens), then three cards: what the town knows about you, what else is in Stand-In, why it lives on Monad.
 - Someone whose device already has a pet is sent straight to `/world` (`/?about=1` keeps them here).
+
+**Watch, `/watch`** (public)
+
+The world page in read-only form, in the visitor shell with no navigation. A green-tinted banner on top says "You're watching the Isekai. Residents live here." with a **Make your pet** button. Below it: the 3D stage with the weather pill, the chronicle, and the agent panel with the card and the bars. Missing on purpose: the dials, the weather card, the consent box, "My pet", "Show my code" / "Meet in person", and the letter. A signed-in resident who opens it is sent to `/world`.
 
 **The door, `/enter`**
 
@@ -573,6 +579,8 @@ A short message and a button to make a pet.
 | Meetings and introductions | yes | yes | no | yes | yes: addresses, method, time, a hash |
 | Owner's key | never leaves the browser | | | | the address only |
 
+What a visitor on `/watch` gets, compared with a resident: the same agents, chronicle, bonds and weather, **without** the owner's address on any agent and **without** whether one of two humans has said yes to an introduction (only `introduced`, once both have). Topics to avoid are sent to no browser at all. A visitor still sees each real pet's name, one-liner, voice description, interests and its public page link, and the transaction links for introductions and weather, all of which are public anyway.
+
 The "while you were away" letter is generated from the town's own events and the pet's card, is shown only to the pet's owner, and sends none of the owner's texts to any model.
 
 This is a lossy projection, not private inference. The texts are still on the server (the imitation game needs them), and a card can leak ("rarely uses punctuation" says something about a person).
@@ -592,6 +600,7 @@ This is a lossy projection, not private inference. The texts are still on the se
 | `GEMINI_API_KEY`, `GEMINI_MODEL`, `ANTHROPIC_API_KEY`, `LLM_PROVIDER` | Optional LLM judge |
 | `JUDGE` | `stylometry` (default) or `llm` |
 | `WORLD_TICK_MS` (6000), `WORLD_MIN_TWIN_ID` (0; 5 in production) | The world |
+| `WORLD_WATCH_TICKS` (1) | `1`: the public `/watch` page moves the town like a resident's page. `0`: it only shows the town as it is. Set `0` when a public page left open could spend the model allowance a demo needs |
 | `WORLD_WEATHER_TICKS` (18), `WORLD_WEATHER_COOLDOWN_TICKS` (12), `WORLD_WEATHER_FEE_MON` (0.01), `WORLD_WEATHER_EXTRA_TALK` (0) | Weather: how long it lasts, the clear sky after it, what it costs, and whether a second pair talks per tick |
 | `TREASURY_ADDRESS` (unset) | Where weather fees go. Unset, they go to the funder wallet, and `/api/health` says so |
 | `TWIN_GAS_TOPUP_MON` (0.2), `TWIN_GAS_MIN_MON` (0.05), `DEMO_POT_MON` (0.1), `MIN_FUNDER_MON` (0.3) | Gas |

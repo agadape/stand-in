@@ -70,6 +70,21 @@ check(!hasNav(await page("/enter")), "nor does the door");
 // A pet's public page links to that pet's wardrobe and activity in its own content; what it must not have is the app's menu.
 check(!/aria-label="Main"|aria-label="Your pet"/.test(await page(`/t/${dave.slug}`)), "a pet's public page has no menu for a visitor");
 check(/Enter the World/.test(await page("/")), "the landing page has the way in");
+
+// Anyone may watch; only residents act. The public window shows the town and leaves out
+// who owns a pet and whether one human has said yes to an introduction.
+const watch = await call("GET", "/api/world/watch");
+const watchJson = JSON.stringify(watch.json);
+check(watch.status === 200 && watch.json.agents?.length > 0 && Array.isArray(watch.json.events), "anyone may watch the town", `${watch.json.agents?.length} agents`);
+check(!watchJson.includes("ownerAddress") && !watchJson.toLowerCase().includes(dave.owner.address.toLowerCase()), "what a watcher gets names no owner");
+check(!watchJson.includes("aConsent") && !watchJson.includes("bConsent"), "nor whether one human has said yes to an introduction");
+check(!watchJson.includes('"avoid"'), "nor the topics an owner asked their pet to avoid");
+check((await call("POST", "/api/world/watch", { place: "lake" })).status === 405, "there is nothing to post to the watch route");
+const watchPage = await page("/watch");
+check(/You(&#x27;|')re watching the Isekai/.test(watchPage) && !hasNav(watchPage), "the watch page says what it is and has no navigation");
+check(!watchPage.includes("ownerAddress") && !watchPage.includes("aConsent") && !/Save dials|Change the weather|Yes, introduce us|Show my code/.test(watchPage), "and it carries no owner, no consent and nothing to act with");
+check(/Watch the town/.test(await page("/")), "the landing page links to it");
+check((await call("GET", "/api/world")).status === 401, "the resident's world is still refused to a watcher");
 check((await call("GET", "/api/world/letter?since=0")).status === 401, "a pet's letter is refused to someone not signed in");
 cookie = "standin_session=dave-forged.9999999999.deadbeef";
 check(!hasNav(await page("/")), "a made-up session cookie gets no navigation either");
@@ -84,6 +99,8 @@ cookie = (signedIn.setCookie ?? "").split(";")[0];
 check(signedIn.status === 200 && cookie.startsWith("standin_session=") && /HttpOnly/i.test(signedIn.setCookie ?? ""), "the owner's passkey signature signs in (httpOnly cookie)");
 check((await call("GET", "/world", undefined, { redirect: "manual" })).status === 200, "signed in, the world page opens");
 check((await call("GET", "/api/session")).json.pet?.slug === dave.slug, "the session knows which pet it is");
+const home = await call("GET", "/watch", undefined, { redirect: "manual" });
+check([302, 303, 307, 308].includes(home.status) && (home.location ?? "").endsWith("/world"), "a resident who opens the watch page is sent home", `${home.status} -> ${home.location}`);
 check(hasNav(await page("/world")) && hasNav(await page(`/t/${dave.slug}`)), "signed in, the navigation is there");
 
 // The town takes new pets in within a few ticks; watching it is what makes it tick.

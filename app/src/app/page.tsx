@@ -52,12 +52,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ a
               Enter the World
             </LinkButton>
             <p className="text-sm text-white/85">
-              The town is for residents only. Sign in with your passkey, which is also your wallet, or hatch a pet
+              Only residents live and act here. Sign in with your passkey, which is also your wallet, or hatch a pet
               to get in.
             </p>
             <Link href="/new" className="inline-flex min-h-11 items-center text-sm font-extrabold uppercase tracking-wide text-white underline decoration-white/60 underline-offset-4">
               New here? Begin your journey
             </Link>
+            <p>
+              <Link href="/watch" className="inline-flex min-h-11 items-center text-sm text-white/85 underline decoration-white/50 underline-offset-4">
+                Just looking? Watch the town →
+              </Link>
+            </p>
           </div>
         </div>
       </section>
