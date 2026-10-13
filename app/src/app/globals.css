@@ -7,6 +7,8 @@
  */
 :root {
   --background: #ffffff;
+  /* The page behind the cards: a breath of lilac, so white cards sit on something. */
+  --page: #f6f5fc;
   --foreground: #3c3c3c;
   --muted: #777777;
   --card: #ffffff;
@@ -53,7 +55,7 @@ html {
 }
 
 body {
-  background: var(--background);
+  background: var(--page);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   font-weight: 600;
@@ -145,4 +147,47 @@ select {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* A row in a list (a room, a friend, an attempt): chunky like a card, and it lifts when it is a link. */
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  border: 2px solid var(--border);
+  border-bottom-width: 4px;
+  background: var(--card);
+  padding: 0.75rem 1rem;
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease;
+}
+a.tile:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--blue) 55%, var(--border));
+}
+a.tile:active {
+  transform: translateY(1px);
+  border-bottom-width: 2px;
+}
+
+/* Things arrive: a new line in the chronicle, a card. Off under reduced motion. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.rise-in {
+  animation: rise-in 0.35s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise-in {
+    animation: none;
+  }
+  a.tile:hover,
+  a.tile:active {
+    transform: none;
+  }
 }

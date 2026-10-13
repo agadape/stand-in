@@ -11,7 +11,7 @@ import { befriend } from "./meet";
 import { PetScene, SocialProgress } from "./pet-scene";
 import { ShowCode } from "./show-code";
 import { SoulVault } from "./soul-vault";
-import { Address, Button, Card, ErrorNote, LinkButton, Pill } from "./ui";
+import { Address, Button, Card, ErrorNote, LinkButton, Pill, SectionTitle } from "./ui";
 
 /** Pet Home: the pet, how many friends it has met, and the one thing to do next. */
 export function TwinView({
@@ -87,7 +87,7 @@ export function TwinView({
     <div className="space-y-6">
       {welcome && isOwner && (
         <Card className="border-accent/50 bg-accent/10">
-          <p className="font-semibold">Your pet is live.</p>
+          <p className="font-extrabold">Your pet is live.</p>
           <p className="mt-1 text-sm text-muted">
             Show your code to someone you meet and your pets will talk. Every friend you meet gets your pet closer
             to something new to wear.
@@ -98,12 +98,20 @@ export function TwinView({
       {/* Phone: one column. Laptop: the pet stays on the left while the actions scroll on the right. */}
       <div className="space-y-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10 lg:space-y-0">
       <section className="space-y-4 lg:sticky lg:top-10">
-        <PetScene slug={twin.slug} name={twin.name} friends={friends.length} className="w-48 lg:w-72" />
-        <div className="text-center">
-          <h1 className="text-4xl font-semibold tracking-tight">{twin.name}</h1>
-          {twin.bio && <p className="mt-1 text-muted">{twin.bio}</p>}
+        {/* The pet on its own stage: a soft purple sky, a shadow on the ground, its name underneath. */}
+        <div className="relative overflow-hidden rounded-3xl border-2 border-b-4 border-[#c9bdfd] bg-gradient-to-b from-[#d9d0ff] via-[#efeaff] to-[#f9f7ff] px-5 pt-6 pb-5 text-center">
+          <span aria-hidden className="absolute -top-10 -left-10 size-36 rounded-full bg-white/50" />
+          <span aria-hidden className="absolute top-12 -right-8 size-24 rounded-full bg-white/40" />
+          <div className="relative">
+            <PetScene slug={twin.slug} name={twin.name} friends={friends.length} className="w-48 lg:w-72" />
+            <span aria-hidden className="mx-auto -mt-3 block h-4 w-40 rounded-[50%] bg-[#6a56e0]/15 lg:w-56" />
+            <h1 className="mt-3 text-4xl font-black tracking-tight">{twin.name}</h1>
+            {twin.bio && <p className="mt-1 text-foreground/70">{twin.bio}</p>}
+          </div>
         </div>
-        <SocialProgress friends={friends.length} />
+        <Card className="!p-4">
+          <SocialProgress friends={friends.length} />
+        </Card>
         <div className="grid grid-cols-2 gap-3 max-lg:hidden">
           <LinkButton href={`/t/${twin.slug}/wardrobe`} variant="secondary">
             Wardrobe
@@ -119,11 +127,11 @@ export function TwinView({
 
       {isOwner && requests.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-accent-strong">Wants to be friends</h2>
+          <SectionTitle icon="💌">Wants to be friends</SectionTitle>
           {requests.map((r) => (
-            <div key={r.id} className="flex items-center gap-3 rounded-2xl border border-accent/50 bg-accent/10 px-4 py-3">
+            <div key={r.id} className="tile !border-accent/50 !bg-accent/10">
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{r.other.name}</p>
+                <p className="truncate font-extrabold">{r.other.name}</p>
                 {r.other.bio && <p className="truncate text-xs text-muted">{r.other.bio}</p>}
               </div>
               <Button className="!w-auto" onClick={() => accept(r.other.slug)} loading={busy === `bond:${r.other.slug}`}>
@@ -136,7 +144,9 @@ export function TwinView({
 
       {isOwner === null ? null : isOwner ? (
         <Card className="space-y-4 text-center">
-          <h2 className="font-semibold">Met someone? Let them scan your code.</h2>
+          <h2 className="flex items-center justify-center gap-2 font-extrabold">
+            <span aria-hidden>📱</span> Met someone? Let them scan your code.
+          </h2>
           <ShowCode pet={twin} gatheringId={gatheringId} />
           <details className="text-left text-xs text-muted">
             <summary className="cursor-pointer py-3 text-center">Using an NFC sticker or bracelet instead?</summary>
@@ -162,7 +172,9 @@ export function TwinView({
 
       <Card className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold">The imitation game</h2>
+          <h2 className="flex items-center gap-2 font-extrabold">
+            <span aria-hidden>🎭</span> The imitation game
+          </h2>
           <Pill tone={pot > 0n ? "gold" : "neutral"}>Pot {formatMon(pot)}</Pill>
         </div>
         {isOwner === null ? null : isOwner ? (

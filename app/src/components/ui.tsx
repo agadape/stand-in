@@ -53,7 +53,7 @@ export function LinkButton({
 }
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-3xl border-2 border-border bg-card p-5 ${className}`}>{children}</div>;
+  return <div className={`rounded-3xl border-2 border-b-4 border-border bg-card p-5 ${className}`}>{children}</div>;
 }
 
 export function Field({
@@ -145,5 +145,110 @@ export function Address({ value }: { value: string }) {
     <span className="font-mono text-xs text-muted">
       {value.slice(0, 6)}…{value.slice(-4)}
     </span>
+  );
+}
+
+// ------------------------------------------------------------------ the look
+
+export type Tone = "green" | "blue" | "purple" | "gold" | "pink" | "dusk";
+
+/** One colour family per kind of page, so a page is recognisable at a glance. */
+const TONES: Record<Tone, { band: string; eyebrow: string; sub: string; dot: string }> = {
+  green: { band: "border-[#b6e58a] from-[#d9f7ba] to-[#f1fce4]", eyebrow: "text-accent-strong", sub: "text-foreground/70", dot: "bg-white/60" },
+  blue: { band: "border-[#a6ddfb] from-[#cdeeff] to-[#ecf8ff]", eyebrow: "text-blue-shadow", sub: "text-foreground/70", dot: "bg-white/60" },
+  purple: { band: "border-[#c9bdfd] from-[#e0d9ff] to-[#f4f1ff]", eyebrow: "text-[#6a56e0]", sub: "text-foreground/70", dot: "bg-white/60" },
+  gold: { band: "border-[#f2d37a] from-[#ffe7a8] to-[#fff7df]", eyebrow: "text-[#a86e00]", sub: "text-foreground/70", dot: "bg-white/60" },
+  pink: { band: "border-[#fbb6d0] from-[#ffd6e6] to-[#fff1f6]", eyebrow: "text-[#c93a75]", sub: "text-foreground/70", dot: "bg-white/60" },
+  dusk: { band: "border-[#231d57] from-[#2a2466] to-[#5a4cc4] text-white", eyebrow: "text-white/75", sub: "text-white/85", dot: "bg-white/10" },
+};
+
+/**
+ * The band at the top of a page: what the page is, in its own colour, with whatever
+ * belongs beside it (usually a pet). It replaces a bare heading on a white page.
+ */
+export function PageHeader({
+  tone = "green",
+  eyebrow,
+  title,
+  children,
+  art,
+  action,
+}: {
+  tone?: Tone;
+  eyebrow?: ReactNode;
+  title: ReactNode;
+  /** A sentence or two under the title. */
+  children?: ReactNode;
+  /** Shown on the right: a pet, an icon. Decoration, so it is hidden from screen readers. */
+  art?: ReactNode;
+  action?: ReactNode;
+}) {
+  const t = TONES[tone];
+  return (
+    <header className={`relative overflow-hidden rounded-3xl border-2 border-b-4 bg-gradient-to-br p-5 md:p-7 ${t.band}`}>
+      <span aria-hidden className={`absolute -right-10 -top-12 size-44 rounded-full ${t.dot}`} />
+      <span aria-hidden className={`absolute right-24 -bottom-16 size-32 rounded-full ${t.dot}`} />
+      <div className="relative flex items-center gap-4">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          {eyebrow && <p className={`text-xs font-extrabold uppercase tracking-[0.14em] ${t.eyebrow}`}>{eyebrow}</p>}
+          <h1 className="text-3xl leading-tight font-black tracking-tight md:text-4xl">{title}</h1>
+          {children && <div className={`text-sm md:text-base ${t.sub}`}>{children}</div>}
+          {action && <div className="pt-2">{action}</div>}
+        </div>
+        {art && (
+          <div aria-hidden className="w-20 shrink-0 md:w-28">
+            {art}
+          </div>
+        )}
+      </div>
+    </header>
+  );
+}
+
+/** A section's label, with a small icon tile so sections can be told apart when scanning. */
+export function SectionTitle({ icon, children, aside }: { icon?: ReactNode; children: ReactNode; aside?: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      {icon && (
+        <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-xl border-2 border-border bg-card text-base">
+          {icon}
+        </span>
+      )}
+      <h2 className="min-w-0 flex-1 text-sm font-extrabold uppercase tracking-wide text-muted">{children}</h2>
+      {aside}
+    </div>
+  );
+}
+
+/** One number with its label. */
+export function Stat({ label, value, tone = "neutral" }: { label: ReactNode; value: ReactNode; tone?: "neutral" | "green" | "blue" | "gold" }) {
+  const tones = {
+    neutral: "border-border bg-card",
+    green: "border-[#b6e58a] bg-[#f1fce4]",
+    blue: "border-[#a6ddfb] bg-[#ecf8ff]",
+    gold: "border-[#f2d37a] bg-[#fff7df]",
+  };
+  return (
+    <div className={`flex flex-col-reverse rounded-2xl border-2 border-b-4 p-3 text-center ${tones[tone]}`}>
+      <dt className="text-[11px] font-extrabold uppercase tracking-wide text-muted">{label}</dt>
+      <dd className="text-2xl font-black tabular-nums">{value}</dd>
+    </div>
+  );
+}
+
+/** For a list with nothing in it yet: say so kindly, and say what would fill it. */
+export function EmptyState({ art, title, children }: { art?: ReactNode; title: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="flex items-center gap-4 rounded-3xl border-2 border-dashed border-border bg-card/60 p-5">
+      {art && (
+        <div aria-hidden className="w-16 shrink-0">
+          {art}
+        </div>
+      )}
+      <div className="min-w-0 space-y-1">
+        <p className="font-extrabold">{title}</p>
+        {children && <div className="text-sm text-muted">{children}</div>}
+      </div>
+    </div>
   );
 }

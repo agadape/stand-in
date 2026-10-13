@@ -43,7 +43,9 @@ export function CreateGathering() {
 
   return (
     <Card className="space-y-4">
-      <h2 className="font-semibold">Host a gathering</h2>
+      <h2 className="flex items-center gap-2 font-extrabold">
+        <span aria-hidden>🎪</span> Host a gathering
+      </h2>
       <input
         className={inputClass}
         value={name}
@@ -55,7 +57,7 @@ export function CreateGathering() {
       <label className="flex min-h-11 items-center justify-between gap-3 text-sm">
         <span>Runs for</span>
         <select
-          className="min-h-11 rounded-xl border border-border bg-background px-3 py-2 text-base"
+          className="min-h-11 rounded-xl border-2 border-border bg-background px-3 py-2 text-base font-bold"
           value={hours}
           onChange={(e) => setHours(Number(e.target.value))}
         >

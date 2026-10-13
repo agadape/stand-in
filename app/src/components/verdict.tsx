@@ -2,7 +2,7 @@
 
 import { formatMon, pct, type LlmVerdict, type Scenario } from "@/lib/api";
 import { Pet } from "./pet";
-import { Card, LinkButton, Pill, ScoreBar } from "./ui";
+import { Card, LinkButton, Pill, ScoreBar, SectionTitle } from "./ui";
 import { VerifyVerdict } from "./verify-verdict";
 
 export type VerdictView = {
@@ -64,36 +64,42 @@ export function Verdict({
   return (
     <div className="narrow space-y-6">
       {/* The pet's reaction comes first: pleased with its owner, smug at a catch, floored when fooled. */}
-      <Pet
-        mood={owner ? "happy" : result.passed ? "shocked" : "suspicious"}
-        className="mx-auto w-40"
-        label={`${twinName}'s pet ${owner ? "is pleased" : result.passed ? "is shocked" : "is not convinced"}`}
-      />
-      <div className="space-y-2">
-        <Pill tone={owner ? "gold" : result.passed ? "ok" : "bad"}>
-          {owner ? "Bar set" : result.passed ? "Passed" : "Caught"}
-        </Pill>
-        <h1 className="text-3xl font-semibold tracking-tight">{headline}</h1>
-        <p className="text-muted">{sub}</p>
+      <div
+        className={`relative space-y-3 overflow-hidden rounded-3xl border-2 border-b-4 bg-gradient-to-b px-5 pt-6 pb-5 text-center ${
+          owner ? "border-[#f2d37a] from-[#ffe7a8] to-[#fff9e8]" : result.passed ? "border-[#b6e58a] from-[#d9f7ba] to-[#f4fde9]" : "border-[#ffb3b3] from-[#ffd9d9] to-[#fff5f5]"
+        }`}
+      >
+        <span aria-hidden className="absolute -top-10 -left-10 size-36 rounded-full bg-white/50" />
+        <span aria-hidden className="absolute top-10 -right-8 size-24 rounded-full bg-white/40" />
+        <Pet
+          mood={owner ? "happy" : result.passed ? "shocked" : "suspicious"}
+          className="relative mx-auto w-36"
+          label={`${twinName}'s pet ${owner ? "is pleased" : result.passed ? "is shocked" : "is not convinced"}`}
+        />
+        <div className="relative space-y-2">
+          <Pill tone={owner ? "gold" : result.passed ? "ok" : "bad"}>{owner ? "Bar set" : result.passed ? "Passed" : "Caught"}</Pill>
+          <h1 className="text-3xl font-black tracking-tight">{headline}</h1>
+          <p className="text-foreground/70">{sub}</p>
+        </div>
       </div>
 
       <Card className="space-y-4">
         <ScoreBar scoreBps={result.scoreBps} ownerBps={owner ? 0 : result.ownerScoreBps} label="Twin's verdict" />
         <div className="rounded-2xl rounded-bl-sm bg-accent/15 px-4 py-3 text-sm">
-          <p className="mb-1 text-xs text-muted">{twinName}&apos;s twin</p>
+          <p className="mb-1 text-xs font-extrabold text-accent-strong">{twinName}&apos;s pet</p>
           <p>{result.llm.verdictLine}</p>
         </div>
       </Card>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">The tells</h2>
+        <SectionTitle icon="🔎">The tells</SectionTitle>
         {result.llm.answers.map((a, i) => (
           <Card key={a.scenarioId} className="space-y-2">
             <p className="text-xs text-muted">{scenarios[i]?.prompt}</p>
             <p className="rounded-2xl rounded-br-sm bg-paper px-4 py-3 text-sm">{answers[i]}</p>
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm">{a.tell}</p>
-              <span className="shrink-0 font-mono text-sm font-semibold">{a.score}</span>
+              <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-black tabular-nums ${a.score >= 60 ? "bg-accent/15 text-accent-strong" : a.score >= 35 ? "bg-[#fff1c2] text-[#a86e00]" : "bg-bad/15 text-bad"}`}>{a.score}</span>
             </div>
           </Card>
         ))}
@@ -101,7 +107,7 @@ export function Verdict({
 
       {result.styleNotes.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">By the numbers</h2>
+          <SectionTitle icon="🔢">By the numbers</SectionTitle>
           <Card>
             <ul className="space-y-2 text-sm">
               {result.styleNotes.map((note) => (

@@ -5,7 +5,8 @@ import { useState } from "react";
 import { api, type MeetCode } from "@/lib/api";
 import { ownerProof } from "@/lib/owner-client";
 import { useOwned } from "@/lib/use-session";
-import { Button, Card, ErrorNote, LinkButton } from "./ui";
+import { Pet } from "./pet";
+import { Button, Card, ErrorNote, LinkButton, PageHeader } from "./ui";
 
 export type Scanned = { code: MeetCode; gatheringId: number };
 
@@ -51,17 +52,15 @@ export function Meet({
 
   return (
     <div className="narrow space-y-6 pt-6">
-      <div className="space-y-2 text-center">
-        <p className="text-sm font-semibold uppercase tracking-wide text-accent-strong">You just met</p>
-        <h1 className="text-5xl font-semibold tracking-tight">{twin.name}</h1>
-        {twin.bio && <p className="text-muted">{twin.bio}</p>}
-      </div>
+      <PageHeader tone="purple" eyebrow="You just met" title={twin.name} art={<Pet mood="happy" />}>
+        {twin.bio}
+      </PageHeader>
 
       <ErrorNote>{error}</ErrorNote>
 
       {isSelf && !mine ? (
         <Card className="space-y-3 text-center">
-          <p className="font-semibold">This is your own code.</p>
+          <p className="font-extrabold">This is your own code.</p>
           <p className="text-sm text-muted">Show it to someone you meet. They scan it and land here.</p>
           <LinkButton href={`/t/${twin.slug}`} variant="secondary">
             Back to my pet
@@ -69,7 +68,7 @@ export function Meet({
         </Card>
       ) : sent ? (
         <Card className="space-y-3 border-accent/50 bg-accent/10 text-center">
-          <p className="font-semibold">Request sent to {twin.name}.</p>
+          <p className="font-extrabold">💌 Request sent to {twin.name}.</p>
           <p className="text-sm text-muted">
             This link carries no fresh code, so {twin.name} has to accept on their pet&apos;s page. To be recorded as
             met in person, scan the code on {twin.name}&apos;s screen instead.

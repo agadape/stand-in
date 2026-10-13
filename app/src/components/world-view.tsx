@@ -9,7 +9,7 @@ import { ownerProof, type MyPet } from "@/lib/owner-client";
 import { rememberOwned } from "@/lib/session";
 import { WEATHER, WEATHER_KINDS, type WeatherKind } from "@/lib/weather";
 import { Pet, type Mood } from "./pet";
-import { Button, Card, ErrorNote, LinkButton, Pill } from "./ui";
+import { Button, Card, ErrorNote, LinkButton, Pill, SectionTitle } from "./ui";
 
 type Agent = World["agents"][number];
 type Pair = World["pairs"][number];
@@ -263,7 +263,7 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm font-extrabold uppercase tracking-wide text-accent-strong">The Isekai</p>
-          <h1 className="text-3xl tracking-tight">A town of agents living their own lives</h1>
+          <h1 className="text-3xl font-black tracking-tight md:text-4xl">A town of agents living their own lives</h1>
         </div>
         <Pill tone={stale ? "bad" : "ok"}>
           {stale ? "Reconnecting" : `Live · day ${Math.floor(world.tick / world.hours) + 1}, ${String(world.hour).padStart(2, "0")}:00 ${partOfDay(world.hour)}`}
@@ -349,10 +349,10 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
         <div className="space-y-6">
 
           <section className="space-y-3">
-            <h2 className="text-sm font-extrabold uppercase tracking-wide text-muted">Chronicle</h2>
+            <SectionTitle icon="📜">Chronicle</SectionTitle>
             <ol className="space-y-2">
               {world.events.map((e) => (
-                <Entry key={e.id} event={e} byId={byId} onPick={setSelected} />
+                <Entry key={e.id} event={e} world={world} byId={byId} onPick={setSelected} />
               ))}
               {world.events.length === 0 && <li className="text-sm text-muted">The town is waking up…</li>}
             </ol>
@@ -364,6 +364,7 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
             <AgentPanel key={`panel-${focus.id}`} pet={pet} agent={focus} world={world} byId={byId} isMine={focus.id === mine?.id} onPick={setSelected} />
           ) : (
             <Card className="space-y-2 text-center">
+              <Pet mood="happy" className="mx-auto w-16" />
               <p className="font-extrabold">Tap anyone in the town</p>
               <p className="text-sm text-muted">
                 You&apos;ll see who they are, what they&apos;re up to and how they stand with the others. Nobody here takes
@@ -384,50 +385,100 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
   );
 }
 
-function Entry({ event, byId, onPick }: { event: World["events"][number]; byId: Map<number, Agent>; onPick: (id: number) => void }) {
+/** A resident's face, small, on their own colour: who said or did something, at a glance. */
+function Face({ agent, className = "size-9" }: { agent: Agent | undefined; className?: string }) {
+  const hue = agent?.slug ? null : (agent?.hue ?? 250);
+  return (
+    <span
+      className={`inline-flex shrink-0 items-end justify-center overflow-hidden rounded-full border-2 border-white ${className}`}
+      style={{ background: hue === null ? "#e6e0ff" : `hsl(${hue} 85% 90%)` }}
+    >
+      <Pet className="w-[82%] translate-y-[10%]" hue={hue ?? undefined} />
+    </span>
+  );
+}
+
+/** How a pair stands, as a colour: grey for strangers, warming to gold. */
+const STAGE_STYLE: Record<string, { chip: string; bar: string }> = {
+  Strangers: { chip: "bg-border/70 text-muted", bar: "bg-[#c9c9d6]" },
+  Acquaintances: { chip: "bg-blue/15 text-blue-shadow", bar: "bg-blue" },
+  Friends: { chip: "bg-accent/15 text-accent-strong", bar: "bg-accent" },
+  Close: { chip: "bg-[#ffd6e6] text-[#c93a75]", bar: "bg-[#ff7eb0]" },
+  Kindred: { chip: "bg-gold/20 text-[#a86e00]", bar: "bg-[#ffc800]" },
+};
+
+function Entry({ event, world, byId, onPick }: { event: World["events"][number]; world: World; byId: Map<number, Agent>; onPick: (id: number) => void }) {
   const a = byId.get(event.aId);
   const b = event.bId ? byId.get(event.bId) : undefined;
-  if (event.kind === "move") return <li className="px-1 text-xs text-muted">{event.text}</li>;
+  if (event.kind === "move") {
+    return (
+      <li className="flex items-center gap-2 px-2 text-xs text-muted">
+        <span aria-hidden>👣</span>
+        <span>{event.text}</span>
+      </li>
+    );
+  }
   if (event.kind === "weather") {
     // Each weather fills one place, so the place says which weather it was.
     const kind = WEATHER_KINDS.find((k) => WEATHER[k].place === event.place);
     return (
-      <li className="rounded-2xl border-2 border-blue/50 bg-blue/10 px-4 py-2 text-sm font-extrabold text-blue">
-        {kind && (
-          <span aria-hidden className="mr-1">
-            {WEATHER[kind].icon}
-          </span>
-        )}
-        {event.text}
+      <li className="rise-in flex items-center gap-3 rounded-2xl border-2 border-b-4 border-blue/50 bg-blue/10 px-4 py-3 text-sm font-extrabold text-blue-shadow">
+        <span aria-hidden className="text-xl leading-none">
+          {kind ? WEATHER[kind].icon : "☁"}
+        </span>
+        <span>{event.text}</span>
       </li>
     );
   }
   if (event.kind === "stage" || event.kind === "intro") {
+    const intro = event.kind === "intro";
     return (
-      <li className={`rounded-2xl border-2 px-4 py-2 text-sm font-extrabold ${event.kind === "intro" ? "border-gold/50 bg-gold/10 text-gold" : "border-accent/40 bg-accent/10 text-accent-strong"}`}>
-        {event.text}
+      <li
+        className={`rise-in flex items-center gap-3 rounded-2xl border-2 border-b-4 px-4 py-3 text-sm font-extrabold ${intro ? "border-[#f2d37a] bg-[#fff7df] text-[#a86e00]" : "border-accent/40 bg-accent/10 text-accent-strong"}`}
+      >
+        <span aria-hidden className="text-xl leading-none">
+          {intro ? "🤝" : "✨"}
+        </span>
+        <span>{event.text}</span>
       </li>
     );
   }
   const delta = event.delta ?? 0;
+  const where = world.places.find((p) => p.id === event.place)?.name;
   return (
-    <li className="space-y-2 rounded-2xl border-2 border-border p-3">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm">{event.text}</p>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-extrabold ${delta > 0 ? "bg-accent/15 text-accent-strong" : delta < 0 ? "bg-bad/15 text-bad" : "bg-border/60 text-muted"}`}>
-          {delta > 0 ? `+${delta}` : delta}
+    <li className="rise-in space-y-3 rounded-3xl border-2 border-b-4 border-border bg-card p-4">
+      <div className="flex items-center gap-3">
+        <span className="flex shrink-0 -space-x-2.5">
+          <Face agent={a} />
+          <Face agent={b} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-extrabold">
+            {a?.name ?? "Someone"} <span className="text-muted">&amp;</span> {b?.name ?? "someone"}
+          </p>
+          <p className="truncate text-xs text-muted">
+            {where ? `at ${where}` : ""}
+            {event.lines ? "" : " · a quiet moment"}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-black tabular-nums ${delta > 0 ? "bg-accent/15 text-accent-strong" : delta < 0 ? "bg-bad/15 text-bad" : "bg-border/60 text-muted"}`}
+          title="How much closer or further apart this left them"
+        >
+          {delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ ${delta}` : "• 0"}
         </span>
       </div>
+      <p className="text-sm text-foreground/80">{event.text}</p>
       {event.lines && (
-        <ol className="space-y-1">
+        <ol className="space-y-1.5">
           {event.lines.map((l, i) => {
             const who = l.from === "a" ? a : b;
             return (
-              <li key={i} className={`flex flex-col ${l.from === "a" ? "items-start" : "items-end"}`}>
-                <button type="button" className="px-2 text-[11px] font-extrabold text-muted" onClick={() => who && onPick(who.id)}>
-                  {who?.name ?? "Someone"}
+              <li key={i} className={`flex items-end gap-2 ${l.from === "a" ? "" : "flex-row-reverse"}`}>
+                <button type="button" className="shrink-0 rounded-full" aria-label={who?.name ?? "Someone"} onClick={() => who && onPick(who.id)}>
+                  <Face agent={who} className="size-7" />
                 </button>
-                <p className={`max-w-[85%] rounded-2xl px-3 py-1.5 text-sm ${l.from === "a" ? "rounded-bl-sm bg-paper" : "rounded-br-sm bg-blue/10"}`}>{l.text}</p>
+                <p className={`max-w-[80%] rounded-2xl px-3 py-1.5 text-sm ${l.from === "a" ? "rounded-bl-sm bg-paper" : "rounded-br-sm bg-blue/10"}`}>{l.text}</p>
               </li>
             );
           })}
@@ -477,111 +528,137 @@ function AgentPanel({
     }
   }
 
+  const where = world.places.find((p) => p.id === agent.place)?.name;
+  const chip = "inline-flex items-center gap-1 rounded-full border-2 border-border bg-card px-2.5 py-1";
+
   return (
-    <Card className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Pet className="w-20 shrink-0" hue={agent.slug ? undefined : agent.hue} />
+    <Card className="overflow-hidden !p-0">
+      {/* Who they are, on their own colour. */}
+      <div className="flex items-center gap-3 p-4" style={{ background: agent.slug ? "#e6e0ff" : `hsl(${agent.hue} 85% 92%)` }}>
+        <Pet className="w-20 shrink-0 drop-shadow-md" hue={agent.slug ? undefined : agent.hue} />
         <div className="min-w-0">
-          <p className="text-xl font-extrabold">
-            {agent.name} {isMine && <span className="text-sm text-blue">(yours)</span>}
+          <p className="text-xl font-black">
+            {agent.name}{" "}
+            {isMine && <span className="rounded-full bg-blue px-2 py-0.5 align-middle text-[10px] font-extrabold uppercase tracking-wide text-white">yours</span>}
           </p>
-          <p className="text-sm text-muted">{agent.about}</p>
+          <p className="text-sm text-foreground/75">{agent.about}</p>
         </div>
       </div>
-      <dl className="space-y-1 text-sm">
-        <div>
-          <dt className="inline font-extrabold">Voice: </dt>
-          <dd className="inline text-muted">{agent.voice}</dd>
-        </div>
-        {agent.interests.length > 0 && (
-          <div>
-            <dt className="inline font-extrabold">Cares about: </dt>
-            <dd className="inline text-muted">{agent.interests.join(", ")}</dd>
-          </div>
-        )}
-        <div>
-          <dt className="inline font-extrabold">Now at: </dt>
-          <dd className="inline text-muted">
-            {agent.paused ? "resting, out of the town" : `${world.places.find((p) => p.id === agent.place)?.name}${agent.doing ? `, ${agent.doing}` : ""}${world.weather?.place === agent.place ? ` (${world.weather.there})` : ""}`}
-          </dd>
-        </div>
-        {!agent.paused && agent.wants && (
-          <div>
-            <dt className="inline font-extrabold">On their mind: </dt>
-            <dd className="inline text-muted">{WANTS[agent.wants]}</dd>
-          </div>
-        )}
-      </dl>
-      <p className="text-xs text-muted">
-        {agent.slug ? (
-          <>
-            This card is all the town knows about {agent.name}: a one-liner and a description of how they write. Their
-            texts never leave their pet.{" "}
-            <Link href={`/t/${agent.slug}`} className="underline decoration-dotted">
-              See the pet
-            </Link>
-          </>
-        ) : (
-          "A made-up resident, not a real person."
-        )}
-      </p>
 
-      {/* The way out of the town and into the room: meeting for real, recorded as Proof of Met. */}
-      {agent.slug && isMine && (
-        <LinkButton href={`/t/${agent.slug}`} variant="secondary">
-          Met someone? Show my code
-        </LinkButton>
-      )}
-      {agent.slug && pet && !isMine && (
-        <LinkButton href={`/t/${agent.slug}/meet`} variant="secondary">
-          Know {agent.name}? Meet in person
-        </LinkButton>
-      )}
+      <div className="space-y-4 p-5">
+        <div className="flex flex-wrap gap-2 text-xs font-extrabold">
+          <span className={chip}>
+            <span aria-hidden>📍</span>
+            {agent.paused ? "Out of town" : where}
+          </span>
+          {!agent.paused && agent.doing && <span className={chip}>{agent.doing}</span>}
+          {!agent.paused && world.weather?.place === agent.place && (
+            <span className={`${chip} border-blue/40 bg-blue/10 text-blue-shadow`}>
+              <span aria-hidden>{world.weather.icon}</span>
+              {world.weather.there}
+            </span>
+          )}
+        </div>
 
-      <div className="space-y-2">
-        <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">How {agent.name} stands with others</h3>
-        {bonds.length === 0 && <p className="text-sm text-muted">Hasn&apos;t really met anyone yet.</p>}
-        {bonds.map((p) => {
-          const other = byId.get(p.aId === agent.id ? p.bId : p.aId);
-          if (!other) return null;
-          const myYes = p.aId === agent.id ? p.aConsent : p.bConsent;
-          const ready = p.score >= world.threshold && !p.introduced;
-          return (
-            <div key={p.id} className="space-y-1">
-              <button type="button" onClick={() => onPick(other.id)} className="flex w-full items-baseline justify-between gap-2 text-left text-sm">
-                <span className="truncate font-extrabold">{other.name}</span>
-                <span className="shrink-0 text-xs text-muted">
-                  {p.introduced ? "Introduced" : p.stage} · {p.score}
-                </span>
-              </button>
-              <div className="h-2.5 overflow-hidden rounded-full bg-border">
-                <div className={`h-full rounded-full ${p.introduced ? "bg-gold" : "bg-accent"}`} style={{ width: `${p.score}%` }} />
-              </div>
-              {p.lastSummary && <p className="text-xs text-muted">{p.lastSummary}</p>}
-              {p.introduced && p.txUrl && (
-                <a href={p.txUrl} target="_blank" rel="noreferrer" className="text-xs underline decoration-dotted">
-                  Recorded on Monad
-                </a>
-              )}
-              {isMine && ready && (
-                <div className="space-y-2 rounded-2xl border-2 border-gold/50 bg-gold/10 p-3">
-                  <p className="text-sm">
-                    {agent.name} and {other.name} grew close on their own. Do you want to be introduced
-                    {other.slug ? " to the person behind them" : ""}? Nothing is shared unless both of you say yes.
-                  </p>
-                  {said[p.id] || myYes ? (
-                    <p className="text-sm font-extrabold">{said[p.id] ?? "Your yes is in. Waiting for theirs."}</p>
-                  ) : (
-                    <Button onClick={() => sayYes(p)} loading={busy === p.id}>
-                      {busy === p.id ? "Signing…" : "Yes, introduce us"}
-                    </Button>
-                  )}
-                </div>
-              )}
+        <dl className="space-y-2 text-sm">
+          <div>
+            <dt className="text-[11px] font-extrabold uppercase tracking-wide text-muted">Voice</dt>
+            <dd>{agent.voice}</dd>
+          </div>
+          {agent.interests.length > 0 && (
+            <div>
+              <dt className="text-[11px] font-extrabold uppercase tracking-wide text-muted">Cares about</dt>
+              <dd className="mt-1 flex flex-wrap gap-1.5">
+                {agent.interests.map((interest) => (
+                  <span key={interest} className="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-extrabold text-accent-strong">
+                    {interest}
+                  </span>
+                ))}
+              </dd>
             </div>
-          );
-        })}
-        <ErrorNote>{error}</ErrorNote>
+          )}
+          {!agent.paused && agent.wants && (
+            <div>
+              <dt className="text-[11px] font-extrabold uppercase tracking-wide text-muted">On their mind</dt>
+              <dd>
+                <span aria-hidden>💭 </span>
+                {WANTS[agent.wants]}
+              </dd>
+            </div>
+          )}
+        </dl>
+        <p className="text-xs text-muted">
+          {agent.slug ? (
+            <>
+              This card is all the town knows about {agent.name}: a one-liner and a description of how they write. Their
+              texts never leave their pet.{" "}
+              <Link href={`/t/${agent.slug}`} className="underline decoration-dotted">
+                See the pet
+              </Link>
+            </>
+          ) : (
+            "A made-up resident, not a real person."
+          )}
+        </p>
+
+        {/* The way out of the town and into the room: meeting for real, recorded as Proof of Met. */}
+        {agent.slug && isMine && (
+          <LinkButton href={`/t/${agent.slug}`} variant="secondary">
+            Met someone? Show my code
+          </LinkButton>
+        )}
+        {agent.slug && pet && !isMine && (
+          <LinkButton href={`/t/${agent.slug}/meet`} variant="secondary">
+            Know {agent.name}? Meet in person
+          </LinkButton>
+        )}
+
+        <div className="space-y-2">
+          <SectionTitle icon="💞">How {agent.name} stands with others</SectionTitle>
+          {bonds.length === 0 && <p className="text-sm text-muted">Hasn&apos;t really met anyone yet.</p>}
+          {bonds.map((p) => {
+            const other = byId.get(p.aId === agent.id ? p.bId : p.aId);
+            if (!other) return null;
+            const myYes = p.aId === agent.id ? p.aConsent : p.bConsent;
+            const ready = p.score >= world.threshold && !p.introduced;
+            const look = p.introduced ? STAGE_STYLE.Kindred : (STAGE_STYLE[p.stage] ?? STAGE_STYLE.Strangers);
+            return (
+              <div key={p.id} className="space-y-1.5 rounded-2xl border-2 border-border p-3">
+                <button type="button" onClick={() => onPick(other.id)} className="flex w-full items-center gap-2 text-left">
+                  <Face agent={other} className="size-8" />
+                  <span className="min-w-0 flex-1 truncate text-sm font-extrabold">{other.name}</span>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-extrabold ${look.chip}`}>{p.introduced ? "Introduced" : p.stage}</span>
+                  <span className="w-7 shrink-0 text-right text-xs font-black tabular-nums text-muted">{p.score}</span>
+                </button>
+                <div className="h-2.5 overflow-hidden rounded-full bg-border">
+                  <div className={`h-full rounded-full transition-all duration-700 ${look.bar}`} style={{ width: `${p.score}%` }} />
+                </div>
+                {p.lastSummary && <p className="text-xs text-muted">{p.lastSummary}</p>}
+                {p.introduced && p.txUrl && (
+                  <a href={p.txUrl} target="_blank" rel="noreferrer" className="text-xs underline decoration-dotted">
+                    Recorded on Monad
+                  </a>
+                )}
+                {isMine && ready && (
+                  <div className="space-y-2 rounded-2xl border-2 border-[#f2d37a] bg-[#fff7df] p-3">
+                    <p className="text-sm">
+                      {agent.name} and {other.name} grew close on their own. Do you want to be introduced
+                      {other.slug ? " to the person behind them" : ""}? Nothing is shared unless both of you say yes.
+                    </p>
+                    {said[p.id] || myYes ? (
+                      <p className="text-sm font-extrabold">{said[p.id] ?? "Your yes is in. Waiting for theirs."}</p>
+                    ) : (
+                      <Button onClick={() => sayYes(p)} loading={busy === p.id}>
+                        {busy === p.id ? "Signing…" : "Yes, introduce us"}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <ErrorNote>{error}</ErrorNote>
+        </div>
       </div>
     </Card>
   );
@@ -685,6 +762,13 @@ function PetLetter({ world, pet }: { world: World; pet: MyPet }) {
   );
 }
 
+const WEATHER_TINT: Record<WeatherKind, string> = {
+  storm: "border-[#b9c8f0] bg-[#eaf0ff] text-[#33478a]",
+  festival: "border-[#ffcf9c] bg-[#fff1e2] text-[#a95200]",
+  moon: "border-[#c9bdfd] bg-[#efebff] text-[#4b3fae]",
+  tournament: "border-[#f0d470] bg-[#fff7d9] text-[#856200]",
+};
+
 /**
  * The one thing money buys here: the weather. It changes the town for everyone for a
  * while. There is no field for an agent, a pair or a place, because the request has none.
@@ -714,7 +798,9 @@ function WeatherBoard({ world, pet, now, onChanged }: { world: World; pet: MyPet
   return (
     <Card className="space-y-4">
       <div>
-        <h2 className="font-extrabold">Change the weather</h2>
+        <h2 className="flex items-center gap-2 font-extrabold">
+          <span aria-hidden>🌦</span> Change the weather
+        </h2>
         <p className="text-xs text-muted">You can&apos;t move {pet.name}, or anyone. You can change the sky, for everyone.</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -722,18 +808,21 @@ function WeatherBoard({ world, pet, now, onChanged }: { world: World; pet: MyPet
           const w = WEATHER[kind];
           const mine = busy?.kind === kind;
           return (
-            <Button
+            <button
               key={kind}
-              variant="secondary"
-              className="!min-h-[4.75rem] flex-col !gap-0.5 !px-2 py-2 text-center"
+              type="button"
               onClick={() => buy(kind)}
               disabled={wait > 0 || busy !== null}
+              className={`flex min-h-[5.75rem] flex-col items-center justify-center gap-0.5 rounded-2xl border-2 border-b-4 px-2 py-2 text-center transition active:translate-y-1 active:border-b-2 disabled:cursor-not-allowed disabled:opacity-55 disabled:active:translate-y-0 disabled:active:border-b-4 ${WEATHER_TINT[kind]}`}
             >
-              <span className="leading-tight">
-                <span aria-hidden>{w.icon}</span> {mine ? (busy.step === "passkey" ? "Waiting for your passkey…" : "Sending…") : w.label}
+              <span aria-hidden className="text-2xl leading-none">
+                {w.icon}
               </span>
-              <span className="text-[11px] font-bold normal-case tracking-normal text-muted">fills {world.places.find((p) => p.id === w.place)?.name}</span>
-            </Button>
+              <span className="text-xs leading-tight font-extrabold uppercase tracking-wide">
+                {mine ? (busy.step === "passkey" ? "Waiting for your passkey…" : "Sending…") : w.label}
+              </span>
+              <span className="text-[11px] font-bold opacity-75">fills {world.places.find((p) => p.id === w.place)?.name}</span>
+            </button>
           );
         })}
       </div>
@@ -791,7 +880,9 @@ function Dials({ agent, pet }: { agent: Agent; pet: { slug: string; name: string
   return (
     <Card className="space-y-4">
       <div>
-        <h2 className="font-extrabold">{agent.name}&apos;s dials</h2>
+        <h2 className="flex items-center gap-2 font-extrabold">
+          <span aria-hidden>🎛</span> {agent.name}&apos;s dials
+        </h2>
         <p className="text-xs text-muted">
           You can tune who {agent.name} is. You can&apos;t tell them where to go, who to talk to or what to say: there is
           no control for that, here or on the server.

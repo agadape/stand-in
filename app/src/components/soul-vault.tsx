@@ -98,7 +98,9 @@ export function SoulVault({ pet }: { pet: { slug: string; name: string; ownerAdd
   return (
     <Card className="space-y-4">
       <div>
-        <h2 className="font-extrabold">{pet.name}&apos;s soul vault</h2>
+        <h2 className="flex items-center gap-2 font-extrabold">
+          <span aria-hidden>🔐</span> {pet.name}&apos;s soul vault
+        </h2>
         <p className="text-xs text-muted">
           Encrypted on this device with a key from your passkey. We store only the ciphertext and cannot read it.
           Nothing here is shown to the town or sent to any AI model.
@@ -109,11 +111,11 @@ export function SoulVault({ pet }: { pet: { slug: string; name: string; ownerAdd
         const has = Boolean(stored?.[tier.id]);
         const editing = open[tier.id] || !has;
         return (
-          <div key={tier.id} className="space-y-2 rounded-2xl border-2 border-border p-3">
+          <div key={tier.id} className={`space-y-2 rounded-2xl border-2 p-3 ${has ? "border-accent/40 bg-accent/5" : "border-border"}`}>
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="text-sm font-extrabold">{tier.name}</h3>
               <span className={`text-xs font-extrabold ${has ? "text-accent-strong" : "text-muted"}`}>
-                {stored === null ? "…" : has ? "Locked" : "Empty"}
+                {stored === null ? "…" : has ? "🔒 Locked" : "Empty"}
               </span>
             </div>
             <p className="text-xs text-muted">{tier.blurb}</p>

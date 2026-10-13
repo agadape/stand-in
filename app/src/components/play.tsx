@@ -10,7 +10,8 @@ import {
   type PasskeyAccount,
 } from "@/lib/passkey";
 import { lastPlayer, rememberPlayer } from "@/lib/session";
-import { Button, Card, ErrorNote, Field, inputClass, Spinner } from "./ui";
+import { Pet } from "./pet";
+import { Button, Card, ErrorNote, Field, inputClass, PageHeader, Spinner } from "./ui";
 import { Verdict } from "./verdict";
 
 type Step = "loading" | "identity" | "answer" | "judging" | "verdict";
@@ -166,7 +167,7 @@ export function Play({ slug, mode }: { slug: string; mode: "owner" | "challenger
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
         <Spinner />
-        <p className="text-lg font-medium">{JUDGING_LINES(twin.name)[judgingLine]}</p>
+        <p className="text-lg font-extrabold">{JUDGING_LINES(twin.name)[judgingLine]}</p>
         <p className="text-sm text-muted">Usually 10 to 20 seconds.</p>
       </div>
     );
@@ -176,14 +177,13 @@ export function Play({ slug, mode }: { slug: string; mode: "owner" | "challenger
     const owner = mode === "owner";
     return (
       <div className="space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">{owner ? "Prove you're you" : `Be ${twin.name}`}</h1>
-          <p className="text-muted">
+        <PageHeader tone={owner ? "gold" : "purple"} eyebrow="The imitation game" title={owner ? "Prove you're you" : `Be ${twin.name}`} art={<Pet mood={owner ? "happy" : "suspicious"} />}>
+          <p>
             {owner
               ? "Answer three texts as yourself. Your score becomes the bar your friends have to beat."
               : `Answer three texts the way ${twin.name} would. Beat ${(twin.ownerScoreBps / 100).toFixed(1)}% and the twin pays you the pot.`}
           </p>
-        </div>
+        </PageHeader>
 
         <Card className="space-y-4">
           <Field label="Name on the leaderboard">

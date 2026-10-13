@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Wall } from "@/lib/wall";
+import { Stat } from "./ui";
 
 const POLL_MS = 3000;
 const SIZE = 600;
@@ -48,7 +49,10 @@ export function WallGraph({ initial, gatheringId = 0 }: { initial: Wall; gatheri
   const place = new Map(
     wall.nodes.map((node, i) => {
       const angle = (i / Math.max(n, 1)) * Math.PI * 2 - Math.PI / 2;
-      return [node.address, { x: SIZE / 2 + Math.cos(angle) * radius, y: SIZE / 2 + Math.sin(angle) * radius, angle }];
+      // Rounded, because the server and the browser disagree in the last digit of a cosine and React
+      // then reports the page as mismatched.
+      const round = (v: number) => Math.round(v * 100) / 100;
+      return [node.address, { x: round(SIZE / 2 + Math.cos(angle) * radius), y: round(SIZE / 2 + Math.sin(angle) * radius), angle }];
     }),
   );
   // Meetings already there when the page loaded (seen at 0) never glow.
@@ -57,24 +61,17 @@ export function WallGraph({ initial, gatheringId = 0 }: { initial: Wall; gatheri
   return (
     <div className="space-y-4">
       <dl className="grid grid-cols-3 gap-3 text-center">
-        {[
-          ["Meetings", wall.counts.meets],
-          ["Pets", wall.counts.pets],
-          ["In person", wall.counts.inPerson],
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-2xl border border-border bg-card p-3">
-            <dt className="text-xs text-muted">{label}</dt>
-            <dd className="font-mono text-3xl font-semibold">{value}</dd>
-          </div>
-        ))}
+        <Stat tone="gold" label="Meetings" value={wall.counts.meets} />
+        <Stat tone="blue" label="Pets" value={wall.counts.pets} />
+        <Stat tone="green" label="In person" value={wall.counts.inPerson} />
       </dl>
 
       {n === 0 ? (
-        <p className="rounded-3xl border border-border bg-card p-8 text-center text-sm text-muted">
+        <p className="rounded-3xl border-2 border-dashed border-border bg-card/60 p-8 text-center text-sm font-bold text-muted">
           Nobody has met yet. The first scan shows up here within a few seconds.
         </p>
       ) : (
-        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full rounded-3xl border border-border bg-card" role="img" aria-label={`${wall.counts.meets} meetings between ${wall.counts.pets} pets`}>
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full rounded-3xl border-2 border-b-4 border-border bg-card" role="img" aria-label={`${wall.counts.meets} meetings between ${wall.counts.pets} pets`}>
           {wall.edges.map((e) => {
             const a = place.get(e.a);
             const b = place.get(e.b);
@@ -101,14 +98,14 @@ export function WallGraph({ initial, gatheringId = 0 }: { initial: Wall; gatheri
             const right = Math.cos(p.angle) >= 0;
             return (
               <g key={node.address}>
-                <circle cx={p.x} cy={p.y} r={10} fill="var(--pink)" stroke="var(--card)" strokeWidth={3} />
+                <circle cx={p.x} cy={p.y} r={12} fill="#836EF9" stroke="var(--card)" strokeWidth={4} />
                 <text
                   x={p.x + (right ? 16 : -16)}
                   y={p.y + 5}
                   textAnchor={right ? "start" : "end"}
                   fill="var(--foreground)"
                   fontSize={n > 16 ? 13 : 17}
-                  fontWeight={600}
+                  fontWeight={800}
                 >
                   {node.name}
                 </text>
