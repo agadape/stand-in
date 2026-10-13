@@ -74,6 +74,7 @@ export function Verdict({
         <Pet
           mood={owner ? "happy" : result.passed ? "shocked" : "suspicious"}
           className="relative mx-auto w-36"
+          seed={slug}
           label={`${twinName}'s pet ${owner ? "is pleased" : result.passed ? "is shocked" : "is not convinced"}`}
         />
         <div className="relative space-y-2">

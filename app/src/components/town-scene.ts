@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { SPECIES, speciesById } from "@/lib/species";
 
 /**
  * The Isekai in 3D: a small island town drawn with plain three.js, no models or textures.
@@ -13,7 +14,8 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
  * from one seeded generator, so the town looks the same on every screen.
  */
 
-export type SceneAgent = { id: number; name: string; place: string; hue: number; mine: boolean; owned: boolean; paused: boolean };
+/** `kind` is the resident's species id: it decides their colour, ears and anything on their head. */
+export type SceneAgent = { id: number; name: string; place: string; hue: number; mine: boolean; owned: boolean; paused: boolean; kind?: string };
 export type SceneTalk = { id: number; aId: number; bId: number | null; delta: number; line: string | null; speaker: number | null };
 export type SceneState = {
   agents: SceneAgent[];
@@ -980,8 +982,10 @@ export class TownScene {
   // ---------------------------------------------------------------- residents
 
   private makeBody(a: SceneAgent): Body {
-    const base = a.owned ? new THREE.Color(0x836ef9) : new THREE.Color().setHSL(a.hue / 360, 0.72, 0.62);
-    const deep = base.clone().multiplyScalar(0.78);
+    const sp = speciesById(a.kind) ?? SPECIES[0];
+    const has = (extra: (typeof sp.extras)[number]) => sp.extras.includes(extra);
+    const base = new THREE.Color(sp.body);
+    const deep = new THREE.Color(sp.deep);
     const skin = new THREE.MeshStandardMaterial({ color: base, roughness: 0.55 });
     const dark = new THREE.MeshStandardMaterial({ color: deep, roughness: 0.6 });
     const g = new THREE.Group();
@@ -989,13 +993,72 @@ export class TownScene {
     body.scale.set(1, 1.05, 0.95);
     body.position.y = 0.86;
     body.castShadow = true;
-    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.46, 14, 10), new THREE.MeshStandardMaterial({ color: base.clone().lerp(new THREE.Color(0xffffff), 0.45), roughness: 0.7 }));
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.46, 14, 10), new THREE.MeshStandardMaterial({ color: has("bib") || has("muzzle") ? new THREE.Color(0xffffff) : base.clone().lerp(new THREE.Color(0xffffff), 0.45), roughness: 0.7 }));
     belly.position.set(0, 0.68, 0.36);
-    belly.scale.set(1, 0.8, 0.6);
+    belly.scale.set(has("bib") ? 1.25 : 1, has("bib") ? 1.15 : 0.8, 0.6);
     g.add(body, belly);
     for (const sx of [-1, 1]) {
-      const ear = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), dark);
-      ear.position.set(sx * 0.46, 1.52, 0);
+      // Ears, by species.
+      if (sp.ears === "round") {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), dark);
+        ear.position.set(sx * 0.46, 1.52, 0);
+        g.add(ear);
+      } else if (sp.ears === "pointed") {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 4), dark);
+        ear.position.set(sx * 0.42, 1.66, 0);
+        ear.rotation.z = -sx * 0.25;
+        g.add(ear);
+      } else if (sp.ears === "long") {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), dark);
+        ear.scale.set(0.6, 2.5, 0.45);
+        ear.position.set(sx * 0.26, 1.95, 0);
+        ear.rotation.z = -sx * 0.14;
+        g.add(ear);
+      } else if (sp.ears === "big") {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.33, 12, 8), dark);
+        ear.scale.z = 0.5;
+        ear.position.set(sx * 0.62, 1.46, 0);
+        g.add(ear);
+      } else if (sp.ears === "floppy") {
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), dark);
+        ear.scale.set(0.6, 1.5, 0.7);
+        ear.position.set(sx * 0.74, 1.12, 0);
+        ear.rotation.z = sx * 0.45;
+        g.add(ear);
+      }
+      if (has("horns")) {
+        const horn = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.4, 6), new THREE.MeshStandardMaterial({ color: 0xfff1c2, roughness: 0.5 }));
+        horn.position.set(sx * 0.3, 1.7, 0.08);
+        horn.rotation.z = -sx * 0.3;
+        g.add(horn);
+      }
+      if (has("antennae")) {
+        const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.45, 5), new THREE.MeshStandardMaterial({ color: 0x2b2350 }));
+        stalk.position.set(sx * 0.24, 1.78, 0.05);
+        stalk.rotation.z = -sx * 0.3;
+        const tip = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), new THREE.MeshStandardMaterial({ color: sp.deep === "#2B2350" ? 0xffc800 : deep }));
+        tip.position.set(sx * 0.31, 2.02, 0.05);
+        g.add(stalk, tip);
+      }
+      if (has("gills")) {
+        for (const dy of [-0.16, 0.04, 0.24]) {
+          const gill = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.42, 5), new THREE.MeshStandardMaterial({ color: sp.cheeks ?? "#FF6FA5" }));
+          gill.position.set(sx * 0.86, 1.02 + dy, 0);
+          gill.rotation.z = -sx * (Math.PI / 2 - dy);
+          g.add(gill);
+        }
+      }
+      if (has("bolts")) {
+        const bolt = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.26, 0.26), dark);
+        bolt.position.set(sx * 0.76, 0.98, 0);
+        g.add(bolt);
+      }
+      if (has("patches")) {
+        const patch = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 8), new THREE.MeshStandardMaterial({ color: 0x2b2350, roughness: 0.6 }));
+        patch.scale.z = 0.35;
+        patch.position.set(sx * 0.27, 1.02, 0.55);
+        g.add(patch);
+      }
       const foot = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), dark);
       foot.scale.set(1, 0.55, 1.2);
       foot.position.set(sx * 0.3, 0.12, 0.08);
@@ -1006,7 +1069,49 @@ export class TownScene {
       const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff9ec4 }));
       cheek.position.set(sx * 0.5, 0.82, 0.5);
       cheek.scale.z = 0.4;
-      g.add(ear, foot, eye, pupil, cheek);
+      g.add(foot, eye, pupil, cheek);
+    }
+    // One-offs on top of the head and on the face.
+    if (has("horn")) {
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.6, 6), new THREE.MeshStandardMaterial({ color: 0xffc800, roughness: 0.4 }));
+      horn.position.set(0, 1.86, 0.22);
+      horn.rotation.x = 0.25;
+      g.add(horn);
+    }
+    if (has("antenna")) {
+      const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.4, 5), new THREE.MeshStandardMaterial({ color: 0x2b2350 }));
+      stalk.position.set(0, 1.8, 0);
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), new THREE.MeshStandardMaterial({ color: 0xff4b4b, emissive: 0xff4b4b, emissiveIntensity: 0.4 }));
+      tip.position.set(0, 2.04, 0);
+      g.add(stalk, tip);
+    }
+    if (has("spikes") || has("tuft")) {
+      for (const [dz, h] of [[0.18, 0.3], [-0.04, 0.38], [-0.26, 0.28]] as const) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.1, h, 5), sp.id === "unicorn" ? new THREE.MeshStandardMaterial({ color: 0xff9ec4 }) : dark);
+        spike.position.set(0, 1.62 + h / 2 - Math.abs(dz) * 0.3, dz);
+        g.add(spike);
+      }
+    }
+    if (has("beak")) {
+      const beak = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.26, 6), new THREE.MeshStandardMaterial({ color: 0xff9a3a, roughness: 0.5 }));
+      beak.rotation.x = Math.PI / 2;
+      beak.position.set(0, 0.86, 0.76);
+      g.add(beak);
+    }
+    if (has("snout")) {
+      const snout = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 8), new THREE.MeshStandardMaterial({ color: sp.id === "koala" ? 0x2b2350 : 0xffd9e0, roughness: 0.6 }));
+      snout.scale.set(1.2, 0.8, 0.7);
+      snout.position.set(0, 0.82, 0.66);
+      g.add(snout);
+    }
+    if (has("bands")) {
+      for (const [y, r] of [[0.56, 0.66], [1.16, 0.65]] as const) {
+        const band = new THREE.Mesh(new THREE.TorusGeometry(r, 0.07, 6, 20), new THREE.MeshStandardMaterial({ color: 0x2b2350, roughness: 0.6 }));
+        band.rotation.x = Math.PI / 2;
+        band.scale.y = 0.95;
+        band.position.y = y;
+        g.add(band);
+      }
     }
     g.userData.agent = a.id;
     g.traverse((o) => (o.userData.agent = a.id));
@@ -1020,9 +1125,9 @@ export class TownScene {
 
     const tag = document.createElement("div");
     tag.textContent = a.name;
-    tag.style.cssText = `font:800 11px var(--font-nunito),system-ui;padding:1px 7px;border-radius:999px;background:${a.mine ? "#836ef9" : "rgba(255,255,255,.88)"};color:${a.mine ? "#fff" : "#3c3c3c"};white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.18)`;
+    tag.style.cssText = `font:800 11px var(--font-nunito),system-ui;padding:1px 7px;border-radius:999px;background:${a.mine ? "#836ef9" : a.owned ? "#e6e0ff" : "rgba(255,255,255,.88)"};color:${a.mine ? "#fff" : a.owned ? "#4b3fae" : "#3c3c3c"};${a.owned && !a.mine ? "border:1.5px solid #836ef9;" : ""}white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.18)`;
     const label = new CSS2DObject(tag);
-    label.position.set(0, 1.95, 0);
+    label.position.set(0, sp.ears === "long" || has("antennae") || has("antenna") || has("horn") ? 2.3 : 1.95, 0);
     label.center.set(0.5, 1);
 
     const bubbleEl = document.createElement("div");

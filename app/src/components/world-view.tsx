@@ -7,6 +7,7 @@ import { api, ApiError, type WorldLike as World } from "@/lib/api";
 import type { TownScene } from "./town-scene";
 import { ownerProof, type MyPet } from "@/lib/owner-client";
 import { rememberOwned } from "@/lib/session";
+import { speciesOf } from "@/lib/species";
 import { WEATHER, WEATHER_KINDS, type WeatherKind } from "@/lib/weather";
 import { Pet, type Mood } from "./pet";
 import { Button, Card, ErrorNote, LinkButton, Pill, SectionTitle } from "./ui";
@@ -113,7 +114,7 @@ function TownStage({
     if (seenTick.current.tick !== world.tick) seenTick.current = { tick: world.tick, at: performance.now() };
     const said = lines?.[Math.min(line, lines.length - 1)];
     scene.current.update({
-      agents: world.agents.map((a) => ({ id: a.id, name: a.name, place: a.place, hue: a.hue, mine: a.id === mineId, owned: Boolean(a.slug), paused: a.paused })),
+      agents: world.agents.map((a) => ({ id: a.id, name: a.name, place: a.place, hue: a.hue, mine: a.id === mineId, owned: Boolean(a.slug), paused: a.paused, kind: speciesOf(a.slug ?? a.name).id })),
       hour: world.hour,
       hourAt: seenTick.current.at,
       hourRate: 1000 / world.tickMs,
@@ -272,7 +273,9 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
 
       {welcome && mine && (
         <Card className="border-accent/50 bg-accent/10">
-          <p className="font-extrabold">{mine.name} has moved in.</p>
+          <p className="font-extrabold">
+            {mine.name} has moved in, and hatched as a {speciesOf(mine.slug ?? mine.name).name.toLowerCase()}.
+          </p>
           <p className="mt-1 text-sm text-muted">
             That&apos;s your pet with the gold marker. It will find its own way around. Tune it with the dials, or{" "}
             <Link href={`/t/${mine.slug}`} className="underline decoration-dotted">
@@ -295,7 +298,7 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
       )}
       {pet && !mine && (
         <Card className="flex items-center gap-4">
-          <Pet mood="idle" className="w-14 shrink-0" />
+          <Pet mood="idle" seed={pet.slug} className="w-14 shrink-0" />
           <p className="text-sm text-muted">
             <span className="font-extrabold text-foreground">{pet.name} is on the way into town.</span> New arrivals
             walk in within a few moments.
@@ -330,7 +333,7 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
                   className={`absolute w-[10.5%] rounded-xl transition-[left,top] duration-[1800ms] ease-in-out ${isFocus ? "z-[2] bg-white/80 ring-2 ring-blue" : ""}`}
                   style={{ left: `${at.left}%`, top: `${at.top}%` }}
                 >
-                  <Pet mood={moodOf(a)} hue={a.slug ? undefined : a.hue} />
+                  <Pet mood={moodOf(a)} seed={a.slug ?? a.name} />
                   <span className={`block truncate text-center text-[10px] font-extrabold leading-tight sm:text-xs ${isMine ? "text-blue" : ""}`}>
                     {a.name}
                   </span>
@@ -340,7 +343,8 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
           </div>
           </TownStage>
           <p className="text-xs text-muted">
-            Purple pets belong to people; the colourful ones are made-up townsfolk. Drag to look around, pinch or
+            Everyone here is one of eighteen species. A purple name tag means a real person&apos;s pet; the rest are
+            made-up townsfolk. Drag to look around, pinch or
             scroll to zoom, tap anyone to see who they are. A day here lasts a couple of minutes, and the town only
             moves while someone is watching it.
           </p>
@@ -385,15 +389,18 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
   );
 }
 
+/** A soft version of a resident's own colour, to sit behind them. */
+const tintOf = (seed: string) => `color-mix(in srgb, ${speciesOf(seed).body} 30%, white)`;
+
 /** A resident's face, small, on their own colour: who said or did something, at a glance. */
 function Face({ agent, className = "size-9" }: { agent: Agent | undefined; className?: string }) {
-  const hue = agent?.slug ? null : (agent?.hue ?? 250);
+  const seed = agent ? (agent.slug ?? agent.name) : "someone";
   return (
     <span
       className={`inline-flex shrink-0 items-end justify-center overflow-hidden rounded-full border-2 border-white ${className}`}
-      style={{ background: hue === null ? "#e6e0ff" : `hsl(${hue} 85% 90%)` }}
+      style={{ background: tintOf(seed) }}
     >
-      <Pet className="w-[82%] translate-y-[10%]" hue={hue ?? undefined} />
+      <Pet className="w-[82%] translate-y-[10%]" seed={seed} />
     </span>
   );
 }
@@ -534,13 +541,14 @@ function AgentPanel({
   return (
     <Card className="overflow-hidden !p-0">
       {/* Who they are, on their own colour. */}
-      <div className="flex items-center gap-3 p-4" style={{ background: agent.slug ? "#e6e0ff" : `hsl(${agent.hue} 85% 92%)` }}>
-        <Pet className="w-20 shrink-0 drop-shadow-md" hue={agent.slug ? undefined : agent.hue} />
+      <div className="flex items-center gap-3 p-4" style={{ background: tintOf(agent.slug ?? agent.name) }}>
+        <Pet className="w-20 shrink-0 drop-shadow-md" seed={agent.slug ?? agent.name} />
         <div className="min-w-0">
           <p className="text-xl font-black">
             {agent.name}{" "}
             {isMine && <span className="rounded-full bg-blue px-2 py-0.5 align-middle text-[10px] font-extrabold uppercase tracking-wide text-white">yours</span>}
           </p>
+          <p className="text-[11px] font-extrabold uppercase tracking-wide text-foreground/55">{speciesOf(agent.slug ?? agent.name).name}</p>
           <p className="text-sm text-foreground/75">{agent.about}</p>
         </div>
       </div>
@@ -740,7 +748,7 @@ function PetLetter({ world, pet }: { world: World; pet: MyPet }) {
     // Paper, not a card: warm, a little off-white, a soft shadow.
     <section className="space-y-3 rounded-3xl border-2 border-[#ead9a8] bg-[#fffaea] p-5 shadow-[0_3px_0_#ead9a8]" aria-label={`A letter from ${pet.name}`}>
       <div className="flex items-center gap-3">
-        <Pet mood="happy" className="w-12 shrink-0" />
+        <Pet mood="happy" seed={pet.slug} className="w-12 shrink-0" />
         <div className="min-w-0">
           <h2 className="font-extrabold">A letter from {pet.name}</h2>
           <p className="text-xs text-muted">

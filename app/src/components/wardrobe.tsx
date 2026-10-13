@@ -26,7 +26,7 @@ export function Wardrobe({ twin, friends }: { twin: { slug: string; name: string
 
   return (
     <div className="space-y-6">
-      <PageHeader tone="pink" eyebrow="Wardrobe" title={`What ${twin.name} can wear`} art={<Pet mood="happy" outfit={{ head: "partyhat", neck: "bowtie" }} />}>
+      <PageHeader tone="pink" eyebrow="Wardrobe" title={`What ${twin.name} can wear`} art={<Pet mood="happy" outfit={{ head: "partyhat", neck: "bowtie" }} seed={twin.slug} />}>
         <Link href={`/t/${twin.slug}`} className="underline decoration-dotted">
           {twin.name}
         </Link>
@@ -36,7 +36,7 @@ export function Wardrobe({ twin, friends }: { twin: { slug: string; name: string
       <div className="space-y-6 lg:grid lg:grid-cols-[2fr_3fr] lg:items-start lg:gap-10 lg:space-y-0">
       <div className="space-y-4 lg:sticky lg:top-10">
         <div className="rounded-3xl border-2 border-b-4 border-[#fbb6d0] bg-gradient-to-b from-[#ffe1ec] to-[#fff7fa] p-5">
-          <Pet outfit={outfit} className="mx-auto w-52 lg:w-64" label={`${twin.name}'s pet in its outfit`} />
+          <Pet outfit={outfit} seed={twin.slug} className="mx-auto w-52 lg:w-64" label={`${twin.name}'s pet in its outfit`} />
           <span aria-hidden className="mx-auto -mt-2 block h-4 w-40 rounded-[50%] bg-[#c93a75]/10" />
         </div>
         <Card className="!p-4">
@@ -60,7 +60,7 @@ export function Wardrobe({ twin, friends }: { twin: { slug: string; name: string
                   worn ? "border-accent bg-accent/10" : "border-border bg-card"
                 } ${open && isOwner ? "hover:border-accent" : ""} ${open ? "" : "opacity-60"}`}
               >
-                <Pet outfit={{ [c.slot]: c.id }} className={`mx-auto w-24 ${open ? "" : "grayscale"}`} />
+                <Pet outfit={{ [c.slot]: c.id }} seed={twin.slug} className={`mx-auto w-24 ${open ? "" : "grayscale"}`} />
                 <p className="mt-1 font-extrabold">{c.name}</p>
                 <p className={`text-xs font-bold ${worn ? "text-accent-strong" : "text-muted"}`}>
                   {open

@@ -9,7 +9,7 @@ export function Activity({ twin, bonds, leaderboard }: { twin: TwinCard; bonds: 
   const friends = bonds.filter((b) => b.done);
   return (
     <div className="space-y-8">
-      <PageHeader tone="green" eyebrow="Activity" title={`${twin.name}'s story so far`} art={<Pet mood="happy" />}>
+      <PageHeader tone="green" eyebrow="Activity" title={`${twin.name}'s story so far`} art={<Pet mood="happy" seed={twin.slug} />}>
         <Link href={`/t/${twin.slug}`} className="underline decoration-dotted">
           {twin.name}
         </Link>
@@ -21,7 +21,7 @@ export function Activity({ twin, bonds, leaderboard }: { twin: TwinCard; bonds: 
         <SectionTitle icon="🤝">Friends met {friends.length > 0 && `· ${friends.length}`}</SectionTitle>
         {friends.length === 0 ? (
           <>
-            <EmptyState art={<Pet mood="idle" />} title="Nobody yet">
+            <EmptyState art={<Pet mood="idle" seed={twin.slug} />} title="Nobody yet">
               Friends are people {twin.name} met and scanned.
             </EmptyState>
             <LinkButton href="/rooms" variant="ghost">
@@ -59,7 +59,7 @@ export function Activity({ twin, bonds, leaderboard }: { twin: TwinCard; bonds: 
         </dl>
 
         {leaderboard.length === 0 ? (
-          <EmptyState art={<Pet mood="suspicious" />} title={`Nobody has tried to be ${twin.name} yet`}>
+          <EmptyState art={<Pet mood="suspicious" seed={twin.slug} />} title={`Nobody has tried to be ${twin.name} yet`}>
             Send the link to a friend and see if they can text like you.
           </EmptyState>
         ) : (

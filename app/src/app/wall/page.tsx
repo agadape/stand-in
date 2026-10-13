@@ -15,7 +15,7 @@ export default async function WallPage() {
   const [all, gatherings] = await Promise.all([wall(0), listGatherings()]);
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
-      <PageHeader tone="gold" eyebrow="Live wall" title="Everyone who has met" art={<Pet mood="victory" hue={45} />}>
+      <PageHeader tone="gold" eyebrow="Live wall" title="Everyone who has met" art={<Pet mood="victory" kind="chick" />}>
         Every meeting recorded on Monad, as it happens. Put this on a big screen.
       </PageHeader>
 
@@ -24,7 +24,7 @@ export default async function WallPage() {
       <section className="space-y-3">
         <SectionTitle icon="🎪">Gatherings</SectionTitle>
         {gatherings.length === 0 ? (
-          <EmptyState art={<Pet mood="idle" hue={45} />} title="No gatherings yet">
+          <EmptyState art={<Pet mood="idle" kind="chick" />} title="No gatherings yet">
             Host one below and its meetings get their own wall.
           </EmptyState>
         ) : (

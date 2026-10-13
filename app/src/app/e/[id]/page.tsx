@@ -33,7 +33,7 @@ export default async function GatheringPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <PageHeader tone={open ? "green" : "gold"} eyebrow={`Gathering · ${open ? "on now" : "ended"}`} title={gathering.name} art={<Pet mood={open ? "victory" : "idle"} hue={45} />}>
+      <PageHeader tone={open ? "green" : "gold"} eyebrow={`Gathering · ${open ? "on now" : "ended"}`} title={gathering.name} art={<Pet mood={open ? "victory" : "idle"} kind="bee" />}>
         {clock(gathering.startsAt)} to {clock(gathering.endsAt)} UTC. Meetings made with a code shown for this gathering
         are stamped with it on-chain.
       </PageHeader>

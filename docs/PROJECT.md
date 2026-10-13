@@ -449,9 +449,9 @@ A bright, chunky game look modelled on Duolingo.
 
 One SVG creature, drawn in code (`components/pet.tsx`): a round body with two ears, two feet, two arms, a pale belly and pink cheeks.
 
+- **Eighteen species** (`lib/species.ts`): bear, cat, bunny, fox, frog, chick, panda, mouse, axolotl, dragon, alien, penguin, koala, pig, cow, unicorn, bee and robot. They differ in colour, ears, markings and extras (horns, a horn, antennae, gills, a beak, a snout, whiskers, stripes, spots). Which one a pet is comes from a hash of its slug, whose last characters are random: so it is settled at creation, never changes, needs no database column, and existing pets have one too. Made-up residents get theirs from their name. All species share one body, so every cosmetic fits all of them. In the 3D town each resident carries its species (colour, ears, horns, antennae, a beak), and a real person's pet is told apart by a purple name tag.
 - **Five moods.** Idle (small smile), happy (closed arc eyes, open mouth), victory (arms up, tongue out), suspicious (half-closed lids, one raised brow, pupils to the side), shocked (wide eyes, round mouth).
 - **Cosmetics.** Red bow tie, round glasses, red party hat, gold crown, gold sparkle aura.
-- **Colour.** Real pets are purple. Made-up residents get their own hue.
 - **Motion.** Breathing and blinking when idle, a hop when happy, a jolt when shocked, twinkling aura. All of it stops under "reduce motion".
 
 ### 14.3 The two shells
