@@ -87,7 +87,9 @@ export function forgetPasskey() {
  * brings the reason back, and ends with the browser's own name for it so a failure
  * pasted to the team says what happened.
  */
-function passkeyError(error: unknown, doing: "create" | "use"): Error {
+function passkeyError(error: unknown, doing: "create" | "use", startedAt: number): Error {
+  // How long it took says a lot: under a second, no prompt was ever shown.
+  const took = `${((performance.now() - startedAt) / 1000).toFixed(1)}s`;
   const cause = isMeraError(error) ? (error.cause ?? error) : error;
   const name = cause instanceof Error ? cause.name : "";
   const detail = cause instanceof Error ? `${cause.name}: ${cause.message}`.slice(0, 180) : String(cause).slice(0, 180);
@@ -109,11 +111,12 @@ function passkeyError(error: unknown, doing: "create" | "use"): Error {
   } else {
     say = doing === "create" ? "Couldn't make the passkey." : "Couldn't use the passkey.";
   }
-  return new Error(`${say} (${detail})`, { cause: error });
+  return new Error(`${say} (${detail} After ${took}.)`, { cause: error });
 }
 
 /** First visit: one passkey ceremony creates the credential and the account. */
 export async function createPasskeyAccount(displayName: string): Promise<PasskeyAccount> {
+  const startedAt = performance.now();
   try {
     const { prfOutput, credentialId, transports } = await createPasskeyWithPrfOutput({
       rp: { id: rpId(), name: APP_NAME },
@@ -122,13 +125,14 @@ export async function createPasskeyAccount(displayName: string): Promise<Passkey
     remember({ credentialId, ...(transports ? { transports: [...transports] } : {}) });
     return deriveAccount(prfOutput);
   } catch (error) {
-    throw passkeyError(error, "create");
+    throw passkeyError(error, "create", startedAt);
   }
 }
 
 /** Later visits: one assertion ceremony reproduces the same account. */
 export async function signInWithPasskey(): Promise<PasskeyAccount> {
   const known = remembered();
+  const startedAt = performance.now();
   try {
     const { prfOutput, credentialId } = await getPasskeyPrfOutput({ rpId: rpId(), ...(known ? { credential: known } : {}) });
     // Keep how to reach it if it is the same passkey; a different one starts fresh.
@@ -138,7 +142,7 @@ export async function signInWithPasskey(): Promise<PasskeyAccount> {
     // If asking for the remembered passkey is what failed, forget it: the next try lets
     // the device offer every passkey it has for this site.
     if (known) remember(null);
-    throw passkeyError(error, "use");
+    throw passkeyError(error, "use", startedAt);
   }
 }
 
