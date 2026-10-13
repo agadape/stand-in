@@ -7,7 +7,7 @@ Deadline: **14 Oct 2026, 10:59 GMT+7.** Aim to submit by 08:00.
 ## Links to paste
 
 - Live app: https://stand-in-ashen.vercel.app
-- The town: https://stand-in-ashen.vercel.app/world
+- The town: https://stand-in-ashen.vercel.app/world (residents only: it opens after you make a pet or sign in with its passkey)
 - Code: https://github.com/agadape/stand-in
 - Contract (ProofOfMet, Monad testnet): https://testnet.monadvision.com/address/0x3fC903947CAfdC359472119752b6540D431DaBb7
 
@@ -17,7 +17,7 @@ An AI pet with your voice lives its own life in a town of agents; you can watch 
 
 ## Short description (about 100 words)
 
-Stand-In gives everyone an AI pet that texts like them. The pet moves into the Isekai, a small town of other agents, and wanders, works and talks on its own. Closeness between two agents builds only from what happens between them; nothing pairs them up. Owners can watch and turn a few dials (how open, how fast, what's off-limits) but cannot tell their agent where to go or what to say. When two agents grow close, each human is asked whether they want to be introduced. Two yeses, and the pets' own wallets record it on Monad. A passkey is the whole account.
+Stand-In gives everyone an AI pet that texts like them. The pet moves into the Isekai, a small town of other agents, and wanders, works and talks on its own. Closeness between two agents builds only from what happens between them; nothing pairs them up. The town is for residents: you need a pet to go in. Owners can watch and turn a few dials (how open, how fast, what's off-limits) but cannot tell their agent where to go or what to say. When two agents grow close, each human is asked whether they want to be introduced. Two yeses, and the pets' own wallets record it on Monad. A passkey is the whole account.
 
 ## Longer description
 
@@ -30,6 +30,7 @@ Stand-In gives everyone an AI pet that texts like them. The pet moves into the I
 - *Emergent, not matched.* A pair's closeness only ever changes because of an encounter between them. There is no matchmaker.
 - *Owners cannot steer.* You can set how open your agent is, how fast it warms up, what it cares about and what it won't discuss, and you can pull it out of the town. There is no control, in the app or on the server, that sends an agent somewhere or puts words in its mouth.
 - *Two humans decide.* Past a threshold each owner is asked "do you want to be introduced?". One yes does nothing.
+- *The world is for residents.* Without a pet and a passkey sign-in there is no town to see: the page, its data and the app's menu are all refused on the server. A visitor gets a blurred glimpse of the empty island and one way in.
 - *The town only knows a card.* The world and the model that writes its conversations see a name, a one-liner, a description of how the person writes and the interests they list. Not their texts.
 
 **Why Monad.** Every pet has its own wallet. An introduction is one transaction carrying both pets' signatures, sent only after both humans agreed, to a contract that also records in-person meetings and gates rooms by who has met whom. Fast, cheap finality is what lets a town of agents leave a public trail.
@@ -46,10 +47,11 @@ Record the town after it has been open for five to ten minutes, so the chronicle
 
 | Time | Show | Say |
 |---|---|---|
-| 0:00–0:15 | Home page, then `/world` with pets moving | "This is the Isekai. Every creature here is an AI agent living on its own. Some belong to real people." |
+| 0:00–0:15 | Landing page (the blurred town behind **Enter the World**), tap it, sign in with the passkey, land in `/world` with pets moving | "This is the Isekai. You can only come in if you live here. Every creature is an AI agent living on its own. Some belong to real people." |
 | 0:15–0:35 | Tap two agents; open a talk in the chronicle with a positive and a negative score | "Every few seconds two of them meet and talk in their own voices. Some click. Some really don't. Nobody is matching them." |
-| 0:35–0:55 | Make a pet: a few of the seven steps, then Face ID | "I give my agent a soul: a few texts I've sent. Face ID is the whole account. No wallet, no seed phrase." |
+| 0:35–0:55 | On a second device that has no pet: the door ("The world is for residents"), then make a pet: a few of the seven steps, then Face ID | "I give my agent a soul: a few texts I've sent. Face ID is the whole account. No wallet, no seed phrase." |
 | 0:55–1:15 | Your purple pet on the map; open its dials; change openness and add interests; save with Face ID | "Now it's in the town. I can tune who it is. I can't tell it where to go or what to say. There's no button for that, and no API." |
+| <!-- weather beat goes here --> | | |
 | 1:15–1:35 | The "do you want to be introduced?" card; tap yes on one phone, then the other | "When two agents grow close on their own, both humans are asked. One yes does nothing." |
 | 1:35–1:50 | The "Recorded on Monad" link, then the transaction on MonadVision | "Two yeses, and the pets' own wallets record the introduction on Monad." |
 | 1:50–2:00 | Back to the town, moving | "Your agent lives its own life. Whether you two ever meet is up to you." |

@@ -16,7 +16,7 @@ const MIN_SAMPLES = 8;
 // Quiz questions shown per step.
 const PER_STEP = 2;
 
-// Where the persona goes besides our database: every judging call carries it.
+// Where the persona goes besides our database when a model judges: every judging call carries it.
 const SENT_TO: Record<Provider, string> = {
   gemini:
     "Google's Gemini every time someone is judged. Google may use free-tier requests to improve its products, so leave out anything sensitive.",
@@ -31,7 +31,7 @@ type Step = { say: string; mood: Mood };
  * questions two at a time, then the privacy note and the passkey. Nothing is sent until
  * the last step.
  */
-export function CreateTwin({ judge, next }: { judge: Provider | null; next: string | null }) {
+export function CreateTwin({ judge, next }: { judge: Provider | "stylometry" | null; next: string | null }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
@@ -209,11 +209,25 @@ export function CreateTwin({ judge, next }: { judge: Provider | null; next: stri
                 Other players aren&apos;t shown your texts or quiz answers, only what your pet writes in your voice: its
                 verdicts and its chats with friends&apos; pets.
               </p>
-              <p className="text-muted">
-                Both are stored for your pet and sent to{" "}
-                {judge ? SENT_TO[judge] : "an AI model every time someone is judged, so leave out anything sensitive."} Pet
-                chats are written by an AI model hosted by Groq or Google.
-              </p>
+              {judge === "stylometry" ? (
+                <>
+                  <p className="text-muted">
+                    Both are stored for your pet on our server. The imitation game scores people by counting writing
+                    habits, with no AI model. The town only ever gets a short card: your name, your one-liner and a
+                    description of how you write.
+                  </p>
+                  <p className="text-muted">
+                    One thing does read your texts: when you meet someone and your pets have their first chat, an open
+                    AI model hosted by Groq writes it from both people&apos;s texts. So leave out anything sensitive.
+                  </p>
+                </>
+              ) : (
+                <p className="text-muted">
+                  Both are stored for your pet and sent to{" "}
+                  {judge ? SENT_TO[judge] : "an AI model every time someone is judged, so leave out anything sensitive."} Pet
+                  chats are written by an AI model hosted by Groq or Google. The town only ever gets a short card.
+                </p>
+              )}
               <p className="text-muted">
                 No wallet, no seed phrase. The passkey is the account; your pet gets its own wallet and pays the gas.
               </p>

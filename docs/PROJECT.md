@@ -640,15 +640,11 @@ Tested and passing: both contracts; the world's rules and its gate; meetings, ro
 
 ## 21. Known loose ends in the code
 
-Small things that are out of date and worth fixing before the submission:
+Open decisions and things left as they are on purpose:
 
-- `README.md` still says "A visitor sees the same town with a prompt to make or bring back a pet" and points judges at `/world` first. The world is now gated.
-- `docs/submission.md`: the video script and description still describe the world as open to watch.
-- The README's architecture block and "Try it as a judge" section describe the earlier product in places.
-- The not-found page still says "No twin here."
-- The privacy note on the last step of making a pet talks about judging by an AI model, which is not what the default judge does.
 - `/rooms` and `/wall` are reachable by address when signed out, although the menu is hidden. Whether to lock them is an open decision.
 - Pet pages (`/t/[slug]`) are public on purpose, so a scan can open them.
+- The README keeps its older sections on the imitation game (the `StandIn` contract table, notes on building for Monad). They are still true.
 
 ## 22. Repository map
 
