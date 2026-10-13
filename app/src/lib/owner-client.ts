@@ -3,6 +3,7 @@
 import type { OwnerAction } from "./auth";
 import type { OwnerInput } from "./api";
 import { forgetPasskey, signInWithPasskey, signOwnerProof, type PasskeyAccount } from "./passkey";
+import { forgetOwned } from "./session";
 import { useOwned } from "./use-session";
 
 export type MyPet = { slug: string; name: string; ownerAddress: string };
@@ -27,6 +28,17 @@ export async function startSession(passkey: PasskeyAccount, slug: string) {
     body: JSON.stringify({ slug, address: passkey.address, proof }),
   });
   if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? `Couldn't sign in (${res.status})`);
+}
+
+/**
+ * Signs this browser out: the session cookie goes, and so does what the device remembers
+ * (its pets and which passkey it last used), so the next visit starts as a visitor and the
+ * next prompt offers every passkey. With a slug, only that pet is forgotten.
+ */
+export async function signOut(slug?: string) {
+  await fetch("/api/session", { method: "DELETE" }).catch(() => undefined);
+  forgetOwned(slug);
+  forgetPasskey();
 }
 
 /** One Face ID: proves this device's passkey owns `pet`, for one action. */

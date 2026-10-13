@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, or } from "drizzle-orm";
 import { keccak256, stringToHex, type Address, type Hex } from "viem";
 import { registerTwin, readTwin } from "./contract";
 import { db, schema } from "./db";
@@ -45,6 +45,27 @@ export async function createTwin(owner: Address, persona: Persona, ipHash: strin
     .get();
 
   return twin;
+}
+
+/**
+ * Removes a pet from this app for good: its agent in the town with its bonds and its
+ * lines in the chronicle, its vault, its meetings and attempts, and the pet itself.
+ * What is on Monad stays there; a chain does not forget, and the app says so.
+ */
+export async function deleteTwin(twin: Twin) {
+  await db().transaction(async (tx) => {
+    const agent = await tx.select({ id: schema.agents.id }).from(schema.agents).where(eq(schema.agents.twinId, twin.id)).get();
+    if (agent) {
+      await tx.delete(schema.pairs).where(or(eq(schema.pairs.aId, agent.id), eq(schema.pairs.bId, agent.id)));
+      await tx.delete(schema.events).where(or(eq(schema.events.aId, agent.id), eq(schema.events.bId, agent.id)));
+      await tx.delete(schema.agents).where(eq(schema.agents.id, agent.id));
+    }
+    await tx.delete(schema.soulVaults).where(eq(schema.soulVaults.twinId, twin.id));
+    await tx.delete(schema.usedCodes).where(eq(schema.usedCodes.twinId, twin.id));
+    await tx.delete(schema.bonds).where(or(eq(schema.bonds.aTwinId, twin.id), eq(schema.bonds.bTwinId, twin.id)));
+    await tx.delete(schema.attempts).where(eq(schema.attempts.twinId, twin.id));
+    await tx.delete(schema.twins).where(eq(schema.twins.id, twin.id));
+  });
 }
 
 export async function twinBySlug(slug: string) {

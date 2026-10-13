@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import { signOut } from "@/lib/owner-client";
 
 const icon = { width: 26, height: 26, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2.4, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
@@ -127,6 +128,7 @@ export function VisitorMark() {
 export function SideNav({ resident }: { resident: Resident }) {
   const { pet, site } = tabsFor(resident);
   const path = usePathname();
+  const router = useRouter();
 
   return (
     <nav aria-label="Main" className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col gap-1 border-r-2 border-border bg-background p-4 md:flex">
@@ -149,7 +151,19 @@ export function SideNav({ resident }: { resident: Resident }) {
           </Link>
         );
       })}
-      <p className="mt-auto px-3 text-xs text-muted">Built on Monad for Metropolis. Testnet money only.</p>
+      <button
+        type="button"
+        onClick={async () => {
+          await signOut();
+          // The shell is chosen on the server from the session, so ask for it again.
+          router.push("/");
+          router.refresh();
+        }}
+        className="mt-auto flex min-h-12 items-center rounded-xl px-3 text-left text-sm font-extrabold uppercase tracking-wide text-muted hover:bg-paper"
+      >
+        Sign out
+      </button>
+      <p className="px-3 text-xs text-muted">Built on Monad for Metropolis. Testnet money only.</p>
     </nav>
   );
 }

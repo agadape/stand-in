@@ -6,6 +6,7 @@ import { api, formatMon, pct, type TwinCard } from "@/lib/api";
 import type { BondRow } from "@/lib/bonds";
 import { forgetPasskey, signInWithPasskey, signOwnerProof } from "@/lib/passkey";
 import { useIsOwner } from "@/lib/use-session";
+import { Account } from "./account";
 import { befriend } from "./meet";
 import { PetScene, SocialProgress } from "./pet-scene";
 import { ShowCode } from "./show-code";
@@ -203,6 +204,7 @@ export function TwinView({
       </Card>
 
       {isOwner && <SoulVault pet={twin} />}
+      {isOwner && <Account pet={twin} />}
 
       <p className="text-center text-xs text-muted">
         {twin.name}&apos;s pet texts like {twin.name} and has its own wallet on Monad,{" "}
