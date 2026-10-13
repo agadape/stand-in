@@ -70,6 +70,7 @@ check(!hasNav(await page("/enter")), "nor does the door");
 // A pet's public page links to that pet's wardrobe and activity in its own content; what it must not have is the app's menu.
 check(!/aria-label="Main"|aria-label="Your pet"/.test(await page(`/t/${dave.slug}`)), "a pet's public page has no menu for a visitor");
 check(/Enter the World/.test(await page("/")), "the landing page has the way in");
+check((await call("GET", "/api/world/letter?since=0")).status === 401, "a pet's letter is refused to someone not signed in");
 cookie = "standin_session=dave-forged.9999999999.deadbeef";
 check(!hasNav(await page("/")), "a made-up session cookie gets no navigation either");
 check((await call("GET", "/api/world")).status === 401, "a made-up session cookie is refused");
@@ -147,6 +148,11 @@ for (let i = 0; i < 15 && !(awake && sheltering * 2 >= awake); i++) {
 check(sheltering * 2 >= awake, "within 45 seconds at least half the town is in the tavern", `${sheltering} of ${awake}`);
 const stormTalk = world.events.find((e) => e.kind === "talk" && e.lines && /storm|thunder|rain|lightning|wet|soaked|dry/i.test(JSON.stringify(e.lines)));
 console.log(stormTalk ? `     a talk mentions it: ${JSON.stringify(stormTalk.lines.slice(0, 2))}` : "     (no talk has mentioned the storm yet)");
+
+// The letter is for the signed-in pet only, and there is no way to name another.
+const letter = await call("GET", `/api/world/letter?since=0&slug=${sarah.slug}`);
+check(letter.status === 200 && "letter" in letter.json, "signed in, the owner can ask for their pet's letter", letter.json.letter ? `${letter.json.byModel ? "model" : "plain"}: ${letter.json.letter.slice(0, 110)}` : "nothing to tell yet");
+check(!JSON.stringify(letter.json).includes("omw"), "and it carries none of the owner's texts");
 
 // Bring this one pair to the threshold directly, then test the consent gate.
 const [lo, hi] = a.id < b.id ? [a.id, b.id] : [b.id, a.id];

@@ -288,6 +288,8 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
         </Card>
       )}
 
+      <PetLetter world={world} pet={pet} />
+
           <TownStage world={world} mineId={mine?.id ?? null} selected={focus?.id ?? null} onPick={setSelected} now={now}>
           <div className="relative aspect-square w-full overflow-hidden rounded-3xl border-2 border-border sm:aspect-[4/3]">
             {world.places.map((p) => (
@@ -566,6 +568,104 @@ function AgentPanel({
         <ErrorNote>{error}</ErrorNote>
       </div>
     </Card>
+  );
+}
+
+const SEEN_KEY = "standin:seen";
+const DISMISSED_KEY = "standin:letter-dismissed";
+
+/**
+ * "While you were away": a note from the owner's pet about what happened to it since this
+ * device last had the world open. When that was is remembered on the device, by tick.
+ */
+function PetLetter({ world, pet }: { world: World; pet: MyPet }) {
+  const [found, setFound] = useState<null | { text: string; since: number }>(null);
+  const [copied, setCopied] = useState(false);
+  const tick = useRef(world.tick);
+  useEffect(() => {
+    tick.current = world.tick;
+  }, [world.tick]);
+
+  useEffect(() => {
+    const key = `${SEEN_KEY}:${pet.slug}`;
+    const read = (k: string) => {
+      try {
+        const raw = window.localStorage.getItem(k);
+        return raw === null || !Number.isFinite(Number(raw)) ? null : Number(raw);
+      } catch {
+        return null;
+      }
+    };
+    const save = () => {
+      try {
+        window.localStorage.setItem(key, String(tick.current));
+      } catch {}
+    };
+    const last = read(key);
+    let alive = true;
+    if (last === null) {
+      // First time here on this device: nothing to catch up on, start counting from now.
+      save();
+    } else if (tick.current - last >= 10 && read(`${DISMISSED_KEY}:${pet.slug}`) !== last) {
+      fetch(`/api/world/letter?since=${last}`, { cache: "no-store" })
+        .then((res) => (res.ok ? (res.json() as Promise<{ letter: string | null }>) : null))
+        .then((body) => alive && body?.letter && setFound({ text: body.letter, since: last }))
+        .catch(() => undefined);
+    }
+    // "Last seen" moves when the page is put away, not while it is open, so a reload
+    // a moment later does not swallow the letter.
+    const onHide = () => document.visibilityState === "hidden" && save();
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", save);
+    return () => {
+      alive = false;
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", save);
+    };
+  }, [pet.slug]);
+
+  if (!found) return null;
+
+  function dismiss() {
+    if (!found) return;
+    try {
+      window.localStorage.setItem(`${DISMISSED_KEY}:${pet.slug}`, String(found.since));
+      window.localStorage.setItem(`${SEEN_KEY}:${pet.slug}`, String(tick.current));
+    } catch {}
+    setFound(null);
+  }
+  async function copy() {
+    if (!found) return;
+    try {
+      await navigator.clipboard.writeText(found.text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  }
+
+  return (
+    // Paper, not a card: warm, a little off-white, a soft shadow.
+    <section className="space-y-3 rounded-3xl border-2 border-[#ead9a8] bg-[#fffaea] p-5 shadow-[0_3px_0_#ead9a8]" aria-label={`A letter from ${pet.name}`}>
+      <div className="flex items-center gap-3">
+        <Pet mood="happy" className="w-12 shrink-0" />
+        <div className="min-w-0">
+          <h2 className="font-extrabold">A letter from {pet.name}</h2>
+          <p className="text-xs text-muted">
+            since day {Math.floor(found.since / world.hours) + 1}, {String(found.since % world.hours).padStart(2, "0")}:00
+          </p>
+        </div>
+      </div>
+      <p className="whitespace-pre-line text-base leading-relaxed">{found.text}</p>
+      <p className="text-xs text-muted">Written from what happened in town, in {pet.name}&apos;s voice. None of your texts were used.</p>
+      <div className="grid grid-cols-2 gap-3">
+        <Button variant="secondary" onClick={copy}>
+          {copied ? "Copied" : "Copy"}
+        </Button>
+        <Button variant="ghost" onClick={dismiss}>
+          Dismiss
+        </Button>
+      </div>
+    </section>
   );
 }
 
