@@ -137,11 +137,16 @@ export class TownScene {
   private ring: THREE.Mesh;
   private selectRing: THREE.Mesh;
 
+  /**
+   * `ambient` is the town as scenery: empty of residents, slowly turning, not touchable
+   * and drawn cheaply. It is what the landing page shows, blurred, behind the way in.
+   */
   constructor(
     private host: HTMLElement,
     private onPick: (id: number | null) => void,
+    private ambient = false,
   ) {
-    const small = host.clientWidth < 700;
+    const small = host.clientWidth < 700 || ambient;
     this.reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     this.renderer = new THREE.WebGLRenderer({ antialias: !small, powerPreference: "high-performance" });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, small ? 1.5 : 2));
@@ -171,6 +176,15 @@ export class TownScene {
     this.controls.addEventListener("start", () => {
       this.userMoved = true;
     });
+    if (ambient) {
+      this.controls.enabled = false;
+      this.controls.autoRotate = !this.reduced;
+      this.controls.autoRotateSpeed = 0.45;
+      this.camera.position.set(0, 24, 50);
+      this.renderer.setPixelRatio(1);
+      this.renderer.domElement.style.touchAction = "auto";
+      this.state = { ...this.state, hour: 18.4 };
+    }
 
     this.scene.fog = new THREE.Fog(0xcfeaff, 60, 190);
     this.scene.add(this.hemi, this.sun, this.sun.target);
@@ -191,8 +205,10 @@ export class TownScene {
     this.resize();
 
     const el = this.renderer.domElement;
-    el.addEventListener("pointerdown", this.onDown);
-    el.addEventListener("pointerup", this.onUp);
+    if (!ambient) {
+      el.addEventListener("pointerdown", this.onDown);
+      el.addEventListener("pointerup", this.onUp);
+    }
     window.addEventListener("resize", this.resize);
     document.addEventListener("visibilitychange", this.onVisible);
     this.loop();

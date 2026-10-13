@@ -16,7 +16,9 @@ export type OwnerAction =
   | "world:dials"
   | `world:consent:${number}`
   // Storing a passkey-encrypted tier of the soul vault (the server only ever gets ciphertext).
-  | `vault:save:${string}`;
+  | `vault:save:${string}`
+  // Signing in: the server answers with the session cookie that opens the world.
+  | "session";
 
 /** The exact text a passkey account signs to prove it controls an address for one action. */
 export function ownerMessage(slug: string, action: OwnerAction, issuedAt: number) {

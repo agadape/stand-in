@@ -68,7 +68,7 @@ function useTabs(): { pet: Tab[]; site: Tab[] } {
         ]
       : [],
     site: [
-      ...(home ? [] : [{ href: "/world", label: "World" }]),
+      // The world is for people with a pet, so a visitor is not offered it.
       { href: "/rooms", label: "Rooms" },
       { href: "/wall", label: "Wall" },
       ...(home ? [] : [{ href: "/new", label: "Make your pet" }]),
