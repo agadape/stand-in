@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { SPECIES, speciesById } from "@/lib/species";
+import { SPECIES, speciesById, type Gait } from "@/lib/species";
 
 /**
  * The Isekai in 3D: a small island town drawn with plain three.js, no models or textures.
@@ -104,6 +104,9 @@ type Body = {
   bubbleUntil: number;
   emoteUntil: number;
   scale: number;
+  /** How this species moves, and any wings it beats. */
+  gait: Gait;
+  wings: { mesh: THREE.Object3D; side: number; fast: boolean }[];
 };
 
 const BAKED = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0, flatShading: true });
@@ -1071,6 +1074,46 @@ export class TownScene {
       cheek.scale.z = 0.4;
       g.add(foot, eye, pupil, cheek);
     }
+    // Wings, for the two that have them. They beat in the frame loop.
+    const wings: Body["wings"] = [];
+    if (sp.wings !== "none") {
+      for (const sx of [-1, 1]) {
+        const pivot = new THREE.Group();
+        pivot.position.set(sx * 0.42, 1.25, -0.28);
+        const wing =
+          sp.wings === "bee"
+            ? new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 8), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.72, roughness: 0.3 }))
+            : new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.9, 3), dark);
+        wing.scale.set(1.5, sp.wings === "bee" ? 0.12 : 1, sp.wings === "bee" ? 0.8 : 0.16);
+        wing.position.x = sx * 0.46;
+        if (sp.wings === "bat") wing.rotation.z = -sx * 1.1;
+        pivot.add(wing);
+        g.add(pivot);
+        wings.push({ mesh: pivot, side: sx, fast: sp.wings === "bee" });
+      }
+    }
+    // A tail, where the species has an obvious one.
+    if (sp.tail === "bushy" || sp.tail === "curl" || sp.tail === "spike" || sp.tail === "fin" || sp.tail === "rainbow") {
+      const tail = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), sp.tail === "rainbow" ? new THREE.MeshStandardMaterial({ color: 0xff9ec4 }) : dark);
+      tail.scale.set(0.7, 0.7, 1.9);
+      tail.position.set(0.1, 0.62, -0.82);
+      tail.rotation.x = -0.6;
+      g.add(tail);
+      if (sp.tail === "bushy") {
+        const tip = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        tip.position.set(0.1, 0.92, -1.2);
+        g.add(tip);
+      }
+    } else if (sp.tail === "pom" || sp.tail === "nub") {
+      const pom = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), sp.tail === "pom" ? new THREE.MeshStandardMaterial({ color: 0xffffff }) : dark);
+      pom.position.set(0, 0.5, -0.72);
+      g.add(pom);
+    } else if (sp.tail === "stinger") {
+      const sting = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.36, 5), new THREE.MeshStandardMaterial({ color: 0x2b2350 }));
+      sting.rotation.x = -Math.PI / 2;
+      sting.position.set(0, 0.6, -0.86);
+      g.add(sting);
+    }
     // One-offs on top of the head and on the face.
     if (has("horn")) {
       const horn = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.6, 6), new THREE.MeshStandardMaterial({ color: 0xffc800, roughness: 0.4 }));
@@ -1145,7 +1188,7 @@ export class TownScene {
     // Bigger than life, so residents read clearly against the buildings.
     g.scale.setScalar(1.7);
     this.scene.add(g);
-    return { group: g, body, marker, label, bubble, bubbleEl, emote, emoteEl, path: [], place: "", slot: 0, phase: Math.random() * 6.28, lookAt: null, bubbleUntil: 0, emoteUntil: 0, scale: 1 };
+    return { group: g, body, marker, label, bubble, bubbleEl, emote, emoteEl, path: [], place: "", slot: 0, phase: Math.random() * 6.28, lookAt: null, bubbleUntil: 0, emoteUntil: 0, scale: 1, gait: sp.gait, wings };
   }
 
   /** Where the nth resident at a place stands: a loose arc on the plaza side of it. */
@@ -1403,14 +1446,39 @@ export class TownScene {
           p.addScaledVector(d, step);
           b.group.rotation.y = lerpAngle(b.group.rotation.y, Math.atan2(d.x, d.z), 1 - Math.pow(0.001, dt));
         }
-        p.y = Math.abs(Math.sin(time * 11 + b.phase)) * 0.2;
+        // On the move, each species goes its own way: a hop, a leap, a hover, a waddle.
+        const stride = Math.abs(Math.sin(time * 11 + b.phase));
+        p.y =
+          b.gait === "hop"
+            ? Math.abs(Math.sin(time * 7 + b.phase)) * 0.6
+            : b.gait === "leap"
+              ? Math.abs(Math.sin(time * 5 + b.phase)) * 0.95
+              : b.gait === "hover"
+                ? 0.55 + Math.sin(time * 2.6 + b.phase) * 0.12
+                : b.gait === "roll"
+                  ? 0
+                  : stride * (b.gait === "waddle" ? 0.1 : 0.2);
+        b.group.rotation.z = b.gait === "waddle" ? Math.sin(time * 11 + b.phase) * 0.2 : b.gait === "sway" ? Math.sin(time * 5.5 + b.phase) * 0.1 : 0;
         b.lookAt = null;
       } else {
-        p.y = 0;
+        // Standing about: the frog still jumps now and then, the bee still hovers.
+        const beat = Math.max(0, Math.sin(time * (b.gait === "leap" ? 1.3 : 2) + b.phase));
+        p.y =
+          this.reduced && b.gait !== "hover"
+            ? 0
+            : b.gait === "hover"
+              ? 0.5 + (this.reduced ? 0 : Math.sin(time * 2.4 + b.phase) * 0.12)
+              : b.gait === "hop"
+                ? Math.pow(beat, 8) * 0.45
+                : b.gait === "leap"
+                  ? Math.pow(beat, 12) * 1.1
+                  : 0;
+        b.group.rotation.z = this.reduced ? 0 : b.gait === "waddle" ? Math.sin(time * 2.6 + b.phase) * 0.07 : b.gait === "sway" ? Math.sin(time * 1.4 + b.phase) * 0.08 : 0;
         const facing = b.lookAt ?? new THREE.Vector3(0, 0, 0);
         const want = Math.atan2(facing.x - p.x, facing.z - p.z) + (b.lookAt ? 0 : Math.sin(time * 0.35 + b.phase) * 0.9);
         b.group.rotation.y = lerpAngle(b.group.rotation.y, want, 1 - Math.pow(0.02, dt));
       }
+      if (!this.reduced) for (const w of b.wings) w.mesh.rotation.z = w.side * (w.fast ? Math.sin(time * 46 + b.phase) * 0.55 : 0.25 + Math.sin(time * 7 + b.phase) * 0.45);
       const breathe = 1 + Math.sin(time * 2.2 + b.phase) * 0.03;
       b.body.scale.set(1 / breathe, 1.05 * breathe, 0.95 / breathe);
       if (b.marker) {
