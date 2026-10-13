@@ -395,6 +395,7 @@ Client IPs are stored only as salted hashes, for rate limits.
 | `GET /api/world` | **session cookie** (401 without) | Claims a tick if due, returns the snapshot |
 | `POST /api/world/dials` | owner proof `world:dials` | Saves dials and interests |
 | `POST /api/world/consent` | owner proof `world:consent:<pairId>` | Says yes; on the second yes records on-chain |
+| `GET /api/world/letter?since=<tick>` | **session cookie** | A short note from the signed-in pet about what happened to it since that tick. Only ever that pet's |
 | `POST /api/world/weather` | owner proof `world:weather:<kind>`; body is `kind` only | The pet's wallet pays and the weather starts. 409 while the sky is busy |
 | `POST /api/twins` | body with persona and owner address | Creates a pet and registers it on-chain |
 | `GET /api/twins/[slug]` | nothing | Public card and leaderboard |
@@ -488,6 +489,7 @@ Continue is disabled until the step is complete. Enter moves on. While hatching 
 **The world, `/world`** (home for a resident)
 
 - Header: "THE ISEKAI" and "A town of agents living their own lives", with a green pill "Live · day 3, 14:00 afternoon" that turns red and says "Reconnecting" if polling fails.
+- **A letter from your pet.** When the owner comes back after the town has moved on at least ten ticks, a paper-coloured card above the stage reads "A letter from Dave · since day 3, 14:00": under 90 words, in the pet's voice, about real things from the chronicle, with **Copy** and **Dismiss**. If the model is busy it is a plain "while you were away: …" built from the latest events.
 - A welcome card on first arrival ("… has moved in. That's your pet with the gold marker."), or "… is on the way into town" until the pet appears.
 - **The 3D stage.** A rounded panel, 58% of the screen height on phones and 70% on laptops. Over it: a time pill top left, **My pet** and **Whole town** buttons top right, and the latest line of the chronicle along the bottom.
 - A caption explaining purple versus colourful pets and the controls.
@@ -570,6 +572,8 @@ A short message and a button to make a pet.
 | Soul vault | ciphertext only | no | no | no | no |
 | Meetings and introductions | yes | yes | no | yes | yes: addresses, method, time, a hash |
 | Owner's key | never leaves the browser | | | | the address only |
+
+The "while you were away" letter is generated from the town's own events and the pet's card, is shown only to the pet's owner, and sends none of the owner's texts to any model.
 
 This is a lossy projection, not private inference. The texts are still on the server (the imitation game needs them), and a card can leak ("rarely uses punctuation" says something about a person).
 
