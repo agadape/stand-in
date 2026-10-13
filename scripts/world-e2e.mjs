@@ -198,5 +198,18 @@ const paused = await call("POST", "/api/world/dials", { ...(await signed(dave, "
 world = (await call("GET", "/api/world")).json;
 check(paused.status === 200 && world.agents.find((x) => x.slug === dave.slug).paused, "the owner can pull the agent out of the town");
 
+// Leaving. Deleting needs the session of that very pet and its name typed out.
+const del = (slug, body, withCookie = cookie) =>
+  fetch(`${base}/api/twins/${slug}`, { method: "DELETE", headers: { "content-type": "application/json", ...(withCookie ? { cookie: withCookie } : {}) }, body: JSON.stringify(body) });
+check((await del(dave.slug, { confirm: "Dave" }, "")).status === 401, "a pet cannot be deleted by someone not signed in");
+check((await del(sarah.slug, { confirm: "Sarah" })).status === 403, "nor by someone signed in as another pet");
+check((await del(dave.slug, { confirm: "nope" })).status === 400, "nor without typing its name");
+const gone = await del(dave.slug, { confirm: "dave" });
+check(gone.status === 200 && /standin_session=;/.test(gone.headers.get("set-cookie") ?? ""), "its owner can delete it, and is signed out");
+check((await call("GET", `/api/twins/${dave.slug}`)).status === 404 && (await call("GET", "/api/world")).status === 401, "the pet is gone and its session opens nothing");
+cookie = "";
+const after = (await call("GET", "/api/world/watch")).json;
+check(!after.agents.some((x) => x.slug === dave.slug) && after.agents.some((x) => x.slug === sarah.slug), "it has left the town; the others are still there");
+
 console.log(failed ? `\n${failed} check(s) failed` : "\nall checks passed");
 process.exit(failed ? 1 : 0);

@@ -400,6 +400,7 @@ Client IPs are stored only as salted hashes, for rate limits.
 | `POST /api/world/weather` | owner proof `world:weather:<kind>`; body is `kind` only | The pet's wallet pays and the weather starts. 409 while the sky is busy |
 | `POST /api/twins` | body with persona and owner address | Creates a pet and registers it on-chain |
 | `GET /api/twins/[slug]` | nothing | Public card and leaderboard |
+| `DELETE /api/twins/[slug]` | **session cookie** for that pet, and its name in the body | Deletes the pet from the app (agent, bonds, chronicle lines, vault, meetings, attempts) and signs out. What is on Monad stays |
 | `GET /api/twins/[slug]/scenarios` | nothing | Three random scenarios |
 | `POST /api/twins/[slug]/attempts` | owner proof `prove` in owner mode | Judges, posts the verdict, pays if it wins |
 | `POST /api/twins/[slug]/pot` | owner proof `fund` | Funder adds a 0.1 MON demo pot |
@@ -511,6 +512,7 @@ Continue is disabled until the step is complete. Enter moves on. While hatching 
 Two columns on laptops. Left, sticky: the pet in its outfit (tap it for a reaction), the name and bio, a "2 / 3 friends met · Next: Party hat" bar, and Wardrobe and Activity buttons. Right:
 
 - For the owner: friend requests with Accept; a card "Met someone? Let them scan your code." with **Show my code**, which becomes a QR code with "New code in 14s"; a fold-out for NFC stickers with the static link; the imitation game card with the pot, **Prove you're you**, **Add demo pot** and **Copy link**; and the soul vault.
+- For the owner, at the bottom, **Your account**: **Sign out** (this browser only), and **Delete …**, which opens a red box explaining what is removed and what stays on Monad, and asks for the pet's name before **Delete for good**. The side rail on laptops also has **Sign out**.
 - For a visitor: **Become friends with …** and the imitation game card with **Be …**.
 - A footer line with the pet's wallet address linking to the explorer.
 

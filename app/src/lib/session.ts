@@ -41,6 +41,13 @@ export function rememberOwned(slug: string, ownerAddress: string, name: string) 
   write(OWNED_KEY, all);
 }
 
+/** Forget one pet on this device, or every pet when no slug is given (signing out). */
+export function forgetOwned(slug?: string) {
+  const all = slug ? (read<Record<string, Owned>>(OWNED_KEY) ?? {}) : {};
+  if (slug) delete all[slug];
+  write(OWNED_KEY, all);
+}
+
 export function rememberPlayer(player: Player) {
   write(PLAYER_KEY, player);
 }
