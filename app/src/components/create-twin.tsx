@@ -103,6 +103,8 @@ export function CreateTwin({ judge, next }: { judge: Provider | null; next: stri
       rememberOwned(created.slug, passkey.address, name.trim());
       // A new pet lands in the world, its home, unless it was made in order to meet someone.
       router.push(next ?? "/world?welcome=1");
+      // The shell is chosen on the server from the session, so ask for it again now that there is one.
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
       setBusy(null);

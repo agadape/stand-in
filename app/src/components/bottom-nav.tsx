@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useMyPet } from "@/lib/owner-client";
 
 const icon = { width: 26, height: 26, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2.4, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
@@ -54,33 +53,34 @@ const ICONS: Record<string, ReactNode> = {
 
 type Tab = { href: string; label: string };
 
-function useTabs(): { pet: Tab[]; site: Tab[] } {
-  const pet = useMyPet();
-  const home = pet ? `/t/${pet.slug}` : null;
+/**
+ * Navigation exists only for a signed-in resident. The layout decides that on the server
+ * from the session cookie and renders these components for nobody else, so a visitor's
+ * page contains no menu at all, hidden or otherwise.
+ */
+type Resident = { slug: string };
+
+function tabsFor(resident: Resident): { pet: Tab[]; site: Tab[] } {
+  const home = `/t/${resident.slug}`;
   return {
-    pet: home
-      ? [
-          // The world is home; the pet's own page comes second.
-          { href: "/world", label: "World" },
-          { href: home, label: "Pet" },
-          { href: `${home}/wardrobe`, label: "Wardrobe" },
-          { href: `${home}/activity`, label: "Activity" },
-        ]
-      : [],
+    pet: [
+      // The world is home; the pet's own page comes second.
+      { href: "/world", label: "World" },
+      { href: home, label: "Pet" },
+      { href: `${home}/wardrobe`, label: "Wardrobe" },
+      { href: `${home}/activity`, label: "Activity" },
+    ],
     site: [
-      // The world is for people with a pet, so a visitor is not offered it.
       { href: "/rooms", label: "Rooms" },
       { href: "/wall", label: "Wall" },
-      ...(home ? [] : [{ href: "/new", label: "Make your pet" }]),
     ],
   };
 }
 
-/** Phones: Pet / Wardrobe / Activity along the bottom, for someone who has a pet on this device. */
-export function BottomNav() {
-  const { pet } = useTabs();
+/** Phones: World / Pet / Wardrobe / Activity along the bottom. */
+export function BottomNav({ resident }: { resident: Resident }) {
+  const { pet } = tabsFor(resident);
   const path = usePathname();
-  if (pet.length === 0) return null;
 
   return (
     <nav aria-label="Your pet" className="fixed inset-x-0 bottom-0 z-10 border-t-2 border-border bg-background md:hidden">
@@ -107,14 +107,30 @@ export function BottomNav() {
   );
 }
 
+/**
+ * All a visitor gets: the name, as a way back to the landing page. No links, no menu.
+ * The landing page itself shows nothing here, so the way in has the screen to itself.
+ */
+export function VisitorMark() {
+  const path = usePathname();
+  if (path === "/") return null;
+  return (
+    <header className="mx-auto w-full max-w-md px-4 pt-3 md:max-w-xl md:px-8 lg:max-w-5xl lg:px-10">
+      <Link href="/" className="inline-flex min-h-11 items-center text-2xl font-black lowercase tracking-tight text-accent">
+        stand-in
+      </Link>
+    </header>
+  );
+}
+
 /** Laptops and up: everything in one rail down the left side. */
-export function SideNav() {
-  const { pet, site } = useTabs();
+export function SideNav({ resident }: { resident: Resident }) {
+  const { pet, site } = tabsFor(resident);
   const path = usePathname();
 
   return (
     <nav aria-label="Main" className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col gap-1 border-r-2 border-border bg-background p-4 md:flex">
-      <Link href="/" className="mb-4 px-3 py-2 text-3xl font-black lowercase tracking-tight text-accent">
+      <Link href="/world" className="mb-4 px-3 py-2 text-3xl font-black lowercase tracking-tight text-accent">
         stand-in
       </Link>
       {[...pet, ...site].map((tab) => {

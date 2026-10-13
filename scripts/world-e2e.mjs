@@ -62,7 +62,16 @@ const shutOut = await call("GET", "/api/world");
 check(shutOut.status === 401 && !shutOut.json.agents, "the world's data is refused to someone not signed in", String(shutOut.status));
 const door = await call("GET", "/world", undefined, { redirect: "manual" });
 check([302, 303, 307, 308].includes(door.status) && (door.location ?? "").includes("/enter"), "the world page sends them to the door", `${door.status} -> ${door.location}`);
+// A visitor's pages carry no navigation at all: it is not in the HTML to be un-hidden.
+const page = async (path) => (await fetch(`${base}${path}`, { headers: cookie ? { cookie } : {} })).text();
+const hasNav = (html) => /aria-label="Main"|aria-label="Your pet"|>\s*Wardrobe\s*<|>\s*Activity\s*<|href="\/rooms"|href="\/wall"/.test(html);
+check(!hasNav(await page("/")), "the landing page sent to a visitor contains no navigation");
+check(!hasNav(await page("/enter")), "nor does the door");
+// A pet's public page links to that pet's wardrobe and activity in its own content; what it must not have is the app's menu.
+check(!/aria-label="Main"|aria-label="Your pet"/.test(await page(`/t/${dave.slug}`)), "a pet's public page has no menu for a visitor");
+check(/Enter the World/.test(await page("/")), "the landing page has the way in");
 cookie = "standin_session=dave-forged.9999999999.deadbeef";
+check(!hasNav(await page("/")), "a made-up session cookie gets no navigation either");
 check((await call("GET", "/api/world")).status === 401, "a made-up session cookie is refused");
 cookie = "";
 const wrongKey = await call("POST", "/api/session", await signed(dave, "session", sarah.owner));
@@ -74,6 +83,7 @@ cookie = (signedIn.setCookie ?? "").split(";")[0];
 check(signedIn.status === 200 && cookie.startsWith("standin_session=") && /HttpOnly/i.test(signedIn.setCookie ?? ""), "the owner's passkey signature signs in (httpOnly cookie)");
 check((await call("GET", "/world", undefined, { redirect: "manual" })).status === 200, "signed in, the world page opens");
 check((await call("GET", "/api/session")).json.pet?.slug === dave.slug, "the session knows which pet it is");
+check(hasNav(await page("/world")) && hasNav(await page(`/t/${dave.slug}`)), "signed in, the navigation is there");
 
 // The town takes new pets in within a few ticks; watching it is what makes it tick.
 let world, a, b;
