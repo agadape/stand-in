@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Stand-In">
+  <!-- The Stand-In pet at dusk, under the gold marker that shows which pet in town is yours. -->
+  <defs>
+    <linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a2466"/>
+      <stop offset="0.62" stop-color="#4b3fae"/>
+      <stop offset="1" stop-color="#ff9a6b"/>
+    </linearGradient>
+    <clipPath id="tile"><rect width="1024" height="1024" rx="224"/></clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="1024" height="1024" fill="url(#dusk)"/>
+    <!-- a few stars -->
+    <g fill="#ffffff" opacity="0.75">
+      <circle cx="150" cy="170" r="7"/><circle cx="868" cy="136" r="6"/><circle cx="268" cy="92" r="4"/>
+      <circle cx="770" cy="262" r="4"/><circle cx="108" cy="352" r="4"/><circle cx="918" cy="380" r="5"/>
+    </g>
+    <!-- the island the town stands on -->
+    <ellipse cx="512" cy="1010" rx="640" ry="190" fill="#58cc02"/>
+    <ellipse cx="512" cy="1040" rx="640" ry="190" fill="#46a302"/>
+
+    <g transform="translate(112 150) scale(4)">
+      <!-- the marker -->
+      <path d="M100 -22L112 -8L100 6L88 -8Z" fill="#FFC800" stroke="#2B2350" stroke-width="3" stroke-linejoin="round"/>
+      <!-- shadow on the grass -->
+      <ellipse cx="100" cy="190" rx="62" ry="9" fill="#2B2350" opacity="0.22"/>
+      <!-- ears, feet, arms -->
+      <circle cx="58" cy="52" r="17" fill="#6A56E0"/>
+      <circle cx="142" cy="52" r="17" fill="#6A56E0"/>
+      <ellipse cx="72" cy="182" rx="20" ry="9" fill="#6A56E0"/>
+      <ellipse cx="128" cy="182" rx="20" ry="9" fill="#6A56E0"/>
+      <ellipse cx="28" cy="128" rx="11" ry="17" fill="#6A56E0" transform="rotate(18 28 128)"/>
+      <ellipse cx="172" cy="128" rx="11" ry="17" fill="#6A56E0" transform="rotate(-18 172 128)"/>
+      <!-- body -->
+      <path d="M100 34C148 34 174 72 174 118C174 160 146 184 100 184C54 184 26 160 26 118C26 72 52 34 100 34Z" fill="#836EF9"/>
+      <ellipse cx="100" cy="150" rx="40" ry="26" fill="#FFFFFF" opacity="0.22"/>
+      <circle cx="52" cy="128" r="9" fill="#FF9EC4" opacity="0.75"/>
+      <circle cx="148" cy="128" r="9" fill="#FF9EC4" opacity="0.75"/>
+      <!-- happy face -->
+      <g fill="none" stroke="#2B2350" stroke-width="6" stroke-linecap="round">
+        <path d="M58 108Q72 90 86 108"/>
+        <path d="M114 108Q128 90 142 108"/>
+      </g>
+      <path d="M84 134Q100 156 116 134Z" fill="#2B2350"/>
+      <!-- bow tie -->
+      <path d="M100 166L76 154V178Z" fill="#FF4B4B"/>
+      <path d="M100 166L124 154V178Z" fill="#FF4B4B"/>
+      <circle cx="100" cy="166" r="6" fill="#2B2350"/>
+    </g>
+  </g>
+</svg>
