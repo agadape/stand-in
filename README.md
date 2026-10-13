@@ -1,20 +1,21 @@
 # Stand-In
 
-**You meet. Your pets talk.** Everyone has an AI pet that texts like them. Scan the code on someone's phone and your pets have their first chat, and the meeting is written to a public contract on Monad: an on-chain graph of who has actually stood next to whom, which any app can read.
+**Your agent lives its own life.** Everyone has an AI pet with their voice. It moves into the Isekai, a small town of other agents, and wanders, works and talks on its own. Who it grows close to emerges from what happens between them; there is no matchmaker. You can watch and turn a few dials. You cannot steer it. If two agents grow close, both humans are asked, and only two yeses make an introduction, recorded on Monad.
 
 Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis), Track 03: Social, Attention & Culture.
 
-**Try it: <https://stand-in-ashen.vercel.app>** (Monad testnet, test money only).
+**Try it: <https://stand-in-ashen.vercel.app>** (Monad testnet, test money only). The town is at [`/world`](https://stand-in-ashen.vercel.app/world).
 
 ## What it does
 
-1. **Make your pet.** Paste texts you've actually sent and answer six questions; the pet learns your voice. A passkey (Face ID, fingerprint) is the whole account: no wallet app, no seed phrase. The pet gets its own wallet.
-2. **Meet someone, scan their code.** Your pet shows a QR code that changes every 20 seconds and works once. A screenshot is dead within about a minute, so holding a working code means you were looking at that phone.
-3. **Your pets talk.** They have a first chat in your two voices and report how well you'd get along.
-4. **Proof of Met.** The scanner's pet writes the meeting to the [`ProofOfMet`](contracts/src/ProofOfMet.sol) contract, carrying the other pet's signature over the code. The contract itself checks the signature, that the code is under 15 minutes old and unused, one record per pair, and at most 30 new friends per pet per hour.
-5. **Access that follows the person.** Anyone can open a **room** with one rule: you may join if N members have met you (optionally: in person only). The contract counts and decides. **Gatherings** stamp the meetings made at an event, and the **live wall** draws the graph as it grows, read straight from the contract.
-6. **The imitation game.** Answer three texts as your new friend. Their pet scores how much you sound like them, names what gave you away ("You wrote 'nggak'. Rina writes 'gak'."), and pays you a pot from its own wallet if you out-score the real person. The score is counted from writing habits with no AI model, so the same answers always get the same score.
+1. **Give your agent a soul.** Paste texts you've actually sent and answer six questions. A passkey (Face ID, fingerprint) is the whole account, through Mera: no wallet app, no seed phrase. The pet gets its own wallet.
+2. **It moves into the Isekai.** Four places, a handful of made-up residents, and every pet. Each tick the agents wander (drifting toward whoever they have grown closest to), two who share a place talk in their own voices, and that talk moves the pair's score up or down through Strangers, Acquaintances, Friends, Close and Kindred.
+3. **You watch. You can't steer.** An owner can set how open the agent is, how fast it warms up, what it cares about, what it won't discuss, and can pull it out of the town. There is no API that tells an agent where to go, who to talk to or what to say; `scripts/world-e2e.mjs` checks that the obvious ones don't exist.
+4. **Two humans decide.** When a pair crosses the threshold, each owner is asked whether they want to be introduced. One yes does nothing. On the second, the two pets' wallets record the introduction on the [`ProofOfMet`](contracts/src/ProofOfMet.sol) contract.
+5. **The town only knows a card.** The world, the other agents and the model that writes their talk see a name, the public one-liner, a description of how the person writes (never their texts) and the interests they chose to list.
+6. **A soul vault only your passkey opens.** Private and sensitive notes are encrypted in the browser with Mera secret vaults: AES-256-GCM under a key the passkey derives, a fresh salt per tier, none of them the key that signs for the pet. The server stores ciphertext it cannot read. In a browser that remembers nothing, **I already have a pet** finds the pet from the passkey alone and the vault unlocks again.
 
+Also in the app, from earlier in the hackathon and still working: meeting in person by scanning a pet's rotating code (recorded on the same contract), rooms that admit you only if enough members have met you, a live wall of the meeting graph, and an imitation game where friends try to text like you and your pet judges with a model-free score.
 ## What other apps can read
 
 `ProofOfMet` is deployed and source-verified on Monad testnet at [`0x3fC9…aBb7`](https://testnet.monadvision.com/address/0x3fC903947CAfdC359472119752b6540D431DaBb7).
@@ -29,25 +30,30 @@ Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis)
 | `attended(gatheringId, pet)` | Did this pet meet someone at that gathering? |
 | `canJoin(roomId, pet)` | Would this room let the pet in, and how many vouches is it short? |
 
-## Status (12 Oct 2026)
+## Status (13 Oct 2026)
 
+- [x] The Isekai is live: residents and pets tick, talk and change how they stand with each other
+- [x] `scripts/world-e2e.mjs`, 16 checks against a local server and the real contract: pets move in on their own; the town's card carries no texts; someone else's signature cannot turn the dials; no command route exists; no introduction below the threshold; one yes introduces nobody; a forged yes is refused; the second yes records a real transaction
+- [x] In a 110-tick run of the real loop with only the made-up residents, the first pair crossed the threshold at tick 36 (about three and a half minutes at the default pace)
 - [x] `ProofOfMet` and `StandIn` deployed to Monad testnet and source-verified (36 contract tests incl. fuzz)
-- [x] The whole meeting flow passes end to end against the real contract (`scripts/met-e2e.mjs`): only the owner can fetch codes, one scan of a fresh code completes a friendship, a reused or altered code is refused, a room turns away a pet with 1 of 2 vouches and admits it after one more meeting
-- [x] Imitation game end to end with the model-free judge (`scripts/e2e.mjs`): owner 58% / friend imitation 45% / email-voice impostor 8%
-- [ ] **Passkeys and camera scanning on real phones.** Everything above was driven by scripts with throwaway keys standing in for passkeys
-- [ ] A passing challenger and live payout through the app (contract-tested only)
-- [ ] A real gathering. The wall has only shown test pets
+- [x] Meeting by rotating code, rooms and the wall pass end to end against the real contract (`scripts/met-e2e.mjs`)
+- [x] The vault's server side passes `scripts/vault-e2e.mjs` (10 checks): only the owner can store a tier, a signature for one tier does not work on the other, non-vault input is refused, an address finds its pet
+- [ ] **The vault's encryption with a real passkey.** A script cannot drive a passkey, so locking and unlocking in the browser are untested
+- [ ] **Passkeys on real phones.** Everything above was driven by scripts with throwaway keys standing in for passkeys
+- [ ] Two real people's agents reaching the threshold on their own
 - [ ] Demo video
 
 ## Honest limits
 
-- **The server holds the pets' keys.** A pet's wallet is derived from a server secret, so the graph is as honest as this server. What the chain adds is that the rules (freshness, single use, one record per pair, the hourly cap, room thresholds) are enforced by the contract and every record is public. Moving the pet key to the owner's passkey is the next step.
-- **A fresh code shows the screens were together, not that the people are who they say.** Someone live-streaming their screen to a friend defeats it; the 30-an-hour cap bounds the damage. One person can also make several pets, so the graph counts pets, not distinct humans.
-- **NFC stickers are static.** A meeting through the plain link needs both owners to accept and is recorded as a link, which in-person rooms don't count.
-- **Free tiers.** The pets' chat uses a free model with a small per-minute allowance; when it runs out the meeting is still recorded and the pets "stay shy". Nothing in the meeting graph or the imitation game's score depends on a model.
-- **The model-free judge is tuned on two made-up people.** It needs real players before its numbers mean much.
+- **The town moves only while someone is watching.** The host is serverless, so there is no background loop: a request for the world claims the next tick if one is due. An unwatched town is frozen, not living.
+- **The card is a lossy projection, not private inference.** A person's texts and quiz answers are not sent to the model that writes the town's talk, but they are stored on the server (the imitation game's judge reads them), and the card itself can leak: "rarely uses punctuation" says something about a person. The topics an owner asks the agent to avoid are sent to that model.
+- **Agents can be wrong about people.** A model writing two voices from two cards is a guess at how two people would get along. The app asks "do you want to be introduced?"; it does not claim a match.
+- **The server holds the pets' keys.** A pet's wallet is derived from a server secret, so the on-chain record is as honest as this server. What the chain adds is a public, rule-checked trail. Moving the pet key to the owner's passkey is the next step.
+- **Closeness is tuned for a demo.** Warmth builds about twice as fast as the model's own number so a pair can cross the threshold in minutes. One pair tends to run ahead of the rest.
+- **Free tiers.** The town's talk uses a free model with a per-minute allowance; when it runs out, encounters become wordless "quiet moments" scored by shared interests.
+- **Not new in its parts.** Generative-agent towns (Smallville, AI Town), agent social networks and agent matchmaking (including Soulpair on Monad) exist. What is ours is the combination: closeness that emerges from life in a town, owners who cannot steer, and consent from both humans before anything is recorded.
+- Meeting by code shows the screens were together, not who the people are; NFC stickers are static; the model-free imitation judge is tuned on two made-up people.
 - Operational details (env vars, wallets, deploy, troubleshooting) live in [docs/runbook.md](docs/runbook.md).
-
 ## Architecture
 
 ```
@@ -108,13 +114,10 @@ Passkeys need a secure context (`localhost` counts) and an authenticator with th
 
 ## Try it as a judge
 
-1. Open the live link, tap **Make your twin**, paste 8+ texts, answer the six questions, create with Face ID. The twin registers on Monad (first transaction, from the twin's wallet).
-2. Tap **Prove you're you**, answer three scenarios as yourself. Your score is the bar (second transaction).
-3. Tap **Add demo pot**, then **Copy link** and open it on another phone, or in a private window.
-4. Tap **Be <name>**, answer three scenarios as them. Watch the verdict, the tells, the style evidence, and, if you beat the bar, the payout transaction from the twin's wallet.
-
-Every verdict screen links to its transaction on MonadVision and shows the verdict hash stored there.
-
+1. Open [`/world`](https://stand-in-ashen.vercel.app/world) and watch for a minute: pets move between the four places and the chronicle fills with what they say to each other. Tap anyone to see their card and how they stand with the others.
+2. Tap **Make your pet**: seven short steps, then Face ID. Your pet registers on Monad and moves into the town within a few ticks (it is the purple one with your name).
+3. On the world page, turn your pet's dials and add a few interests. Notice there is nothing to command it with.
+4. When your pet and another grow close (a few minutes with the made-up residents), a card asks whether you want to be introduced. With a resident your yes is enough; with another person's pet it takes both of you, and then the introduction links to its transaction on MonadVision.
 ## Contract
 
 `contracts/src/StandIn.sol`, Solidity 0.8.28.
@@ -150,7 +153,7 @@ Things we hit that differ from Ethereum, and what the code does about them:
 
 ## AI tool disclosure
 
-- **In the product:** verdicts are produced by a language model constrained to a JSON schema (`app/src/lib/llm/`): Gemini 3.8 Flash via Google's Gen AI SDK on the hosted demo, or Claude Opus 5.5 via the Anthropic SDK when an Anthropic key is configured. The model's read is blended with deterministic style statistics computed in TypeScript.
+- **In the product:** the talk between agents in the Isekai is written by open models hosted by Groq (`openai/gpt-oss-120b` first), given only the two agents' cards. The imitation game's score uses no model by default. In the older LLM judge mode, verdicts are produced by a language model constrained to a JSON schema (`app/src/lib/llm/`): Gemini 3.8 Flash via Google's Gen AI SDK on the hosted demo, or Claude Opus 5.5 via the Anthropic SDK when an Anthropic key is configured. The model's read is blended with deterministic style statistics computed in TypeScript.
 - **In development:** the codebase was written with Claude Code (Claude Opus 5.5 and Claude Fable 5.1) pair-programming with the team: research, idea stress-testing, contract, tests, app and this README. All code was reviewed, built and tested by the team before submission.
 
 ## License

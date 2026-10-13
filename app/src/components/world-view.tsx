@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, type World } from "@/lib/api";
 import { ownerProof, useMyPet } from "@/lib/owner-client";
 import { Pet, type Mood } from "./pet";
+import { RestorePet } from "./soul-vault";
 import { Button, Card, ErrorNote, LinkButton, Pill } from "./ui";
 
 type Agent = World["agents"][number];
@@ -152,6 +153,7 @@ export function WorldView({ initial }: { initial: World }) {
                 what to do.
               </p>
               <LinkButton href="/new">Make your pet</LinkButton>
+              <RestorePet />
             </Card>
           )}
           {pet === undefined ? null : mine && focus?.id !== mine.id ? (

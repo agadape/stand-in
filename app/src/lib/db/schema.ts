@@ -165,6 +165,22 @@ export const worldClock = sqliteTable("world_clock", {
   lastTickAt: integer("last_tick_at", { mode: "timestamp_ms" }).notNull(),
 });
 
+/**
+ * The soul vault: text the owner encrypted on their own device with a key derived from
+ * their passkey (Mera secret vault, AES-256-GCM, a fresh PRF salt per tier). The server
+ * stores the ciphertext and cannot read it. One row per pet and tier.
+ */
+export const soulVaults = sqliteTable("soul_vaults", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  twinId: integer("twin_id")
+    .notNull()
+    .references(() => twins.id),
+  tier: text("tier", { enum: ["private", "sensitive"] }).notNull(),
+  // The Mera vault as JSON text: credential id, PRF salt, nonce, ciphertext.
+  vault: text("vault").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 export type Agent = typeof agents.$inferSelect;
 export type Pair = typeof pairs.$inferSelect;
 export type WorldEvent = typeof events.$inferSelect;

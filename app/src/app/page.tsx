@@ -1,4 +1,5 @@
 import { Pet } from "@/components/pet";
+import { RestorePet } from "@/components/soul-vault";
 import { LinkButton } from "@/components/ui";
 
 const steps = [
@@ -48,6 +49,7 @@ export default function Home() {
             </LinkButton>
           </div>
           <p className="text-xs text-muted">Takes about two minutes. Testnet money only.</p>
+          <RestorePet />
         </div>
       </section>
 

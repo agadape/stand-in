@@ -9,6 +9,7 @@ import { useIsOwner } from "@/lib/use-session";
 import { befriend } from "./meet";
 import { PetScene, SocialProgress } from "./pet-scene";
 import { ShowCode } from "./show-code";
+import { SoulVault } from "./soul-vault";
 import { Address, Button, Card, ErrorNote, LinkButton, Pill } from "./ui";
 
 /** Pet Home: the pet, how many friends it has met, and the one thing to do next. */
@@ -199,6 +200,8 @@ export function TwinView({
           </div>
         )}
       </Card>
+
+      {isOwner && <SoulVault pet={twin} />}
 
       <p className="text-center text-xs text-muted">
         {twin.name}&apos;s pet texts like {twin.name} and has its own wallet on Monad,{" "}
