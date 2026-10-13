@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api, formatMon, pct, type TwinCard } from "@/lib/api";
 import type { BondRow } from "@/lib/bonds";
-import { signInWithPasskey, signOwnerProof } from "@/lib/passkey";
+import { forgetPasskey, signInWithPasskey, signOwnerProof } from "@/lib/passkey";
 import { useIsOwner } from "@/lib/use-session";
 import { befriend } from "./meet";
 import { PetScene, SocialProgress } from "./pet-scene";
@@ -56,6 +56,7 @@ export function TwinView({
     try {
       const passkey = await signInWithPasskey();
       if (passkey.address.toLowerCase() !== twin.ownerAddress.toLowerCase()) {
+        forgetPasskey();
         throw new Error("That passkey isn't this pet's owner.");
       }
       const proof = await signOwnerProof(passkey, twin.slug, "fund");

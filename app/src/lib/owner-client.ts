@@ -2,7 +2,7 @@
 
 import type { OwnerAction } from "./auth";
 import type { OwnerInput } from "./api";
-import { signInWithPasskey, signOwnerProof, type PasskeyAccount } from "./passkey";
+import { forgetPasskey, signInWithPasskey, signOwnerProof, type PasskeyAccount } from "./passkey";
 import { useOwned } from "./use-session";
 
 export type MyPet = { slug: string; name: string; ownerAddress: string };
@@ -34,7 +34,8 @@ export async function ownerProof(pet: { slug: string; ownerAddress: string }, ac
   const passkey = await signInWithPasskey();
   try {
     if (passkey.address.toLowerCase() !== pet.ownerAddress.toLowerCase()) {
-      throw new Error("That passkey doesn't own your pet on this device.");
+      forgetPasskey();
+      throw new Error("That passkey doesn't own your pet on this device. Try again and choose the passkey you made this pet with.");
     }
     return { slug: pet.slug, address: passkey.address, proof: await signOwnerProof(passkey, pet.slug, action) };
   } finally {
