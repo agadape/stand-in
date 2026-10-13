@@ -191,3 +191,555 @@ a.tile:active {
     transform: none;
   }
 }
+
+/*
+ * Each species moves in its own way. Only on a pet marked .pet-live: the small faces in a
+ * list stay calm. Parts turn about their own corners (transform-box: fill-box), so a tail
+ * swings from where it joins the body whatever the body's shape.
+ */
+.pet-tail,
+.pet-ear-l,
+.pet-ear-r,
+.pet-wing-l,
+.pet-wing-r,
+.pet-arm-l,
+.pet-arm-r,
+.pet-ant-l,
+.pet-ant-r,
+.pet-ant-tip,
+.pet-gills-l,
+.pet-gills-r,
+.pet-snout,
+.pet-whisk-l,
+.pet-whisk-r,
+.pet-tuft,
+.pet-mane,
+.pet-bolt-l,
+.pet-bolt-r,
+.pet-smoke,
+.pet-zzz,
+.pet-spark,
+.pet-eye3,
+.pet-led {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.pet-move {
+  transform-origin: 100px 184px;
+}
+.pet-tail,
+.pet-whisk-r,
+.pet-gills-r,
+.pet-wing-r {
+  transform-origin: 0% 80%;
+}
+.pet-whisk-l,
+.pet-gills-l,
+.pet-wing-l {
+  transform-origin: 100% 80%;
+}
+.pet-ear-l,
+.pet-ear-r,
+.pet-tuft {
+  transform-origin: 50% 100%;
+}
+.pet-ant-l {
+  transform-origin: 100% 100%;
+}
+.pet-ant-r {
+  transform-origin: 0% 100%;
+}
+.pet-arm-l {
+  transform-origin: 80% 10%;
+}
+.pet-arm-r {
+  transform-origin: 20% 10%;
+}
+.pet-smoke,
+.pet-zzz,
+.pet-spark {
+  opacity: 0;
+}
+.pet-live .pet-late {
+  animation-delay: 1.3s !important;
+}
+.pet-live .pet-later {
+  animation-delay: 0.7s !important;
+}
+
+/* Bear: an ear flicks now and then. */
+.pet-live.pet-k-bear .pet-ear-l {
+  animation: pet-twitch 5.5s infinite;
+}
+.pet-live.pet-k-bear .pet-ear-r {
+  animation: pet-twitch 5.5s 2.4s infinite;
+}
+/* Cat: a slow tail, a twitchy ear. */
+.pet-live.pet-k-cat .pet-tail {
+  animation: pet-swish 2.4s ease-in-out infinite;
+}
+.pet-live.pet-k-cat .pet-ear-r {
+  animation: pet-twitch 4.6s infinite;
+}
+/* Bunny: ears flop one after the other, then two little hops. */
+.pet-live.pet-k-bunny .pet-ear-l {
+  animation: pet-flop-l 3.4s ease-in-out infinite;
+}
+.pet-live.pet-k-bunny .pet-ear-r {
+  animation: pet-flop-r 3.4s ease-in-out infinite;
+}
+.pet-live.pet-k-bunny .pet-move {
+  animation: pet-hops 3.4s ease-out infinite;
+}
+/* Fox: wags. */
+.pet-live.pet-k-fox .pet-tail {
+  animation: pet-wag 0.5s ease-in-out infinite alternate;
+}
+/* Frog: sits, squashes, leaps. */
+.pet-live.pet-k-frog .pet-move {
+  animation: pet-leap 3.6s ease-in-out infinite;
+}
+/* Chick: pecks, flaps. */
+.pet-live.pet-k-chick .pet-move {
+  animation: pet-peck 2.6s ease-in-out infinite;
+}
+.pet-live.pet-k-chick .pet-arm-l {
+  animation: pet-flap-l 0.32s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-chick .pet-arm-r {
+  animation: pet-flap-r 0.32s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-chick .pet-tuft {
+  animation: pet-rock 1.2s ease-in-out infinite alternate;
+}
+/* Panda: rocks from side to side. */
+.pet-live.pet-k-panda .pet-move {
+  animation: pet-rock 1.9s ease-in-out infinite alternate;
+}
+/* Mouse: whiskers never stop. */
+.pet-live.pet-k-mouse .pet-whisk-l,
+.pet-live.pet-k-mouse .pet-whisk-r {
+  animation: pet-whisk 0.24s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-mouse .pet-tail {
+  animation: pet-swish 1.1s ease-in-out infinite;
+}
+.pet-live.pet-k-mouse .pet-ear-l {
+  animation: pet-twitch 3.8s infinite;
+}
+/* Axolotl: floats, gills waving. */
+.pet-live.pet-k-axolotl .pet-move {
+  animation: pet-float 3.2s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-axolotl .pet-gills-l {
+  animation: pet-wave-l 1.4s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-axolotl .pet-gills-r {
+  animation: pet-wave-r 1.4s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-axolotl .pet-tail {
+  animation: pet-swish 1.5s ease-in-out infinite;
+}
+/* Dragon: beats its wings and lets out a puff of smoke. */
+.pet-live.pet-k-dragon .pet-wing-l {
+  animation: pet-wave-l 0.9s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-dragon .pet-wing-r {
+  animation: pet-wave-r 0.9s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-dragon .pet-tail {
+  animation: pet-swish 2.6s ease-in-out infinite;
+}
+.pet-live.pet-k-dragon .pet-smoke {
+  animation: pet-rise 2.6s ease-out infinite;
+}
+/* Alien: hovers, antennae bobbling, and the third eye blinks on its own time. */
+.pet-live.pet-k-alien .pet-move {
+  animation: pet-float 2.4s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-alien .pet-ant-l {
+  animation: pet-wave-l 1.1s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-alien .pet-ant-r {
+  animation: pet-wave-r 1.1s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-alien .pet-eye3 {
+  animation: pet-blink 3.1s 1.2s infinite;
+}
+/* Penguin: waddles, flippers out. */
+.pet-live.pet-k-penguin .pet-move {
+  animation: pet-rock 0.75s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-penguin .pet-arm-l {
+  animation: pet-flap-l 0.75s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-penguin .pet-arm-r {
+  animation: pet-flap-r 0.75s ease-in-out infinite alternate;
+}
+/* Koala: nods off. */
+.pet-live.pet-k-koala .pet-move {
+  animation: pet-nod 4.6s ease-in-out infinite;
+}
+.pet-live.pet-k-koala .pet-zzz {
+  animation: pet-rise 2.8s ease-out infinite;
+}
+/* Pig: sniffs, tail going. */
+.pet-live.pet-k-pig .pet-tail {
+  animation: pet-wag 0.4s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-pig .pet-snout {
+  animation: pet-sniff 2.8s ease-in-out infinite;
+}
+/* Cow: chews, flicks its tail at a fly. */
+.pet-live.pet-k-cow .pet-snout {
+  animation: pet-chew 0.9s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-cow .pet-tail {
+  animation: pet-flick 4.2s ease-in-out infinite;
+}
+.pet-live.pet-k-cow .pet-ear-l {
+  animation: pet-twitch 5s 1s infinite;
+}
+/* Unicorn: sparkles, a shimmering mane, a little prance. */
+.pet-live.pet-k-unicorn .pet-spark {
+  animation: pet-twinkle 2.1s ease-in-out infinite;
+}
+.pet-live.pet-k-unicorn .pet-mane {
+  animation: pet-shimmer 4s linear infinite;
+}
+.pet-live.pet-k-unicorn .pet-tail {
+  animation: pet-swish 2s ease-in-out infinite;
+}
+.pet-live.pet-k-unicorn .pet-move {
+  animation: pet-hops 4.2s ease-out infinite;
+}
+/* Bee: hovers on a blur of wings. */
+.pet-live.pet-k-bee .pet-move {
+  animation: pet-buzz 1.4s ease-in-out infinite;
+}
+.pet-live.pet-k-bee .pet-wing-l,
+.pet-live.pet-k-bee .pet-wing-r {
+  animation: pet-buzzwing 0.09s linear infinite alternate;
+}
+.pet-live.pet-k-bee .pet-ant-l {
+  animation: pet-wave-l 0.8s ease-in-out infinite alternate;
+}
+.pet-live.pet-k-bee .pet-ant-r {
+  animation: pet-wave-r 0.8s ease-in-out infinite alternate;
+}
+/* Robot: its light blinks, its eyes scan, and it shifts in steps. */
+.pet-live.pet-k-robot .pet-ant-tip {
+  animation: pet-light 1.2s steps(2, jump-none) infinite;
+}
+.pet-live.pet-k-robot .pet-led {
+  animation: pet-scan 3.2s ease-in-out infinite;
+}
+.pet-live.pet-k-robot .pet-move {
+  animation: pet-step 2.4s steps(1) infinite;
+}
+.pet-live.pet-k-robot .pet-bolt-l,
+.pet-live.pet-k-robot .pet-bolt-r {
+  animation: pet-ratchet 2.4s steps(4) infinite;
+}
+
+@keyframes pet-swish {
+  0%,
+  100% {
+    transform: rotate(-7deg);
+  }
+  50% {
+    transform: rotate(11deg);
+  }
+}
+@keyframes pet-wag {
+  from {
+    transform: rotate(-12deg);
+  }
+  to {
+    transform: rotate(16deg);
+  }
+}
+@keyframes pet-flick {
+  0%,
+  78%,
+  100% {
+    transform: rotate(0);
+  }
+  84% {
+    transform: rotate(-34deg);
+  }
+  90% {
+    transform: rotate(10deg);
+  }
+}
+@keyframes pet-twitch {
+  0%,
+  86%,
+  100% {
+    transform: rotate(0);
+  }
+  90% {
+    transform: rotate(-14deg);
+  }
+  95% {
+    transform: rotate(7deg);
+  }
+}
+@keyframes pet-flop-l {
+  0%,
+  22%,
+  100% {
+    transform: rotate(0);
+  }
+  8% {
+    transform: rotate(-26deg);
+  }
+  15% {
+    transform: rotate(-8deg);
+  }
+}
+@keyframes pet-flop-r {
+  0%,
+  24%,
+  48%,
+  100% {
+    transform: rotate(0);
+  }
+  32% {
+    transform: rotate(26deg);
+  }
+  40% {
+    transform: rotate(8deg);
+  }
+}
+@keyframes pet-hops {
+  0%,
+  58%,
+  74%,
+  88%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  66% {
+    transform: translateY(-14px) scale(0.97, 1.04);
+  }
+  81% {
+    transform: translateY(-8px) scale(0.98, 1.03);
+  }
+}
+@keyframes pet-leap {
+  0%,
+  58%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  68% {
+    transform: translateY(0) scale(1.1, 0.86);
+  }
+  80% {
+    transform: translateY(-34px) scale(0.93, 1.1);
+  }
+  92% {
+    transform: translateY(0) scale(1.07, 0.9);
+  }
+}
+@keyframes pet-peck {
+  0%,
+  62%,
+  100% {
+    transform: rotate(0);
+  }
+  70% {
+    transform: rotate(13deg);
+  }
+  77% {
+    transform: rotate(3deg);
+  }
+  84% {
+    transform: rotate(13deg);
+  }
+}
+@keyframes pet-rock {
+  from {
+    transform: rotate(-5deg);
+  }
+  to {
+    transform: rotate(5deg);
+  }
+}
+@keyframes pet-nod {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  45%,
+  70% {
+    transform: rotate(6deg) translateY(2px);
+  }
+  76% {
+    transform: rotate(-2deg);
+  }
+}
+@keyframes pet-float {
+  from {
+    transform: translateY(-7px);
+  }
+  to {
+    transform: translateY(4px);
+  }
+}
+@keyframes pet-buzz {
+  0%,
+  100% {
+    transform: translate(0, -6px);
+  }
+  25% {
+    transform: translate(4px, -1px);
+  }
+  50% {
+    transform: translate(0, 3px);
+  }
+  75% {
+    transform: translate(-4px, -2px);
+  }
+}
+@keyframes pet-buzzwing {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(0.3);
+  }
+}
+@keyframes pet-wave-l {
+  from {
+    transform: rotate(-9deg);
+  }
+  to {
+    transform: rotate(9deg);
+  }
+}
+@keyframes pet-wave-r {
+  from {
+    transform: rotate(9deg);
+  }
+  to {
+    transform: rotate(-9deg);
+  }
+}
+@keyframes pet-flap-l {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(38deg);
+  }
+}
+@keyframes pet-flap-r {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(-38deg);
+  }
+}
+@keyframes pet-whisk {
+  from {
+    transform: rotate(-6deg);
+  }
+  to {
+    transform: rotate(6deg);
+  }
+}
+@keyframes pet-sniff {
+  0%,
+  56%,
+  100% {
+    transform: scale(1);
+  }
+  64%,
+  80% {
+    transform: scale(1.14);
+  }
+  72% {
+    transform: scale(1);
+  }
+}
+@keyframes pet-chew {
+  from {
+    transform: translateX(-3px);
+  }
+  to {
+    transform: translateX(3px);
+  }
+}
+@keyframes pet-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 6px) scale(0.6);
+  }
+  25% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(12px, -26px) scale(1.5);
+  }
+}
+@keyframes pet-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.2) rotate(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1) rotate(45deg);
+  }
+}
+@keyframes pet-shimmer {
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+@keyframes pet-light {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.2;
+  }
+}
+@keyframes pet-scan {
+  0%,
+  100% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+@keyframes pet-step {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+@keyframes pet-ratchet {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet,
+  .pet * {
+    animation: none !important;
+  }
+}

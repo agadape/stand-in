@@ -333,7 +333,7 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
                   className={`absolute w-[10.5%] rounded-xl transition-[left,top] duration-[1800ms] ease-in-out ${isFocus ? "z-[2] bg-white/80 ring-2 ring-blue" : ""}`}
                   style={{ left: `${at.left}%`, top: `${at.top}%` }}
                 >
-                  <Pet mood={moodOf(a)} seed={a.slug ?? a.name} />
+                  <Pet mood={moodOf(a)} seed={a.slug ?? a.name} still />
                   <span className={`block truncate text-center text-[10px] font-extrabold leading-tight sm:text-xs ${isMine ? "text-blue" : ""}`}>
                     {a.name}
                   </span>
@@ -400,7 +400,7 @@ function Face({ agent, className = "size-9" }: { agent: Agent | undefined; class
       className={`inline-flex shrink-0 items-end justify-center overflow-hidden rounded-full border-2 border-white ${className}`}
       style={{ background: tintOf(seed) }}
     >
-      <Pet className="w-[82%] translate-y-[10%]" seed={seed} />
+      <Pet className="w-[82%] translate-y-[10%]" seed={seed} still />
     </span>
   );
 }
