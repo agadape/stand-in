@@ -4,12 +4,14 @@ import { CreateRoom } from "@/components/room-gate";
 import { Pet } from "@/components/pet";
 import { EmptyState, PageHeader, Pill, SectionTitle } from "@/components/ui";
 import { listRooms } from "@/lib/met";
+import { requireResident } from "@/lib/session-cookie";
 
 export const metadata: Metadata = { title: "Rooms" };
 export const dynamic = "force-dynamic";
 
-/** Every room on the contract, newest first. */
+/** Every room on the contract, newest first. For residents; a visitor is sent to the door. */
 export default async function RoomsPage() {
+  await requireResident("/rooms");
   const rooms = await listRooms();
   return (
     <div className="narrow space-y-6">

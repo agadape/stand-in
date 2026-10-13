@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import type { Twin } from "./db/schema";
 import { env } from "./env";
 import { twinBySlug } from "./twins";
@@ -49,6 +50,21 @@ export const sessionCookieOptions = {
 export async function sessionPet(): Promise<Twin | null> {
   const slug = slugFromSession((await cookies()).get(SESSION_COOKIE)?.value);
   return slug ? ((await twinBySlug(slug)) ?? null) : null;
+}
+
+/** Where the door may send someone once they are in. Anything else goes to the world. */
+export function safeNext(next: string | undefined): string {
+  return next && /^\/(world|rooms|wall|r\/\d{1,9}|e\/\d{1,9})$/.test(next) ? next : "/world";
+}
+
+/**
+ * For a page only residents may see: the signed-in pet, or a trip to the door that
+ * remembers where they were going. Nothing about the page is rendered for a visitor.
+ */
+export async function requireResident(path: string): Promise<Twin> {
+  const pet = await sessionPet();
+  if (!pet) redirect(`/enter?next=${encodeURIComponent(path)}`);
+  return pet;
 }
 
 /** The same check for a route handler, from its request's Cookie header. */

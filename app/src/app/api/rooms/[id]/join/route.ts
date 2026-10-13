@@ -3,12 +3,14 @@ import type { Address } from "viem";
 import { explorerTx } from "@/lib/chain";
 import { canJoin, joinRoom } from "@/lib/met";
 import { OwnerProofBody, provenPet } from "@/lib/owner-route";
+import { sessionPetOf } from "@/lib/session-cookie";
 import { twinBySlug } from "@/lib/twins";
 
 export const maxDuration = 60;
 
-/** Check: what the contract says about this pet and this room. No signature needed to ask. */
+/** Check: what the contract says about this pet and this room. For residents; no fresh signature needed to ask. */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await sessionPetOf(request))) return NextResponse.json({ error: "Sign in with your pet's passkey to check a room." }, { status: 401 });
   const roomId = Number((await params).id);
   const pet = await twinBySlug(new URL(request.url).searchParams.get("slug") ?? "");
   if (!pet || !Number.isInteger(roomId)) return NextResponse.json({ error: "No such pet or room" }, { status: 404 });

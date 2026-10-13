@@ -156,7 +156,7 @@ export function SoulVault({ pet }: { pet: { slug: string; name: string; ownerAdd
  * Finds your pet again from the passkey alone, for a browser that remembers nothing: the
  * passkey gives the address, and the address gives the pet.
  */
-export function RestorePet({ className = "", label = "I already have a pet" }: { className?: string; label?: string }) {
+export function RestorePet({ className = "", label = "I already have a pet", next = "/world" }: { className?: string; label?: string; next?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -176,8 +176,8 @@ export function RestorePet({ className = "", label = "I already have a pet" }: {
       } finally {
         passkey.end();
       }
-      // Back home: the world, with their pet and its history where they left them.
-      router.push("/world");
+      // Back home, or on to wherever the door stopped them going.
+      router.push(next);
       // The shell is chosen on the server from the session, so ask for it again now that there is one.
       router.refresh();
     } catch (e) {

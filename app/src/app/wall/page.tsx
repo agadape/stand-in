@@ -5,6 +5,7 @@ import { WallGraph } from "@/components/wall-graph";
 import { Pet } from "@/components/pet";
 import { EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { listGatherings } from "@/lib/met";
+import { requireResident } from "@/lib/session-cookie";
 import { wall } from "@/lib/wall";
 
 export const metadata: Metadata = { title: "Live wall" };
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 /** Everyone who has met, drawn live, and the gatherings that have their own wall. */
 export default async function WallPage() {
+  await requireResident("/wall");
   const [all, gatherings] = await Promise.all([wall(0), listGatherings()]);
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">

@@ -18,12 +18,15 @@ const { privateKeyToAccount, generatePrivateKey } = require("viem/accounts");
 const base = (process.argv[2] ?? process.env.STANDIN_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const bypass = process.env.STANDIN_BYPASS ? { "x-vercel-protection-bypass": process.env.STANDIN_BYPASS } : {};
 
+// Rooms and the wall are for residents, so the script signs in once and sends the cookie after that.
+let cookie = "";
 async function call(method, path, body) {
   const res = await fetch(`${base}${path}`, {
     method,
-    headers: { "content-type": "application/json", ...bypass },
+    headers: { "content-type": "application/json", ...bypass, ...(cookie ? { cookie } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (path === "/api/session" && res.ok) cookie = (res.headers.get("set-cookie") ?? "").split(";")[0];
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     const error = new Error(`${method} ${path} -> ${res.status}: ${JSON.stringify(json.error ?? json)}`);
@@ -69,6 +72,7 @@ console.log("pets");
 const dave = await makePet(davePersona);
 const sarah = await makePet(sarahPersona);
 const greg = await makePet(sarahPersona, "Greg");
+await call("POST", "/api/session", await proof(dave, "session"));
 
 console.log("\nrotating codes");
 const stranger = await refused(call("POST", `/api/twins/${dave.slug}/codes`, { ...(await proof({ ...sarah, slug: dave.slug }, "code")), slug: undefined }));

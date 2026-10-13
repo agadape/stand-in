@@ -4,6 +4,7 @@ import { JoinGathering } from "@/components/gathering";
 import { Pet } from "@/components/pet";
 import { PageHeader } from "@/components/ui";
 import { WallGraph } from "@/components/wall-graph";
+import { requireResident } from "@/lib/session-cookie";
 import { wall } from "@/lib/wall";
 
 type Props = { params: Promise<{ id: string }> };
@@ -26,6 +27,7 @@ const clock = (seconds: number) =>
 
 /** One gathering: its own live wall, and the way in for people who are there. */
 export default async function GatheringPage({ params }: Props) {
+  await requireResident(`/e/${(await params).id}`);
   const found = await load(params);
   if (!found) notFound();
   const { id, data, gathering } = found;
