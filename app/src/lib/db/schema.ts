@@ -1,6 +1,7 @@
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import type { StyleFeatures } from "../style";
 import type { LlmVerdict } from "../judge";
+import type { Birthmark } from "../pet-dna";
 
 export type QuizAnswer = { question: string; answer: string };
 
@@ -103,7 +104,18 @@ export const usedCodes = sqliteTable("used_codes", {
  * card, never their texts or quiz answers. `voice` is a description of how they write
  * ("lowercase, very short, laughs a lot"), not samples of it.
  */
-export type PersonaCard = { name: string; about: string; voice: string; interests: string[] };
+export type PersonaCard = {
+  name: string;
+  about: string;
+  voice: string;
+  interests: string[];
+  /** The pet's birthmark, grown in the owner's browser from a passkey namespace. Public. */
+  mark?: Birthmark;
+  /** The pet's Ed25519 public key (hex), from another passkey namespace. Public. */
+  voiceKey?: string;
+  /** The latest postcard the pet signed with that key, for anyone to verify. */
+  postcard?: { text: string; signature: string; at: number };
+};
 
 /** What an owner may set. These shape what the agent does next; none of them is a command. */
 export type Dials = { openness: number; pace: number; avoid: string; paused: boolean };

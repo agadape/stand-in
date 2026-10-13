@@ -54,7 +54,7 @@ export async function sessionPet(): Promise<Twin | null> {
 
 /** Where the door may send someone once they are in. Anything else goes to the world. */
 export function safeNext(next: string | undefined): string {
-  return next && /^\/(world|rooms|wall|r\/\d{1,9}|e\/\d{1,9})$/.test(next) ? next : "/world";
+  return next && /^\/(world|rooms|wall|mera|r\/\d{1,9}|e\/\d{1,9})$/.test(next) ? next : "/world";
 }
 
 /**

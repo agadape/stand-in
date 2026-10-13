@@ -37,3 +37,4 @@ jobs:
       - run: npx tsx src/lib/redact.check.ts
       - run: npx tsx src/lib/stylometry.check.ts
       - run: npx tsx src/lib/card-text.check.ts
+      - run: npx tsx src/lib/pet-dna.check.ts
