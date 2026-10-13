@@ -29,7 +29,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ a
     <div className="space-y-10">
       <GoHome stay={about === "1"} />
       {/* The way in. Behind it, a blurred glimpse of the town: enough to be curious, not enough to see. */}
-      <section className="relative isolate -mx-4 -mt-6 overflow-hidden px-6 py-14 text-center text-white md:-mx-8 md:-mt-10 md:rounded-b-[2.5rem] md:py-20 lg:-mx-10 lg:py-24">
+      <section className="relative isolate left-1/2 -mt-6 flex min-h-[92dvh] w-screen -translate-x-1/2 items-center overflow-hidden px-6 py-14 text-center text-white md:-mt-10 md:py-20">
         <TownGlimpse />
         <div className="relative mx-auto max-w-xl space-y-6">
           <div className="flex items-end justify-center" aria-hidden>
@@ -93,14 +93,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ a
             Met someone in person? Scan their pet&apos;s rotating code and it is recorded as a meeting. Rooms let you in
             only if enough members have met you. And friends can try to text like you while your pet judges.
           </p>
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <LinkButton href="/rooms" variant="secondary">
-              Rooms
-            </LinkButton>
-            <LinkButton href="/wall" variant="secondary">
-              Live wall
-            </LinkButton>
-          </div>
         </section>
 
         <section className="space-y-3 rounded-3xl border-2 border-border bg-card p-5">

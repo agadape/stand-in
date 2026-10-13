@@ -176,6 +176,8 @@ export function RestorePet({ className = "", label = "I already have a pet" }: {
       }
       // Back home: the world, with their pet and its history where they left them.
       router.push("/world");
+      // The shell is chosen on the server from the session, so ask for it again now that there is one.
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't find your pet");
       setBusy(false);
