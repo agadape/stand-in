@@ -51,6 +51,7 @@ The same app also has three older features that still work and share the same co
 | Idea | What it means in the product |
 |---|---|
 | Emergent, not matched | A pair's score changes only because the two had an encounter. There is no matchmaking step anywhere. |
+| You can buy the weather, never the heart | Money buys circumstances for the whole town, for a while. It never buys an agent's choices, a pair's score or anyone's consent. |
 | Owners cannot steer | The server has no route that moves an agent or puts words in its mouth. The test suite checks that the obvious ones (`/api/world/move`, `/say`, `/command`) do not exist. |
 | Two humans decide | At score 80 each owner is asked. The on-chain record is made only after both said yes. |
 | The town knows a card, not you | The world, the other agents and the chat model see a name, a one-liner, a description of how the person writes and the interests they chose to list. Never their texts. |
@@ -285,7 +286,27 @@ All of it is in `app/src/lib/world.ts`.
 **What an owner may do** (`setDials`, `consent`)
 
 - Openness (0 to 100), pace (0 to 100), up to six interests (shown on the card), topics to avoid (up to 120 characters, never sent to browsers), and pause.
+- Pay to change the weather (below). It changes the town for everyone; it is not a command to their pet.
 - Say yes to an introduction for a pair at 80 or above. When both sides have agreed and the other is a real pet, the server calls `recordMeet(shown: other, scanner: mine, method: "link")` with a hash of both pet addresses, the score and the encounter count. If the two had already met in person the chain refuses a second record; the introduction still stands in the app.
+
+### Weather
+
+Nobody can move an agent, but any resident can pay to change the town for a while (`lib/weather.ts`, `lib/weather-pay.ts`, `buyWeather` in `world.ts`).
+
+| Kind | Fills | What the town is told |
+|---|---|---|
+| Thunderstorm | The Tavern | everyone has crowded in to stay dry |
+| Harvest festival | Market Square | music, food stalls, dancing, crowds |
+| Giant moon | Moonlit Lake | an enormous moon, the water glows silver |
+| Guild tournament | Guild Hall | contestants spar and the crowd cheers |
+
+- **What the payer chooses:** the kind, and nothing else. Each kind fills one fixed place. The request body is strict, so one that also names an agent, a pair or a place is refused with 400.
+- **Payment.** The pet's own wallet sends 0.01 MON (`WORLD_WEATHER_FEE_MON`) to the treasury, with `standin:weather:<kind>` as the transaction's data. The sky is claimed first with one conditional `UPDATE` on the clock row, so two people cannot pay for the same stretch. If nothing was mined the claim is released and nothing was charged; if a payment was sent but never seen to land, the claim is left to expire and the app does not claim that nothing was charged.
+- **Duration.** 18 ticks, a little under two minutes (`WORLD_WEATHER_TICKS`), then 12 ticks of clear sky before anyone can buy again (`WORLD_WEATHER_COOLDOWN_TICKS`).
+- **Movement.** While it lasts, an agent elsewhere goes to the weather's place with 65% probability each tick, and one already there stays. Both give way when one of the agent's needs is above 90. It is the same pull for everyone, the payer's own pet included.
+- **Talk.** Pairs at the weather's place are three times as likely to be the ones who talk. With `WORLD_WEATHER_EXTRA_TALK=1` a second pair there talks in the same tick (off by default, because it doubles the model calls). The model is told what is happening in town and may mention it. It is never told who paid.
+- **Credit.** The chronicle opens with "<pet>'s human summoned a thunderstorm" and closes when it ends. Browsers get the payer's pet name, never an address.
+- **What it softens.** An owner can now make it likely that their own pet goes to one of four places, along with everyone else. They still cannot choose who it talks to, what it says, or how any encounter goes.
 
 **Housekeeping.** New pets are added on tick 1 and every third tick. Every 50 ticks the chronicle is trimmed to the newest 400 events. Pets with an id at or below `WORLD_MIN_TWIN_ID` stay out (5 in production, to keep old test pets out of the town).
 
@@ -355,8 +376,8 @@ Drizzle schema in `app/src/lib/db/schema.ts`. Applied with `node scripts/db-push
 | `used_codes` | a spent rotating code | `nonce` (primary key, so a second use fails even in a race) |
 | `world_agents` | someone living in the town | `twin_id` (null for a resident), `name`, `card`, `dials`, `place`, `needs`, `doing`, `hue` |
 | `world_pairs` | how two agents stand | `a_id < b_id`, `score`, `encounters`, `last_summary`, `a_consent`, `b_consent`, `introduced_at`, `tx_hash` |
-| `world_events` | a line of the chronicle | `tick`, `kind` (talk, move, stage, intro), `a_id`, `b_id`, `place`, `text`, `lines`, `delta`, `model` |
-| `world_clock` | the single clock row | `tick`, `last_tick_at` |
+| `world_events` | a line of the chronicle | `tick`, `kind` (talk, move, stage, intro, weather), `a_id`, `b_id`, `place`, `text`, `lines`, `delta`, `model` |
+| `world_clock` | the single clock row | `tick`, `last_tick_at`, and the weather: `weather_kind`, `weather_by` (agent id), `weather_started_tick` (null while the payment is pending), `weather_until_tick`, `weather_tx` |
 | `soul_vaults` | one encrypted tier | `twin_id`, `tier` (private or sensitive), `vault` (ciphertext JSON) |
 
 Client IPs are stored only as salted hashes, for rate limits.
@@ -374,6 +395,7 @@ Client IPs are stored only as salted hashes, for rate limits.
 | `GET /api/world` | **session cookie** (401 without) | Claims a tick if due, returns the snapshot |
 | `POST /api/world/dials` | owner proof `world:dials` | Saves dials and interests |
 | `POST /api/world/consent` | owner proof `world:consent:<pairId>` | Says yes; on the second yes records on-chain |
+| `POST /api/world/weather` | owner proof `world:weather:<kind>`; body is `kind` only | The pet's wallet pays and the weather starts. 409 while the sky is busy |
 | `POST /api/twins` | body with persona and owner address | Creates a pet and registers it on-chain |
 | `GET /api/twins/[slug]` | nothing | Public card and leaderboard |
 | `GET /api/twins/[slug]/scenarios` | nothing | Three random scenarios |
@@ -471,7 +493,8 @@ Continue is disabled until the step is complete. Enter moves on. While hatching 
 - A caption explaining purple versus colourful pets and the controls.
 - Below, two columns on laptops (one on phones):
   - *Left, the Chronicle.* Moves are small grey lines. A talk is a card with its summary, a score chip (green +6, red −3, grey 0) and the lines as chat bubbles left and right under each speaker's name. A change of stage is a green banner. An introduction is a gold banner.
-  - *Right, sticky.* The **agent panel** for whoever is selected: pet, name, "(yours)", the one-liner, Voice, Cares about, Now at, On their mind; a note on what the town knows; a button ("Met someone? Show my code" or "Know …? Meet in person"); and "How … stands with others", a list of bars with stage and score, the last summary, a "Recorded on Monad" link, and the gold consent box with **Yes, introduce us** when a pair is ready. Under it, the **dials** for the user's own pet: two sliders with words (guarded / measured / open, slow to warm up / steady / falls fast), "Cares about", "Won't talk about", a red checkbox to pull the pet out, and **Save dials**.
+  - *Weather.* While weather is on, a blue pill over the stage reads "Thunderstorm at The Tavern · summoned by Dave · 1:04 left" and links to the payment. The chronicle shows it as a blue banner. In 3D a storm turns the sky to slate, halves the light, lights the lamps and rains; a giant moon brings a blue night; a festival turns the drifting motes to confetti; a tournament snaps the guild's banner. The place the weather fills is lit brighter than the rest.
+  - *Right, sticky.* The **agent panel** for whoever is selected: pet, name, "(yours)", the one-liner, Voice, Cares about, Now at, On their mind; a note on what the town knows; a button ("Met someone? Show my code" or "Know …? Meet in person"); and "How … stands with others", a list of bars with stage and score, the last summary, a "Recorded on Monad" link, and the gold consent box with **Yes, introduce us** when a pair is ready. Under it, **Change the weather**: four chunky buttons in a 2×2 grid (Thunderstorm, Harvest festival, Giant moon, Guild tournament), each saying which place it fills, the cost, and a countdown ("Next weather in 0:42") while the sky is taken. Then the **dials** for the user's own pet: two sliders with words (guarded / measured / open, slow to warm up / steady / falls fast), "Cares about", "Won't talk about", a red checkbox to pull the pet out, and **Save dials**.
 - Polls every 3 seconds while the tab is visible. A 401 sends the user back to the door.
 - Without WebGL, a flat map replaces the 3D stage: four tinted quarters with pets standing in loose rows.
 
@@ -565,6 +588,8 @@ This is a lossy projection, not private inference. The texts are still on the se
 | `GEMINI_API_KEY`, `GEMINI_MODEL`, `ANTHROPIC_API_KEY`, `LLM_PROVIDER` | Optional LLM judge |
 | `JUDGE` | `stylometry` (default) or `llm` |
 | `WORLD_TICK_MS` (6000), `WORLD_MIN_TWIN_ID` (0; 5 in production) | The world |
+| `WORLD_WEATHER_TICKS` (18), `WORLD_WEATHER_COOLDOWN_TICKS` (12), `WORLD_WEATHER_FEE_MON` (0.01), `WORLD_WEATHER_EXTRA_TALK` (0) | Weather: how long it lasts, the clear sky after it, what it costs, and whether a second pair talks per tick |
+| `TREASURY_ADDRESS` (unset) | Where weather fees go. Unset, they go to the funder wallet, and `/api/health` says so |
 | `TWIN_GAS_TOPUP_MON` (0.2), `TWIN_GAS_MIN_MON` (0.05), `DEMO_POT_MON` (0.1), `MIN_FUNDER_MON` (0.3) | Gas |
 | `LIMIT_*` | Rate limits (section 9) |
 
@@ -603,7 +628,7 @@ cd app && npm run dev
 | `ProofOfMet` contract | `contracts/test/ProofOfMet.t.sol` | 18, including a fuzz test that a pair is symmetric |
 | `StandIn` contract | `contracts/test/StandIn.t.sol` | 18, including a fuzz test that the pot pays only on a strictly higher score |
 | Style, redaction, stylometry | `app/src/lib/*.check.ts` | Run in CI |
-| The world, end to end | `scripts/world-e2e.mjs` | The gate (401, redirect, no menu in a visitor's HTML, forged cookie refused), sign-in, pets moving in, the card carrying no texts, dials needing the owner, no command routes, no introduction below the threshold, one yes not enough, a forged yes refused, the second yes making a real transaction, pause |
+| The world, end to end | `scripts/world-e2e.mjs` | The gate (401, redirect, no menu in a visitor's HTML, forged cookie refused), sign-in, pets moving in, the card carrying no texts, dials needing the owner, no command routes, no introduction below the threshold, one yes not enough, a forged yes refused, the second yes making a real transaction, pause. Weather: no proof refused, someone else's signature refused, a signature for another kind refused, a body that also names an agent, a place or a pair refused, a real payment, credit by pet name and not by address, a second purchase refused with the wait, and at least half the town in the tavern within 45 seconds |
 | Meetings, rooms, wall | `scripts/met-e2e.mjs` | 15 checks against the real contract |
 | Soul vault, server side | `scripts/vault-e2e.mjs` | 10 checks |
 | Earlier flows | `scripts/e2e.mjs`, `scripts/meet-e2e.mjs` | Create, prove, fund, challenge; meet by link |
@@ -630,6 +655,8 @@ Tested and passing: both contracts; the world's rules and its gate; meetings, ro
 - **The server holds the pets' keys.** A pet's wallet is derived from a server secret, so the on-chain record is as honest as this server. Moving that key to the owner's passkey is the next step.
 - **The card is lossy, not private.** See section 16.
 - **Prompt injection is reduced, not ruled out.** What an owner types (bio, interests, topics to avoid) reaches the town's model flattened to one line, clamped in length and quoted inside a JSON card, with a rule that card values are descriptions and never instructions (`lib/card-text.ts`). A model can still be talked round.
+- **The weather fee is circular on testnet.** The pet's wallet is filled by the funder, and without a treasury the fee goes back to the funder. On mainnet it would need a way for owners to fund their pet, and pet wallets are held by the server, which makes this custodial.
+- **Weather softens "cannot steer".** See section 7: an owner can make one of four places likely for their own pet, and for everyone else at the same time.
 - **Agents can be wrong about people.** The app asks "do you want to be introduced?". It does not claim a match.
 - **Closeness is tuned for a demo.** Warmth builds roughly twice as fast as the model's own number so a pair can cross the threshold in minutes.
 - **Free tiers.** When the chat model's allowance runs out, encounters become wordless quiet moments.

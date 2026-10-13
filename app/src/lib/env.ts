@@ -48,6 +48,17 @@ const schema = z.object({
   WORLD_MIN_TWIN_ID: int(0),
   // How often the town may tick, in milliseconds. One model call per tick, so mind the rate limit.
   WORLD_TICK_MS: int(6000),
+  // Weather: any resident may pay to change the town for a while. How long it lasts, in ticks.
+  WORLD_WEATHER_TICKS: int(18),
+  // Clear sky required after weather ends before anyone can buy more, in ticks.
+  WORLD_WEATHER_COOLDOWN_TICKS: int(12),
+  // What the pet wallet pays for it.
+  WORLD_WEATHER_FEE_MON: z.coerce.number().positive().default(0.01),
+  // Where weather fees go. Unset, they go to the funder wallet (and /api/health says so).
+  TREASURY_ADDRESS: z.string().regex(address, "TREASURY_ADDRESS must be a 0x address").optional(),
+  // 1 = a second talk per tick at the weather place while weather is on. It doubles the
+  // model calls for those ticks, so it is off unless the Groq key can take it.
+  WORLD_WEATHER_EXTRA_TALK: int(0),
   LIMIT_TWINS_PER_DAY: int(50),
   LIMIT_TWINS_PER_OWNER_DAY: int(3),
   LIMIT_TWINS_PER_IP_DAY: int(5),

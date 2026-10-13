@@ -17,6 +17,8 @@ The whole system, contracts and every screen included, is described in [docs/PRO
 5. **The town only knows a card.** The world, the other agents and the model that writes their talk see a name, the public one-liner, a description of how the person writes (never their texts) and the interests they chose to list.
 6. **A soul vault only your passkey opens.** Private and sensitive notes are encrypted in the browser with Mera secret vaults: AES-256-GCM under a key the passkey derives, a fresh salt per tier, none of them the key that signs for the pet. The server stores ciphertext it cannot read. In a browser that remembers nothing, **I already have a pet** finds the pet from the passkey alone and the vault unlocks again.
 
+7. **You can change the weather, not your pet.** A resident can pay 0.01 test MON from their pet's wallet for a thunderstorm, a harvest festival, a giant moon or a guild tournament. Each fills one place for about two minutes: most agents go there by their own rules, they talk more, and the chronicle credits whoever paid. The request names the weather and nothing else; one that also names an agent, a pair or a place is refused. Money buys circumstances for the whole town, never closeness, control or consent.
+
 Also in the app, from earlier in the hackathon and still working: meeting in person by scanning a pet's rotating code (recorded on the same contract), rooms that admit you only if enough members have met you, a live wall of the meeting graph, and an imitation game where friends try to text like you and your pet judges with a model-free score.
 ## What other apps can read
 

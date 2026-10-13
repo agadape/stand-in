@@ -7,6 +7,7 @@ import { api, ApiError, type World } from "@/lib/api";
 import type { TownScene } from "./town-scene";
 import { ownerProof, type MyPet } from "@/lib/owner-client";
 import { rememberOwned } from "@/lib/session";
+import { WEATHER, WEATHER_KINDS, type WeatherKind } from "@/lib/weather";
 import { Pet, type Mood } from "./pet";
 import { Button, Card, ErrorNote, LinkButton, Pill } from "./ui";
 
@@ -26,6 +27,23 @@ function partOfDay(hour: number) {
   return hour < 5 ? "night" : hour < 8 ? "dawn" : hour < 12 ? "morning" : hour < 17 ? "afternoon" : hour < 20 ? "dusk" : "night";
 }
 
+/** The current time, refreshed every second, for countdowns. 0 until the first second has passed. */
+function useNow() {
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return now;
+}
+
+/** How long `ticks` more ticks will take from now, as m:ss. Counts down between polls. */
+function untilTicks(world: World, ticks: number, now: number) {
+  const sinceTick = now ? Math.max(0, Math.min(world.tickMs, now - world.lastTickAt)) : 0;
+  const seconds = Math.max(0, Math.ceil((ticks * world.tickMs - sinceTick) / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 /**
  * The 3D town. It loads three.js only on this page and only in the browser; if WebGL is
  * not available the flat map passed as children is shown instead, so the world is never
@@ -36,9 +54,11 @@ function TownStage({
   mineId,
   selected,
   onPick,
+  now,
   children,
 }: {
   world: World;
+  now: number;
   mineId: number | null;
   selected: number | null;
   onPick: (id: number | null) => void;
@@ -102,6 +122,7 @@ function TownStage({
         ? { id: talk.id * 10 + (lines ? Math.min(line, lines.length - 1) : 0), aId: talk.aId, bId: talk.bId, delta: talk.delta ?? 0, line: said?.text ?? null, speaker: said ? (said.from === "a" ? talk.aId : talk.bId) : null }
         : null,
       selected,
+      weather: world.weather ? { kind: world.weather.kind, place: world.weather.place } : null,
     });
   }, [world, mineId, selected, talk, lines, line, ready]);
 
@@ -126,6 +147,24 @@ function TownStage({
           </button>
         </span>
       </div>
+      {world.weather && (
+        // Who changed the sky, where it is, and how long is left. It links to the payment when there is one.
+        <a
+          href={world.weather.txUrl ?? undefined}
+          target="_blank"
+          rel="noreferrer"
+          className="absolute left-1/2 top-16 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-x-1 rounded-full bg-blue max-sm:w-max max-sm:flex-wrap max-sm:justify-center max-sm:rounded-2xl px-3 py-1.5 text-[11px] font-extrabold text-white shadow-md sm:text-xs"
+        >
+          <span aria-hidden className="shrink-0">
+            {world.weather.icon}
+          </span>
+          <span className="min-w-0 truncate">
+            {world.weather.label} at {world.places.find((p) => p.id === world.weather?.place)?.name}
+          </span>
+          <span className="min-w-0 shrink-[20] truncate font-bold opacity-90">· <span className="max-sm:hidden">summoned </span>by {world.weather.byName}</span>
+          <span className="shrink-0">· {untilTicks(world, world.weather.ticksLeft, now)} left</span>
+        </a>
+      )}
       {latest && (
         <p className="pointer-events-none absolute inset-x-3 bottom-3 rounded-2xl bg-white/88 px-4 py-2 text-sm shadow-sm" aria-live="polite">
           {latest.text}
@@ -163,6 +202,7 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
   // Who is watching comes from the signed-in session, checked on the server.
   const pet = me;
   const router = useRouter();
+  const now = useNow();
 
   useEffect(() => {
     // Keep this device's memory of its pet in step with the session it is signed in as.
@@ -248,7 +288,7 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
         </Card>
       )}
 
-          <TownStage world={world} mineId={mine?.id ?? null} selected={focus?.id ?? null} onPick={setSelected}>
+          <TownStage world={world} mineId={mine?.id ?? null} selected={focus?.id ?? null} onPick={setSelected} now={now}>
           <div className="relative aspect-square w-full overflow-hidden rounded-3xl border-2 border-border sm:aspect-[4/3]">
             {world.places.map((p) => (
               <div
@@ -319,6 +359,7 @@ export function WorldView({ initial, welcome = false, me }: { initial: World; we
               Back to {mine.name}
             </Button>
           ) : null}
+          {mine && <WeatherBoard world={world} pet={pet} now={now} onChanged={() => api.getWorld().then(setWorld, () => undefined)} />}
           {mine && <Dials key={`dials-${mine.id}`} agent={mine} pet={pet} />}
         </aside>
       </div>
@@ -330,6 +371,20 @@ function Entry({ event, byId, onPick }: { event: World["events"][number]; byId: 
   const a = byId.get(event.aId);
   const b = event.bId ? byId.get(event.bId) : undefined;
   if (event.kind === "move") return <li className="px-1 text-xs text-muted">{event.text}</li>;
+  if (event.kind === "weather") {
+    // Each weather fills one place, so the place says which weather it was.
+    const kind = WEATHER_KINDS.find((k) => WEATHER[k].place === event.place);
+    return (
+      <li className="rounded-2xl border-2 border-blue/50 bg-blue/10 px-4 py-2 text-sm font-extrabold text-blue">
+        {kind && (
+          <span aria-hidden className="mr-1">
+            {WEATHER[kind].icon}
+          </span>
+        )}
+        {event.text}
+      </li>
+    );
+  }
   if (event.kind === "stage" || event.kind === "intro") {
     return (
       <li className={`rounded-2xl border-2 px-4 py-2 text-sm font-extrabold ${event.kind === "intro" ? "border-gold/50 bg-gold/10 text-gold" : "border-accent/40 bg-accent/10 text-accent-strong"}`}>
@@ -429,7 +484,7 @@ function AgentPanel({
         <div>
           <dt className="inline font-extrabold">Now at: </dt>
           <dd className="inline text-muted">
-            {agent.paused ? "resting, out of the town" : `${world.places.find((p) => p.id === agent.place)?.name}${agent.doing ? `, ${agent.doing}` : ""}`}
+            {agent.paused ? "resting, out of the town" : `${world.places.find((p) => p.id === agent.place)?.name}${agent.doing ? `, ${agent.doing}` : ""}${world.weather?.place === agent.place ? ` (${world.weather.there})` : ""}`}
           </dd>
         </div>
         {!agent.paused && agent.wants && (
@@ -510,6 +565,71 @@ function AgentPanel({
         })}
         <ErrorNote>{error}</ErrorNote>
       </div>
+    </Card>
+  );
+}
+
+/**
+ * The one thing money buys here: the weather. It changes the town for everyone for a
+ * while. There is no field for an agent, a pair or a place, because the request has none.
+ */
+function WeatherBoard({ world, pet, now, onChanged }: { world: World; pet: MyPet; now: number; onChanged: () => Promise<unknown> }) {
+  const [busy, setBusy] = useState<null | { kind: WeatherKind; step: "passkey" | "sending" }>(null);
+  const [error, setError] = useState<string | null>(null);
+  const wait = world.weatherReadyInTicks;
+
+  async function buy(kind: WeatherKind) {
+    setError(null);
+    setBusy({ kind, step: "passkey" });
+    try {
+      const auth = await ownerProof(pet, `world:weather:${kind}`);
+      setBusy({ kind, step: "sending" });
+      await api.buyWeather({ ...auth, kind });
+      // Show it now; the next poll is up to three seconds away.
+      await onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't change the weather");
+      await onChanged();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <Card className="space-y-4">
+      <div>
+        <h2 className="font-extrabold">Change the weather</h2>
+        <p className="text-xs text-muted">You can&apos;t move {pet.name}, or anyone. You can change the sky, for everyone.</p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {WEATHER_KINDS.map((kind) => {
+          const w = WEATHER[kind];
+          const mine = busy?.kind === kind;
+          return (
+            <Button
+              key={kind}
+              variant="secondary"
+              className="!min-h-[4.75rem] flex-col !gap-0.5 !px-2 py-2 text-center"
+              onClick={() => buy(kind)}
+              disabled={wait > 0 || busy !== null}
+            >
+              <span className="leading-tight">
+                <span aria-hidden>{w.icon}</span> {mine ? (busy.step === "passkey" ? "Waiting for your passkey…" : "Sending…") : w.label}
+              </span>
+              <span className="text-[11px] font-bold normal-case tracking-normal text-muted">fills {world.places.find((p) => p.id === w.place)?.name}</span>
+            </Button>
+          );
+        })}
+      </div>
+      {wait > 0 && !busy && (
+        <p className="text-sm font-extrabold text-blue" aria-live="off">
+          {world.weather ? "The sky is taken. " : ""}Next weather in {untilTicks(world, wait, now)}
+        </p>
+      )}
+      <ErrorNote>{error}</ErrorNote>
+      <p className="text-xs text-muted">
+        Costs {world.weatherFeeMon} test MON from {pet.name}&apos;s wallet. Your pet feels it too. Weather is for everyone.
+      </p>
     </Card>
   );
 }
