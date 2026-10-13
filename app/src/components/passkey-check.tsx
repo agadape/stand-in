@@ -25,7 +25,9 @@ async function timed(run: () => Promise<string>) {
   const start = performance.now();
   const focus = `focus ${document.hasFocus() ? "yes" : "NO"}, visible ${document.visibilityState}`;
   try {
-    return `OK after ${((performance.now() - start) / 1000).toFixed(1)}s: ${await run()}`;
+    // Wait for the result first: the time is only meaningful once the prompt is over.
+    const result = await run();
+    return `OK after ${((performance.now() - start) / 1000).toFixed(1)}s: ${result}`;
   } catch (error) {
     // Under about a second means no prompt was shown, or it was refused at once.
     return `FAILED after ${((performance.now() - start) / 1000).toFixed(1)}s (${focus}): ${why(error)}`;
