@@ -179,6 +179,38 @@ const letter = await call("GET", `/api/world/letter?since=0&slug=${sarah.slug}`)
 check(letter.status === 200 && "letter" in letter.json, "signed in, the owner can ask for their pet's letter", letter.json.letter ? `${letter.json.byModel ? "model" : "plain"}: ${letter.json.letter.slice(0, 110)}` : "nothing to tell yet");
 check(!JSON.stringify(letter.json).includes("omw"), "and it carries none of the owner's texts");
 
+// What a pet publishes from its passkey's other namespaces: a birthmark, a voice key and a
+// signed postcard. The server only ever gets the public halves, and checks the postcard.
+const { ed25519 } = require("@noble/curves/ed25519.js");
+const hexOf = (bytes) => Buffer.from(bytes).toString("hex");
+const mark = { fingerprint: "0123456789abcdef", hue: 250, hue2: 40, shape: 2, cells: 0b010110101101010, rays: 6 };
+const voiceSeed = ed25519.utils.randomSecretKey ? ed25519.utils.randomSecretKey() : ed25519.utils.randomPrivateKey();
+const voiceKey = hexOf(ed25519.getPublicKey(voiceSeed));
+const card = (slug, text) => new TextEncoder().encode(`Stand-In postcard\npet: ${slug}\n${text}`);
+const signCard = (slug, text, seed = voiceSeed) => hexOf(ed25519.sign(card(slug, text), seed));
+const publish = (body) => call("POST", "/api/world/mark", body);
+check((await publish({ slug: dave.slug, mark })).status === 400, "publishing without an owner's proof is refused");
+check((await publish({ ...(await signed(dave, "world:mark", sarah.owner)), mark })).status === 401, "someone else cannot publish a mark for Dave");
+check((await publish({ ...(await signed(dave, "world:dials")), mark })).status === 401, "a signature for another action cannot publish");
+check((await publish({ ...(await signed(dave, "world:mark")), mark: { ...mark, hue: 999 } })).status === 400, "something that is not a birthmark is refused");
+check((await publish({ ...(await signed(dave, "world:mark")), mark, prfOutput: "00" })).status === 400, "a body that carries anything else is refused");
+const marked = await publish({ ...(await signed(dave, "world:mark")), mark });
+check(marked.status === 200 && marked.json.mark?.fingerprint === mark.fingerprint, "Dave's owner publishes the pet's birthmark");
+const forgedCard = await publish({ ...(await signed(dave, "world:mark")), voiceKey, postcard: { text: "hi from dave", signature: signCard(dave.slug, "hi from dave", ed25519.utils.randomSecretKey ? ed25519.utils.randomSecretKey() : ed25519.utils.randomPrivateKey()) } });
+check(forgedCard.status === 400, "a postcard signed by a different key is refused");
+const tampered = await publish({ ...(await signed(dave, "world:mark")), voiceKey, postcard: { text: "hi from dave!", signature: signCard(dave.slug, "hi from dave") } });
+check(tampered.status === 400, "a postcard whose text was changed after signing is refused");
+const borrowed = await publish({ ...(await signed(dave, "world:mark")), voiceKey, postcard: { text: "hi from dave", signature: signCard(sarah.slug, "hi from dave") } });
+check(borrowed.status === 400, "a postcard signed for another pet is refused");
+const posted = await publish({ ...(await signed(dave, "world:mark")), voiceKey, postcard: { text: "hi from dave", signature: signCard(dave.slug, "hi from dave") } });
+check(posted.status === 200 && posted.json.voiceKey === voiceKey && posted.json.postcard?.text === "hi from dave", "a postcard signed by the pet's voice key is kept");
+cookie = "";
+const anyone = await call("GET", `/api/world/mark?slug=${dave.slug}`);
+check(anyone.status === 200 && anyone.json.voiceKey === voiceKey && ed25519.verify(Buffer.from(anyone.json.postcard.signature, "hex"), card(dave.slug, anyone.json.postcard.text), Buffer.from(anyone.json.voiceKey, "hex")), "anyone, signed out, can fetch the postcard and verify it themselves");
+const seen = JSON.stringify((await call("GET", "/api/world/watch")).json.agents.find((x) => x.slug === dave.slug) ?? {});
+check(seen.includes(mark.fingerprint) && !seen.includes("ownerAddress"), "a watcher sees the birthmark on Dave's card, and still no owner");
+cookie = (signedIn.setCookie ?? "").split(";")[0];
+
 // Bring this one pair to the threshold directly, then test the consent gate.
 const [lo, hi] = a.id < b.id ? [a.id, b.id] : [b.id, a.id];
 await local.execute({ sql: "delete from world_pairs where a_id = ? and b_id = ?", args: [lo, hi] });

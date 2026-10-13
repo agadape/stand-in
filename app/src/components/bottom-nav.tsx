@@ -45,6 +45,12 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M8.400 7.300l7.200.5M7 9.300l3 6.400M16.600 10l-4.200 6" />
     </svg>
   ),
+  Keys: (
+    <svg {...icon} aria-hidden>
+      <circle cx="8" cy="15" r="4" />
+      <path d="M11 12l9-9M16 7l3 3M14 9l2 2" />
+    </svg>
+  ),
   "Make your pet": (
     <svg {...icon} aria-hidden>
       <path d="M12 5v14M5 12h14" />
@@ -74,6 +80,8 @@ function tabsFor(resident: Resident): { pet: Tab[]; site: Tab[] } {
     site: [
       { href: "/rooms", label: "Rooms" },
       { href: "/wall", label: "Wall" },
+      // How this pet uses its passkey beyond being an account.
+      { href: "/mera", label: "Keys" },
     ],
   };
 }

@@ -13,6 +13,7 @@ import { entropyToMnemonic, mnemonicToSeedSync } from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import type { Address, Hex, LocalAccount } from "viem";
 import { ownerMessage, type OwnerAction } from "./auth";
+import { ns } from "./mera-namespaces";
 
 /**
  * A passkey is the whole account. Mera's PRF output (32 bytes the authenticator derives
@@ -142,6 +143,24 @@ export async function signInWithPasskey(): Promise<PasskeyAccount> {
     // If asking for the remembered passkey is what failed, forget it: the next try lets
     // the device offer every passkey it has for this site.
     if (known) remember(null);
+    throw passkeyError(error, "use", startedAt);
+  }
+}
+
+/**
+ * 32 bytes from a namespace of this passkey other than the account's: one ceremony, one
+ * prompt. The account uses Mera's default salt; a namespace's salt is the hash of its label
+ * (lib/mera-namespaces.ts), so what comes back is unrelated to the account key and to
+ * every other namespace. The caller turns the bytes into something and lets them go;
+ * they are never stored or shown.
+ */
+export async function prfForNamespace(namespace: string): Promise<Uint8Array> {
+  const credential = remembered();
+  const startedAt = performance.now();
+  try {
+    const { prfOutput } = await getPasskeyPrfOutput({ rpId: rpId(), prfSalt: await ns(namespace), ...(credential ? { credential } : {}) });
+    return prfOutput;
+  } catch (error) {
     throw passkeyError(error, "use", startedAt);
   }
 }

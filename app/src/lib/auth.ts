@@ -19,6 +19,8 @@ export type OwnerAction =
   | `world:weather:${string}`
   // Storing a passkey-encrypted tier of the soul vault (the server only ever gets ciphertext).
   | `vault:save:${string}`
+  // Publishing what the pet's other passkey namespaces produced: its birthmark, its voice key, a postcard.
+  | "world:mark"
   // Signing in: the server answers with the session cookie that opens the world.
   | "session";
 

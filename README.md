@@ -117,6 +117,35 @@ docs/       PROJECT.md (the whole system) · runbook.md (operations) · submissi
 
 **Privacy.** Sample texts and quiz answers are stored server-side. The default judge reads them without any model. They are sent to a model in two cases: the pets' first chat when two people meet (an open model hosted by Groq, or Gemini as fallback), and the judge when `JUDGE=llm`. The town's model never gets them, only the card. The public pet card and API expose name, bio, addresses, scores and verdict lines; never the samples or other players' answers. The full table of who sees what is in [docs/PROJECT.md](docs/PROJECT.md), section 16.
 
+## How we use Mera PRF namespaces
+
+One passkey, asked for 32 bytes under several namespaces. A namespace is a label, and its PRF salt is the SHA-256 of that label (Mera's docs: "Salts act as namespaces"). Different salt, unrelated bytes, so one use leaking says nothing about another. Only the first row is an account.
+
+| Namespace | PRF salt | What the bytes become | What our server holds |
+| --- | --- | --- | --- |
+| `mera.prf.salt.v1` (Mera's default) | SHA-256 of the label | secp256k1 key: the Monad account that owns the pet and signs every owner action | the address |
+| one random salt per vault tier | 32 random bytes, stored beside the ciphertext | AES-256-GCM key for the soul vault's private notes | ciphertext, IV, salt |
+| `standin/pet-dna/v1` | SHA-256 of the label | the pet's **birthmark**: colours, frame, pattern and a 16-hex fingerprint, all read from a hash of the bytes | the traits and the fingerprint |
+| `standin/pet-voice/v1` | SHA-256 of the label | an Ed25519 key that signs the pet's **postcards** | the public key, the postcard and its signature |
+
+See it on the live site at [`/mera`](https://stand-in-ashen.vercel.app/mera) (sign in first; it is under **Keys** in the menu). What you can check there:
+
+- **Same passkey, different namespaces, unrelated outputs.** Each row shows its own salt and its own fingerprint or public key.
+- **Nothing is stored that could regrow the mark.** Sign in on another device where the passkey is synced, press *Grow from my passkey*, and the page compares what grew with the record: "Match".
+- **Signed means signed.** Change one character of a postcard and the check fails. Tick *Check with the DNA namespace's key instead* and it fails too: one namespace cannot speak for another.
+- **The server is blind.** `POST /api/world/mark` has a strict body: owner proof, `mark`, `voiceKey`, `postcard`. Anything else is a 400. It refuses a postcard that does not verify. `GET /api/world/mark?slug=…` is public, so anyone can verify a postcard themselves.
+
+The call, from [`app/src/lib/passkey.ts`](app/src/lib/passkey.ts):
+
+```ts
+// ns(label) is the SHA-256 of the label; namespace is "standin/pet-dna/v1" or "standin/pet-voice/v1"
+const { prfOutput } = await getPasskeyPrfOutput({ rpId: rpId(), prfSalt: await ns(namespace), ...(credential ? { credential } : {}) });
+```
+
+Code: [`mera-namespaces.ts`](app/src/lib/mera-namespaces.ts), [`pet-dna.ts`](app/src/lib/pet-dna.ts), [`pet-voice.ts`](app/src/lib/pet-voice.ts), [`mera-panel.tsx`](app/src/components/mera-panel.tsx), [`api/world/mark`](app/src/app/api/world/mark/route.ts). Raw PRF output is never shown, stored or sent; the buffers are zeroed after use.
+
+Honest limits: a passkey prompt answers one salt at a time, so each namespace is its own prompt. A birthmark is 16 hex characters of a hash on display, not a secret. Mera is in preview and so is this.
+
 ## Run it
 
 Prerequisites: Node 20.9+, [Foundry](https://getfoundry.sh), a judge key (a free Gemini key from <https://aistudio.google.com/apikey>, or an Anthropic key), and some Monad testnet MON from <https://faucet.monad.xyz>.

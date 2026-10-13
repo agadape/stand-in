@@ -731,3 +731,7 @@ scripts/                      gen-env, deploy, sync-abi, db-push, the e2e script
 docs/                         PROJECT.md (this file), runbook.md, submission.md
 .github/workflows/ci.yml      contracts and app checks
 ```
+
+## Mera PRF namespaces (added 14 Oct)
+
+Besides the account (Mera's default salt) and the soul vault (a random salt per tier), the passkey is asked under two named namespaces: `standin/pet-dna/v1` grows the pet's birthmark and `standin/pet-voice/v1` gives an Ed25519 key that signs its postcards. Page: `/mera` (Keys in the menu, residents only). API: `GET/POST /api/world/mark`, owner action `world:mark`. The public halves live on the pet's card (`mark`, `voiceKey`, `postcard`); there is no schema change. The README has the table.

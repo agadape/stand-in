@@ -7,6 +7,7 @@ import type { Agent, Dials, Needs, Pair, PersonaCard, Persona, Twin } from "./db
 import { env } from "./env";
 import { groqJson } from "./llm/groq";
 import { recordMeet } from "./met";
+import type { Birthmark } from "./pet-dna";
 import { features } from "./style";
 import { WEATHER, isWeatherKind, type WeatherKind } from "./weather";
 import { PaymentUnconfirmed, payForWeather } from "./weather-pay";
@@ -460,6 +461,8 @@ export async function snapshot() {
       name: agent.name,
       about: agent.card.about,
       voice: agent.card.voice,
+      // Grown from the owner's passkey and published by them. Public.
+      mark: agent.card.mark ?? null,
       interests: agent.card.interests,
       place: agent.place as PlaceId,
       doing: agent.doing ?? "",
@@ -514,6 +517,29 @@ export async function agentOfTwin(twin: Twin) {
 }
 
 // ---------------------------------------------------------- what an owner may do
+
+/** What a pet has published from its passkey's other namespaces. All public. */
+export async function publicKeysOf(twin: Twin) {
+  const me = await agentOfTwin(twin);
+  return { mark: me?.card.mark ?? null, voiceKey: me?.card.voiceKey ?? null, postcard: me?.card.postcard ?? null, arrived: Boolean(me) };
+}
+
+/**
+ * The owner publishes the public halves of what their passkey grew: a birthmark, a voice
+ * key, a signed postcard. They live on the pet's card, which the whole town can already see.
+ */
+export async function publishKeys(twin: Twin, keys: { mark?: Birthmark; voiceKey?: string; postcard?: { text: string; signature: string } }) {
+  const me = await agentOfTwin(twin);
+  if (!me) throw new WorldError("Your pet hasn't arrived in the world yet. Give it a few seconds.", 409);
+  const card: PersonaCard = {
+    ...me.card,
+    ...(keys.mark ? { mark: keys.mark } : {}),
+    ...(keys.voiceKey ? { voiceKey: keys.voiceKey } : {}),
+    ...(keys.postcard ? { postcard: { ...keys.postcard, at: Date.now() } } : {}),
+  };
+  await db().update(schema.agents).set({ card }).where(eq(schema.agents.id, me.id));
+  return { mark: card.mark ?? null, voiceKey: card.voiceKey ?? null, postcard: card.postcard ?? null, arrived: true };
+}
 
 /** Turn the dials. They change what the agent does from the next tick on; nothing more. */
 export async function setDials(twin: Twin, dials: Dials, interests?: string[]) {

@@ -9,6 +9,7 @@ import { ownerProof, type MyPet } from "@/lib/owner-client";
 import { rememberOwned } from "@/lib/session";
 import { speciesOf } from "@/lib/species";
 import { WEATHER, WEATHER_KINDS, type WeatherKind } from "@/lib/weather";
+import { Birthmark } from "./birthmark";
 import { Pet, type Mood } from "./pet";
 import { Button, Card, ErrorNote, LinkButton, Pill, SectionTitle } from "./ui";
 
@@ -573,6 +574,17 @@ function AgentPanel({
             <dt className="text-[11px] font-extrabold uppercase tracking-wide text-muted">Voice</dt>
             <dd>{agent.voice}</dd>
           </div>
+          {agent.mark && (
+            <div>
+              <dt className="text-[11px] font-extrabold uppercase tracking-wide text-muted">Birthmark</dt>
+              <dd className="flex items-center gap-2">
+                <Birthmark mark={agent.mark} className="w-10 shrink-0" label={`${agent.name}'s birthmark`} />
+                <span className="text-xs text-muted">
+                  Grown from its owner&apos;s passkey. <span className="font-mono">{agent.mark.fingerprint}</span>
+                </span>
+              </dd>
+            </div>
+          )}
           {agent.interests.length > 0 && (
             <div>
               <dt className="text-[11px] font-extrabold uppercase tracking-wide text-muted">Cares about</dt>

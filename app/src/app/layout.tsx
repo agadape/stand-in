@@ -41,6 +41,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <Link href="/wall" className="hover:text-foreground">
                   Wall
                 </Link>
+                <Link href="/mera" className="hover:text-foreground">
+                  Keys
+                </Link>
               </nav>
             </header>
           </>
