@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 /**
  * The Isekai in 3D: a small island town drawn with plain three.js, no models or textures.
@@ -103,6 +104,52 @@ type Body = {
   scale: number;
 };
 
+const BAKED = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0, flatShading: true });
+
+/**
+ * Turns a group of plain coloured meshes into one mesh, with the colours carried on its
+ * vertices. A sheep is nine boxes; drawn one by one that is nine draw calls, and a phone
+ * feels every one. The group must not be in the scene yet, and must hold nothing that
+ * glows or moves on its own.
+ */
+function bake(group: THREE.Object3D): THREE.Mesh {
+  group.updateMatrixWorld(true);
+  const undo = group.matrixWorld.clone().invert();
+  const parts: THREE.BufferGeometry[] = [];
+  group.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh) return;
+    const g = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()).applyMatrix4(new THREE.Matrix4().multiplyMatrices(undo, m.matrixWorld));
+    const { r, g: green, b } = (m.material as THREE.MeshStandardMaterial).color;
+    const colors = new Float32Array(g.attributes.position.count * 3);
+    for (let i = 0; i < colors.length; i += 3) colors.set([r, green, b], i);
+    g.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    parts.push(g);
+    m.geometry.dispose();
+  });
+  const mesh = new THREE.Mesh(mergeGeometries(parts), BAKED);
+  mesh.position.copy(group.position);
+  mesh.rotation.copy(group.rotation);
+  mesh.scale.copy(group.scale);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+/** Something that moves by itself out in the countryside: an animal, a bird or a boat. */
+type Critter = { g: THREE.Object3D; kind: "walker" | "swimmer" | "flyer" | "boat" | "sailor"; home: [number, number]; reach: number; speed: number; phase: number; to: THREE.Vector3 | null; wait: number; y: number };
+
+/** Where the countryside's set pieces stand (x, z, radius), so trees keep off them. */
+const KEEP_OFF: [number, number, number][] = [
+  [33, -27, 12], // the farm
+  [-33, 30, 7.5], // the pond
+  [-42, -6, 5.5], // the camp
+  [49, 21, 5], // the lighthouse
+  [19, 16, 9.6], // the lake itself
+];
+/** How far from the middle the grass reaches. */
+const ISLAND = 54;
+
 export class TownScene {
   private renderer: THREE.WebGLRenderer;
   private labels: CSS2DRenderer;
@@ -125,6 +172,10 @@ export class TownScene {
   private motes!: THREE.Points;
   private clouds: THREE.Group[] = [];
   private smoke: { mesh: THREE.Mesh; t: number }[] = [];
+  private critters: Critter[] = [];
+  private blades!: THREE.Group;
+  private flame!: THREE.Mesh;
+  private fireLight!: THREE.PointLight;
   private water!: THREE.Mesh;
   private lake!: THREE.Mesh;
   private banner!: THREE.Mesh;
@@ -172,12 +223,12 @@ export class TownScene {
     Object.assign(this.labels.domElement.style, { position: "absolute", inset: "0", pointerEvents: "none" });
     host.appendChild(this.labels.domElement);
 
-    this.camera.position.set(0, 34, 46);
+    this.camera.position.set(0, 40, 58);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.minDistance = 9;
-    this.controls.maxDistance = 78;
+    this.controls.maxDistance = 112;
     this.controls.minPolarAngle = 0.35;
     this.controls.maxPolarAngle = 1.36;
     this.controls.enablePan = true;
@@ -190,17 +241,17 @@ export class TownScene {
       this.controls.enabled = false;
       this.controls.autoRotate = !this.reduced;
       this.controls.autoRotateSpeed = 0.45;
-      this.camera.position.set(0, 24, 50);
+      this.camera.position.set(0, 27, 62);
       this.renderer.setPixelRatio(1);
       this.renderer.domElement.style.touchAction = "auto";
       this.state = { ...this.state, hour: 18.4 };
     }
 
-    this.scene.fog = new THREE.Fog(0xcfeaff, 60, 190);
+    this.scene.fog = new THREE.Fog(0xcfeaff, 80, 240);
     this.scene.add(this.hemi, this.sun, this.sun.target);
     this.sun.castShadow = !small;
-    this.sun.shadow.mapSize.set(1536, 1536);
-    Object.assign(this.sun.shadow.camera, { left: -42, right: 42, top: 42, bottom: -42, near: 1, far: 160 });
+    this.sun.shadow.mapSize.set(2048, 2048);
+    Object.assign(this.sun.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 190 });
     this.sun.shadow.bias = -0.0015;
 
     this.ring = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.25, 32), new THREE.MeshBasicMaterial({ color: 0x836ef9, transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
@@ -252,11 +303,11 @@ export class TownScene {
     this.water.rotation.x = -Math.PI / 2;
     this.water.position.y = -0.9;
     s.add(this.water);
-    const sand = new THREE.Mesh(new THREE.CylinderGeometry(41, 44, 1.2, 48), mat(0xf1dfae));
+    const sand = new THREE.Mesh(new THREE.CylinderGeometry(ISLAND + 3, ISLAND + 6, 1.2, 64), mat(0xf1dfae));
     sand.position.y = -0.75;
     sand.receiveShadow = true;
     s.add(sand);
-    const groundGeo = new THREE.CircleGeometry(38, 64, 0, Math.PI * 2);
+    const groundGeo = new THREE.CircleGeometry(ISLAND, 80, 0, Math.PI * 2);
     const gp = groundGeo.attributes.position;
     const gc = new Float32Array(gp.count * 3);
     for (let i = 0; i < gp.count; i++) {
@@ -268,7 +319,7 @@ export class TownScene {
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     s.add(ground);
-    for (const [x, z, r] of [[-30, 2, 7], [28, -1, 6], [2, -30, 8], [-4, 31, 6]] as const) {
+    for (const [x, z, r] of [[-31, 6, 6], [30, 0, 5], [3, -30, 7], [-5, 32, 6]] as const) {
       const hill = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x7cc862));
       hill.scale.y = 0.42;
       hill.position.set(x, -0.05, z);
@@ -323,21 +374,16 @@ export class TownScene {
     for (let i = 0; i < 4; i++) this.lantern(Math.cos((i * Math.PI) / 2 + 0.8) * 4.4, Math.sin((i * Math.PI) / 2 + 0.8) * 4.4, null);
 
     // Trees and flowers, kept clear of paths, places and the plaza.
-    const clear = (x: number, z: number) => {
-      if (Math.hypot(x, z) < 7.5 || Math.hypot(x, z) > 36) return false;
-      for (const [px, pz] of Object.values(PLACE_AT)) {
-        if (Math.hypot(x - px, z - pz) < 9.5) return false;
-        const t = THREE.MathUtils.clamp((x * px + z * pz) / (px * px + pz * pz), 0, 1);
-        if (Math.hypot(x - px * t, z - pz * t) < 3.2) return false;
-      }
-      return true;
-    };
+    this.buildCountryside(rnd);
+    const clear = (x: number, z: number) => this.clear(x, z);
     const trunkMat = mat(0x8a5a3a);
     const leafMats = [mat(0x4fae58), mat(0x3f9a4c), mat(0x6cc070), mat(0xf7a8c4)];
     let placed = 0;
-    for (let tries = 0; placed < 70 && tries < 900; tries++) {
-      const x = (rnd() - 0.5) * 74;
-      const z = (rnd() - 0.5) * 74;
+    for (let tries = 0; placed < 130 && tries < 1800; tries++) {
+      // The north is thick with trees; the rest of the island is more open.
+      const wooded = tries % 4 === 0;
+      const x = wooded ? -6 + (rnd() - 0.5) * 44 : (rnd() - 0.5) * 104;
+      const z = wooded ? -38 + (rnd() - 0.5) * 22 : (rnd() - 0.5) * 104;
       if (!clear(x, z)) continue;
       placed++;
       const tree = new THREE.Group();
@@ -347,9 +393,9 @@ export class TownScene {
       trunk.castShadow = true;
       const top = new THREE.Group();
       top.position.y = h;
-      const blossom = rnd() < 0.16;
+      const blossom = !wooded && rnd() < 0.16;
       const leaf = blossom ? leafMats[3] : leafMats[Math.floor(rnd() * 3)];
-      if (rnd() < 0.4 && !blossom) {
+      if ((wooded || rnd() < 0.4) && !blossom) {
         for (let k = 0; k < 3; k++) {
           const cone = new THREE.Mesh(new THREE.ConeGeometry(1.5 - k * 0.35, 1.7, 7), leaf);
           cone.position.y = 0.5 + k * 0.95;
@@ -364,22 +410,31 @@ export class TownScene {
           top.add(blob);
         }
       }
-      tree.add(trunk, top);
+      const crown = bake(top);
+      tree.add(trunk, crown);
       tree.position.set(x, 0, z);
       tree.scale.setScalar(0.8 + rnd() * 0.6);
       s.add(tree);
-      this.canopies.push({ mesh: top, phase: rnd() * 6.28 });
+      this.canopies.push({ mesh: crown, phase: rnd() * 6.28 });
     }
     const petal = [0xff8fb1, 0xffe066, 0xffffff, 0xb79cff];
     const flowerGeo = new THREE.SphereGeometry(0.16, 6, 4);
-    for (let i = 0; i < 160; i++) {
-      const x = (rnd() - 0.5) * 70;
-      const z = (rnd() - 0.5) * 70;
+    // One draw call per colour, however many flowers there are.
+    const beds: [number, number][][] = petal.map(() => []);
+    for (let i = 0; i < 380; i++) {
+      // A flower meadow in the south, and a scattering everywhere else.
+      const meadow = i % 3 === 0;
+      const x = meadow ? 4 + (rnd() - 0.5) * 26 : (rnd() - 0.5) * 102;
+      const z = meadow ? 41 + (rnd() - 0.5) * 14 : (rnd() - 0.5) * 102;
       if (!clear(x, z)) continue;
-      const f = new THREE.Mesh(flowerGeo, new THREE.MeshBasicMaterial({ color: petal[Math.floor(rnd() * 4)] }));
-      f.position.set(x, 0.14, z);
-      s.add(f);
+      beds[Math.floor(rnd() * 4)].push([x, z]);
     }
+    beds.forEach((bed, k) => {
+      const flowers = new THREE.InstancedMesh(flowerGeo, new THREE.MeshBasicMaterial({ color: petal[k] }), bed.length);
+      const m = new THREE.Matrix4();
+      bed.forEach(([x, z], i) => flowers.setMatrixAt(i, m.makeTranslation(x, 0.14, z)));
+      s.add(flowers);
+    });
 
     // Clouds, and the things that drift in the air: petals by day, fireflies by night.
     for (let i = 0; i < 7; i++) {
@@ -395,23 +450,413 @@ export class TownScene {
       s.add(cloud);
       this.clouds.push(cloud);
     }
-    const n = 220;
+    const n = 320;
     const mp = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) mp.set([(rnd() - 0.5) * 76, 0.6 + rnd() * 7, (rnd() - 0.5) * 76], i * 3);
+    for (let i = 0; i < n; i++) mp.set([(rnd() - 0.5) * 108, 0.6 + rnd() * 7, (rnd() - 0.5) * 108], i * 3);
     const mg = new THREE.BufferGeometry();
     mg.setAttribute("position", new THREE.BufferAttribute(mp, 3));
     this.motes = new THREE.Points(mg, new THREE.PointsMaterial({ color: 0xffd1e0, size: 0.22, transparent: true, opacity: 0.9, depthWrite: false }));
     s.add(this.motes);
 
     // Rain for a thunderstorm: one set of points, made once, hidden until it storms.
-    const drops = this.small ? 300 : 800;
+    const drops = this.small ? 420 : 1100;
     const rp = new Float32Array(drops * 3);
-    for (let i = 0; i < drops; i++) rp.set([(rnd() - 0.5) * 84, rnd() * 36, (rnd() - 0.5) * 84], i * 3);
+    for (let i = 0; i < drops; i++) rp.set([(rnd() - 0.5) * 118, rnd() * 36, (rnd() - 0.5) * 118], i * 3);
     const rg = new THREE.BufferGeometry();
     rg.setAttribute("position", new THREE.BufferAttribute(rp, 3));
     this.rain = new THREE.Points(rg, new THREE.PointsMaterial({ color: 0xcfe0ff, size: 0.2, transparent: true, opacity: 0, depthWrite: false }));
     this.rain.visible = false;
     s.add(this.rain);
+  }
+
+  /** Whether a spot is free for a tree or a rock: on the grass, off the paths, clear of every building. */
+  private clear(x: number, z: number) {
+    if (Math.hypot(x, z) < 7.5 || Math.hypot(x, z) > ISLAND - 3.5) return false;
+    for (const [kx, kz, r] of KEEP_OFF) if (Math.hypot(x - kx, z - kz) < r) return false;
+    for (const [px, pz] of Object.values(PLACE_AT)) {
+      if (Math.hypot(x - px, z - pz) < 9.5) return false;
+      const t = THREE.MathUtils.clamp((x * px + z * pz) / (px * px + pz * pz), 0, 1);
+      if (Math.hypot(x - px * t, z - pz * t) < 3.2) return false;
+    }
+    return true;
+  }
+
+  // -------------------------------------------------------------- countryside
+
+  /**
+   * Everything outside the town itself: a farm with a windmill and a pasture, a duck pond,
+   * a camp in the woods, a lighthouse on the shore, boats at sea, and the animals that
+   * live there. None of it comes from the server. It is scenery, and the animals wander
+   * by themselves on each screen.
+   */
+  private buildCountryside(rnd: () => number) {
+    const s = this.scene;
+    const wood = mat(0x8a5a3a);
+    const darkWood = mat(0x6b4226);
+
+    // Hills along the far edge.
+    for (const [x, z, r] of [[-20, -45, 8], [47, -4, 7], [-49, 17, 7], [17, 47, 8], [-38, -32, 6]] as const) {
+      const hill = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x7cc862));
+      hill.scale.y = 0.45;
+      hill.position.set(x, -0.05, z);
+      hill.receiveShadow = true;
+      s.add(hill);
+    }
+
+    // Stepping stones from the town out to the farm, the pond and the camp.
+    const stoneMat = mat(0xd9ccb0);
+    const trail = (from: readonly [number, number], to: readonly [number, number], n: number) => {
+      for (let i = 1; i <= n; i++) {
+        const t = i / (n + 1);
+        const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.55 + rnd() * 0.25, 0.6, 0.12, 7), stoneMat);
+        stone.position.set(from[0] + (to[0] - from[0]) * t + (rnd() - 0.5) * 0.9, 0.06, from[1] + (to[1] - from[1]) * t + (rnd() - 0.5) * 0.9);
+        stone.receiveShadow = true;
+        s.add(stone);
+      }
+    };
+    trail([20, -16], [28, -27], 6);
+    trail([-20, 18], [-30, 26], 6);
+    trail([-22, -11], [-38, -7], 7);
+
+    // --- The farm: a barn, rows of crops, a fenced pasture and a windmill.
+    const barn = new THREE.Group();
+    barn.add(box(5, 3.2, 4, mat(0xc44a3a), 0, 1.6, 0));
+    barn.add(roof(5.6, 2, 4.6, mat(0x7a3028), 3.2));
+    barn.add(box(1.5, 2, 0.12, mat(0xf2e6c8), 0, 1, 2.02));
+    barn.add(box(0.9, 0.9, 0.12, mat(0xf2e6c8), 0, 2.9, 2.02));
+    barn.position.set(27, 0, -32);
+    barn.rotation.y = 0.5;
+    s.add(bake(barn));
+    for (let row = 0; row < 5; row++) {
+      const bed = box(7, 0.16, 0.8, mat(0x8a6238), 0, 0.08, 0);
+      bed.castShadow = false;
+      const rowGroup = new THREE.Group();
+      rowGroup.add(bed);
+      for (let k = 0; k < 8; k++) {
+        const sprout = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.55 + rnd() * 0.3, 5), mat(row % 2 ? 0x6cc070 : 0xe8c34a));
+        sprout.position.set(-3.1 + k * 0.88, 0.4, 0);
+        rowGroup.add(sprout);
+      }
+      rowGroup.position.set(29, 0, -27.2 + row * 1.25);
+      rowGroup.rotation.y = 0.5;
+      s.add(bake(rowGroup));
+    }
+    const PASTURE: [number, number] = [37, -21];
+    const posts = 18;
+    const fence = new THREE.Group();
+    for (let i = 0; i < posts; i++) {
+      const a = (i / posts) * Math.PI * 2;
+      const b = ((i + 1) / posts) * Math.PI * 2;
+      const [px, pz] = [PASTURE[0] + Math.cos(a) * 6, PASTURE[1] + Math.sin(a) * 6];
+      const [qx, qz] = [PASTURE[0] + Math.cos(b) * 6, PASTURE[1] + Math.sin(b) * 6];
+      fence.add(box(0.18, 1, 0.18, darkWood, px, 0.5, pz));
+      // Leave a gap for a gate on the side facing the barn.
+      if (i === 9) continue;
+      const rail = box(Math.hypot(qx - px, qz - pz), 0.1, 0.08, wood, (px + qx) / 2, 0.7, (pz + qz) / 2);
+      rail.rotation.y = -Math.atan2(qz - pz, qx - px);
+      fence.add(rail);
+    }
+    s.add(bake(fence));
+    const mill = new THREE.Group();
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.6, 5.4, 8), mat(0xf2e6c8));
+    tower.position.y = 2.7;
+    tower.castShadow = true;
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(1.35, 1.4, 8), mat(0x7a3028));
+    cap.position.y = 6.1;
+    cap.castShadow = true;
+    this.blades = new THREE.Group();
+    for (let k = 0; k < 4; k++) {
+      const arm = new THREE.Group();
+      arm.add(box(0.14, 3.4, 0.08, darkWood, 0, 1.7, 0));
+      arm.add(box(0.9, 2.4, 0.04, mat(0xfaf3e0), 0.5, 2.1, 0));
+      arm.rotation.z = (k * Math.PI) / 2;
+      this.blades.add(arm);
+    }
+    this.blades.position.set(0, 5, 1.25);
+    mill.add(tower, cap, this.blades);
+    mill.position.set(37, 0, -33);
+    mill.rotation.y = -0.7;
+    s.add(mill);
+
+    // --- A pond in the south-west. It shares the lake's water, so it follows the sky too.
+    const POND: [number, number] = [-33, 30];
+    const pondShore = new THREE.Mesh(new THREE.CircleGeometry(5.6, 24), mat(0xe8d9a8, { flatShading: false }));
+    pondShore.rotation.x = -Math.PI / 2;
+    pondShore.position.set(POND[0], 0.03, POND[1]);
+    const pond = new THREE.Mesh(new THREE.CircleGeometry(4.8, 24), this.lake.material);
+    pond.rotation.x = -Math.PI / 2;
+    pond.position.set(POND[0], 0.07, POND[1]);
+    s.add(pondShore, pond);
+    for (let i = 0; i < 12; i++) {
+      const a = rnd() * Math.PI * 2;
+      const reed = new THREE.Mesh(new THREE.ConeGeometry(0.09, 1 + rnd(), 4), mat(0x5aa05a));
+      reed.position.set(POND[0] + Math.cos(a) * 5, 0.5, POND[1] + Math.sin(a) * 5);
+      s.add(reed);
+    }
+    const bench = new THREE.Group();
+    bench.add(box(1.8, 0.12, 0.5, wood, 0, 0.5, 0), box(0.12, 0.5, 0.4, darkWood, -0.75, 0.25, 0), box(0.12, 0.5, 0.4, darkWood, 0.75, 0.25, 0), box(1.8, 0.5, 0.1, wood, 0, 0.85, -0.22));
+    bench.position.set(POND[0] + 6.4, 0, POND[1] - 2);
+    bench.rotation.y = -1.2;
+    s.add(bake(bench));
+
+    // --- A camp in the western woods, with a fire that is lit at night.
+    const CAMP: [number, number] = [-42, -6];
+    for (const [dx, dz, color, turn] of [[-2.2, 1.2, 0xe86a4a, 0.4], [2.1, 1.6, 0x4a90e8, -0.5]] as const) {
+      const tent = new THREE.Mesh(new THREE.ConeGeometry(1.7, 2.2, 4), mat(color));
+      tent.position.set(CAMP[0] + dx, 1.1, CAMP[1] + dz);
+      tent.rotation.y = Math.PI / 4 + turn;
+      tent.castShadow = true;
+      s.add(tent);
+    }
+    for (let k = 0; k < 3; k++) {
+      const log = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 1.1, 6), darkWood);
+      log.rotation.set(Math.PI / 2, 0, (k * Math.PI) / 3);
+      log.position.set(CAMP[0], 0.14, CAMP[1] - 1.4);
+      s.add(log);
+    }
+    this.flame = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1, 6), new THREE.MeshStandardMaterial({ color: 0xffb347, emissive: 0xff7a1a, emissiveIntensity: 0.6, flatShading: true }));
+    this.flame.position.set(CAMP[0], 0.7, CAMP[1] - 1.4);
+    this.fireLight = new THREE.PointLight(0xff9a4a, 0, 18, 1.8);
+    this.fireLight.position.set(CAMP[0], 1.6, CAMP[1] - 1.4);
+    s.add(this.flame, this.fireLight);
+    for (const [dx, dz] of [[-1.6, -2.6], [1.5, -2.9]] as const) {
+      const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.45, 0.5, 8), wood);
+      seat.position.set(CAMP[0] + dx, 0.25, CAMP[1] + dz);
+      seat.castShadow = true;
+      s.add(seat);
+    }
+
+    // --- A lighthouse on the eastern shore. Its lamp comes on with the lanterns.
+    const light = new THREE.Group();
+    for (let k = 0; k < 5; k++) {
+      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2 + rnd() * 0.9, 0), mat(0x8f8f9c));
+      rock.position.set((rnd() - 0.5) * 4.5, 0.3, (rnd() - 0.5) * 4.5);
+      rock.castShadow = true;
+      light.add(rock);
+    }
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.35, 7, 10), mat(0xfaf6ee));
+    shaft.position.y = 4.2;
+    shaft.castShadow = true;
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(1.08, 1.2, 1.5, 10), mat(0xd9483b));
+    band.position.y = 4;
+    const gallery = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 0.2, 10), mat(0x4a3b33));
+    gallery.position.y = 7.8;
+    const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.1, 8), new THREE.MeshStandardMaterial({ color: 0xfff0c2, emissive: 0xffd27a, emissiveIntensity: 0 }));
+    lamp.position.y = 8.45;
+    const hat = new THREE.Mesh(new THREE.ConeGeometry(1.05, 1, 8), mat(0xd9483b));
+    hat.position.y = 9.5;
+    light.add(shaft, band, gallery, lamp, hat);
+    light.position.set(49, 0, 21);
+    s.add(light);
+    this.glows.push({ mesh: lamp, place: null, base: 1 });
+
+    // Rocks and mushrooms here and there.
+    for (let i = 0; i < 26; i++) {
+      const x = (rnd() - 0.5) * 100;
+      const z = (rnd() - 0.5) * 100;
+      if (!this.clear(x, z)) continue;
+      if (i % 3) {
+        const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.35 + rnd() * 0.5, 0), mat(0x9a9aa6));
+        rock.position.set(x, 0.2, z);
+        rock.castShadow = true;
+        s.add(rock);
+      } else {
+        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.3, 6), mat(0xfaf3e0));
+        stem.position.set(x, 0.15, z);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xe2483a));
+        head.position.set(x, 0.3, z);
+        s.add(stem, head);
+      }
+    }
+
+    // --- Boats. Two rest offshore; one sails slowly round the island.
+    const boat = (sail: number) => {
+      const g = new THREE.Group();
+      g.add(box(3, 0.7, 1.2, mat(0x8a5a3a), 0, 0.1, 0), box(0.1, 3, 0.1, darkWood, 0, 1.7, 0));
+      const cloth = new THREE.Mesh(new THREE.ConeGeometry(1.1, 2.4, 3), mat(sail));
+      cloth.position.set(0.5, 1.9, 0);
+      cloth.scale.z = 0.12;
+      g.add(cloth);
+      return bake(g);
+    };
+    for (const [x, z, color, turn] of [[68, -38, 0xfaf3e0, 0.6], [-70, 22, 0xffd166, 2.2]] as const) {
+      const g = boat(color);
+      g.position.set(x, -0.6, z);
+      g.rotation.y = turn;
+      s.add(g);
+      this.critters.push({ g, kind: "boat", home: [x, z], reach: 0, speed: 0, phase: rnd() * 6, to: null, wait: 0, y: -0.6 });
+    }
+    const sailing = boat(0xff8fb1);
+    s.add(sailing);
+    this.critters.push({ g: sailing, kind: "sailor", home: [0, 0], reach: 82, speed: 1.6, phase: rnd() * 6, to: null, wait: 0, y: -0.6 });
+
+    // --- Animals.
+    const beast = (body: number, head: number, legs: number, long: number, tall: number, extra?: (g: THREE.Group) => void) => {
+      const g = new THREE.Group();
+      g.add(box(long, tall * 0.55, long * 0.55, mat(body), 0, tall * 0.72, 0));
+      g.add(box(long * 0.34, tall * 0.4, long * 0.36, mat(head), long * 0.62, tall * 0.92, 0));
+      for (const [lx, lz] of [[-0.32, -0.18], [-0.32, 0.18], [0.32, -0.18], [0.32, 0.18]] as const) {
+        g.add(box(0.1, tall * 0.48, 0.1, mat(legs), lx * long, tall * 0.24, lz * long));
+      }
+      extra?.(g);
+      return g;
+    };
+    const walker = (made: THREE.Group, home: [number, number], reach: number, speed: number) => {
+      const g = bake(made);
+      const a = rnd() * Math.PI * 2;
+      const r = rnd() * reach;
+      g.position.set(home[0] + Math.cos(a) * r, 0, home[1] + Math.sin(a) * r);
+      g.rotation.y = rnd() * 6.28;
+      s.add(g);
+      this.critters.push({ g, kind: "walker", home, reach, speed, phase: rnd() * 6, to: null, wait: rnd() * 4, y: 0 });
+    };
+    for (let i = 0; i < 5; i++) {
+      // Sheep: a woolly body on dark legs.
+      walker(
+        beast(0xfaf6ee, 0x3a3340, 0x3a3340, 1.1, 0.9, (g) => {
+          const wool = new THREE.Mesh(new THREE.IcosahedronGeometry(0.55, 0), mat(0xffffff));
+          wool.position.set(-0.05, 0.75, 0);
+          wool.scale.set(1.15, 0.85, 0.9);
+          wool.castShadow = true;
+          g.add(wool);
+        }),
+        PASTURE,
+        4.6,
+        0.7,
+      );
+    }
+    for (let i = 0; i < 2; i++) {
+      // Cows: white with brown patches.
+      walker(
+        beast(0xfaf6ee, 0x6b4226, 0x3a3340, 1.6, 1.15, (g) => {
+          g.add(box(0.5, 0.36, 0.92, mat(0x6b4226), -0.3, 0.92, 0), box(0.36, 0.3, 0.9, mat(0x6b4226), 0.35, 0.74, 0));
+        }),
+        PASTURE,
+        4.2,
+        0.45,
+      );
+    }
+    for (let i = 0; i < 4; i++) {
+      // Chickens by the barn.
+      const g = new THREE.Group();
+      const hen = new THREE.Mesh(new THREE.SphereGeometry(0.26, 8, 6), mat(i % 2 ? 0xffffff : 0xd98a3a));
+      hen.position.y = 0.3;
+      hen.castShadow = true;
+      const comb = box(0.08, 0.12, 0.16, mat(0xe2483a), 0.14, 0.56, 0);
+      const beak = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 4), mat(0xffb347));
+      beak.rotation.z = -Math.PI / 2;
+      beak.position.set(0.3, 0.36, 0);
+      g.add(hen, comb, beak);
+      walker(g, [27, -27.5], 2.6, 0.9);
+    }
+    for (let i = 0; i < 2; i++) {
+      // Deer in the northern woods.
+      walker(
+        beast(0xb07a4a, 0xb07a4a, 0x7a5232, 1.3, 1.5, (g) => {
+          for (const dz of [-0.14, 0.14]) {
+            const antler = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.5, 4), mat(0xe8d9b8));
+            antler.position.set(0.86, 1.85, dz);
+            g.add(antler);
+          }
+        }),
+        [-4, -41],
+        6.5,
+        0.8,
+      );
+    }
+    const duck = (color: number) => {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 6), mat(color));
+      body.scale.set(1.3, 0.75, 0.9);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), mat(color));
+      head.position.set(0.3, 0.26, 0);
+      const bill = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 4), mat(0xff9a3a));
+      bill.rotation.z = -Math.PI / 2;
+      bill.position.set(0.52, 0.24, 0);
+      g.add(body, head, bill);
+      return bake(g);
+    };
+    const [lx, lz] = PLACE_AT.lake;
+    for (const [home, reach, color] of [[POND, 1.4, 0xffffff], [POND, 2.4, 0xffe066], [POND, 3.3, 0xffffff], [POND, 3.9, 0x8a6238], [[lx + 3, lz + 3], 3.2, 0xffffff], [[lx + 3, lz + 3], 5, 0xffe066]] as const) {
+      const g = duck(color);
+      s.add(g);
+      this.critters.push({ g, kind: "swimmer", home: [home[0], home[1]], reach, speed: 0.5 + rnd() * 0.4, phase: rnd() * 6.28, to: null, wait: 0, y: 0.2 });
+    }
+    for (let i = 0; i < 7; i++) {
+      // Birds, circling high over the island.
+      const g = new THREE.Group();
+      const wingMat = new THREE.MeshBasicMaterial({ color: 0x2b2350, side: THREE.DoubleSide, fog: false });
+      const body = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.6, 4), wingMat);
+      body.rotation.z = -Math.PI / 2;
+      g.add(body);
+      for (const side of [-1, 1]) {
+        const wing = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.9), wingMat);
+        wing.rotation.x = Math.PI / 2;
+        wing.position.z = side * 0.45;
+        wing.userData.side = side;
+        g.add(wing);
+      }
+      s.add(g);
+      this.critters.push({ g, kind: "flyer", home: [(rnd() - 0.5) * 14, (rnd() - 0.5) * 14], reach: 22 + rnd() * 20, speed: 5 + rnd() * 3, phase: rnd() * 6.28, to: null, wait: 0, y: 19 + rnd() * 9 });
+    }
+  }
+
+  /** The animals and boats move by themselves; under reduced motion they stay where they are. */
+  private stirCountryside(dt: number, time: number, night: number) {
+    this.blades.rotation.z -= dt * (this.state.weather?.kind === "storm" ? 2.6 : 0.7);
+    const flicker = 0.75 + 0.25 * Math.sin(time * 11) * Math.sin(time * 7.3);
+    this.flame.scale.set(1, (0.5 + night * 0.7) * flicker, 1);
+    (this.flame.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.4 + night * 1.8 * flicker;
+    this.fireLight.intensity = night * 16 * flicker;
+    if (this.reduced) return;
+    for (const c of this.critters) {
+      const p = c.g.position;
+      if (c.kind === "walker") {
+        if (c.wait > 0) {
+          c.wait -= dt;
+          p.y = 0;
+          continue;
+        }
+        if (!c.to) {
+          const a = Math.random() * Math.PI * 2;
+          const r = Math.sqrt(Math.random()) * c.reach;
+          c.to = new THREE.Vector3(c.home[0] + Math.cos(a) * r, 0, c.home[1] + Math.sin(a) * r);
+        }
+        const dx = c.to.x - p.x;
+        const dz = c.to.z - p.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist < 0.15) {
+          // Arrived: graze for a while. Animals sleep through most of the night.
+          c.to = null;
+          c.wait = 1.5 + Math.random() * 5 + night * 12;
+          continue;
+        }
+        const step = Math.min(dist, c.speed * dt);
+        p.x += (dx / dist) * step;
+        p.z += (dz / dist) * step;
+        p.y = Math.abs(Math.sin(time * 9 + c.phase)) * 0.07;
+        c.g.rotation.y = lerpAngle(c.g.rotation.y, Math.atan2(-dz, dx), 1 - Math.pow(0.002, dt));
+      } else if (c.kind === "swimmer") {
+        c.phase += (c.speed / c.reach) * dt;
+        p.set(c.home[0] + Math.cos(c.phase) * c.reach, c.y + Math.sin(time * 2.2 + c.reach) * 0.03, c.home[1] + Math.sin(c.phase) * c.reach);
+        c.g.rotation.y = -c.phase - Math.PI / 2;
+      } else if (c.kind === "flyer") {
+        c.phase += (c.speed / c.reach) * dt;
+        p.set(c.home[0] + Math.cos(c.phase) * c.reach, c.y + Math.sin(time * 0.7 + c.reach) * 1.2, c.home[1] + Math.sin(c.phase) * c.reach);
+        c.g.rotation.y = -c.phase - Math.PI / 2;
+        for (const wing of c.g.children) {
+          if (wing.userData.side) wing.rotation.x = Math.PI / 2 + wing.userData.side * Math.sin(time * 9 + c.reach) * 0.7;
+        }
+      } else if (c.kind === "sailor") {
+        c.phase += (c.speed / c.reach) * dt;
+        p.set(Math.cos(c.phase) * c.reach, c.y + Math.sin(time * 1.1) * 0.12, Math.sin(c.phase) * c.reach);
+        c.g.rotation.y = -c.phase - Math.PI / 2;
+        c.g.rotation.z = Math.sin(time * 0.9) * 0.05;
+      } else {
+        p.y = c.y + Math.sin(time * 1.1 + c.phase) * 0.12;
+        c.g.rotation.z = Math.sin(time * 0.8 + c.phase) * 0.06;
+      }
+    }
   }
 
   private lantern(x: number, z: number, place: string | null) {
@@ -688,7 +1133,7 @@ export class TownScene {
     this.follow = id;
     if (id === null) {
       this.wantTarget.set(0, 1, 0);
-      this.flyTo(new THREE.Vector3(0, 40, 54));
+      this.flyTo(new THREE.Vector3(0, 52, 72));
     } else {
       const b = this.bodies.get(id);
       if (b) this.flyTo(b.group.position.clone().add(new THREE.Vector3(10, 11, 17)));
@@ -763,7 +1208,7 @@ export class TownScene {
       (this.sunDisc.material as THREE.MeshBasicMaterial).color.set(0xf4f6ff);
       this.sunDisc.scale.setScalar(0.7 + 1.3 * this.moonlit);
     }
-    this.sun.position.copy(dir).multiplyScalar(70);
+    this.sun.position.copy(dir).multiplyScalar(90);
     this.sun.color.copy(sky.sun);
     // Bright, soft daylight; nights stay readable under a blue moon instead of going black.
     this.sun.intensity = 0.15 + sky.light * 2.3;
@@ -834,6 +1279,8 @@ export class TownScene {
     else mm.color.set(sky.night > 0.5 ? 0xeaff8a : 0xffd1e0);
     mm.size = kind === "festival" ? 0.36 : sky.night > 0.5 ? 0.3 : 0.2;
     mm.opacity = sky.night > 0.5 ? 0.6 + 0.4 * Math.sin(time * 2) : 0.75;
+
+    this.stirCountryside(dt, time, sky.night);
 
     // Residents: walk the path if there is one, otherwise idle where they are.
     for (const b of this.bodies.values()) {
