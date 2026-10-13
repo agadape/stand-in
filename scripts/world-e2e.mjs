@@ -86,6 +86,13 @@ check(!watchPage.includes("ownerAddress") && !watchPage.includes("aConsent") && 
 check(/Watch the town/.test(await page("/")), "the landing page links to it");
 check((await call("GET", "/api/world")).status === 401, "the resident's world is still refused to a watcher");
 check((await call("GET", "/api/world/letter?since=0")).status === 401, "a pet's letter is refused to someone not signed in");
+// Rooms and the wall are for residents too: a visitor is sent to the door and gets no data.
+for (const path of ["/rooms", "/wall", "/r/1", "/e/1"]) {
+  const r = await call("GET", path, undefined, { redirect: "manual" });
+  check([302, 303, 307, 308].includes(r.status) && decodeURIComponent(r.location ?? "").endsWith(`/enter?next=${path}`), `${path} sends a visitor to the door`, `${r.status} -> ${r.location}`);
+}
+check((await call("GET", "/api/wall")).status === 401, "the wall's data is refused to a visitor");
+check((await call("GET", `/api/rooms/1/join?slug=${dave.slug}`)).status === 401, "so is asking whether a pet may join a room");
 cookie = "standin_session=dave-forged.9999999999.deadbeef";
 check(!hasNav(await page("/")), "a made-up session cookie gets no navigation either");
 check((await call("GET", "/api/world")).status === 401, "a made-up session cookie is refused");
@@ -102,6 +109,7 @@ check((await call("GET", "/api/session")).json.pet?.slug === dave.slug, "the ses
 const home = await call("GET", "/watch", undefined, { redirect: "manual" });
 check([302, 303, 307, 308].includes(home.status) && (home.location ?? "").endsWith("/world"), "a resident who opens the watch page is sent home", `${home.status} -> ${home.location}`);
 check(hasNav(await page("/world")) && hasNav(await page(`/t/${dave.slug}`)), "signed in, the navigation is there");
+check((await call("GET", "/rooms", undefined, { redirect: "manual" })).status === 200 && (await call("GET", "/api/wall")).status === 200, "signed in, rooms and the wall open");
 
 // The town takes new pets in within a few ticks; watching it is what makes it tick.
 let world, a, b;

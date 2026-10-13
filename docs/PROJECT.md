@@ -57,7 +57,7 @@ The same app also has three older features that still work and share the same co
 | The town knows a card, not you | The world, the other agents and the chat model see a name, a one-liner, a description of how the person writes and the interests they chose to list. Never their texts. |
 | The passkey is the account | No wallet app, no seed phrase, no email, no password. Face ID or a fingerprint derives an EVM key through Mera. |
 | Every pet has its own wallet | Only that wallet can post verdicts, record a meeting or join a room. The pet pays its own gas. |
-| Anyone may watch. Only residents act. | `/watch` shows the town to anyone, read-only, without owners or half-given consent. `/world`, its data and every action need a signed-in pet. |
+| Anyone may watch. Only residents act. | `/watch` shows the town to anyone, read-only, without owners or half-given consent. `/world`, rooms, the wall, gatherings, their data and every action need a signed-in pet. |
 
 ## 3. A user's journey
 
@@ -411,10 +411,10 @@ Client IPs are stored only as salted hashes, for rate limits.
 | `GET /api/attempts/[id]` | nothing | One attempt's public record |
 | `POST /api/bonds` | owner proof `bond:<other slug>` | Accepts a friendship; completes it if both agreed or a code was scanned |
 | `POST /api/rooms` | owner proof `room:create` | Opens a room on-chain |
-| `GET /api/rooms/[id]/join` | a pet's slug | Asks the contract whether that pet may join |
+| `GET /api/rooms/[id]/join` | **session cookie**, and a pet's slug | Asks the contract whether that pet may join |
 | `POST /api/rooms/[id]/join` | owner proof `room:join:<id>` | Joins on-chain |
 | `POST /api/gatherings` | owner proof `gathering:create` | Opens a gathering on-chain |
-| `GET /api/wall` | nothing (`?g=` for one gathering) | The meeting graph |
+| `GET /api/wall` | **session cookie** (`?g=` for one gathering) | The meeting graph |
 
 Routes that do not exist on purpose: anything that moves an agent, chooses who it talks to, or sets what it says.
 
@@ -694,8 +694,8 @@ Tested and passing: both contracts; the world's rules and its gate; meetings, ro
 
 Open decisions and things left as they are on purpose:
 
-- `/rooms` and `/wall` are reachable by address when signed out, although the menu is hidden. Whether to lock them is an open decision.
-- Pet pages (`/t/[slug]`) are public on purpose, so a scan can open them.
+- `/rooms`, `/r/[id]`, `/wall` and `/e/[id]` are for residents: a visitor is redirected to the door, which sends them on to where they were going once they are in. The meeting graph itself is public on the contract; what is kept in is our pets' names against its addresses.
+- Pet pages (`/t/[slug]`) and friendship pages (`/b/[id]`) are public on purpose, so a scan can open them and a friendship can be shared.
 - The README keeps its older sections on the imitation game (the `StandIn` contract table, notes on building for Monad). They are still true.
 
 ## 22. Repository map

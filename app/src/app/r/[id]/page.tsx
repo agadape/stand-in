@@ -6,6 +6,7 @@ import { Pet } from "@/components/pet";
 import { Address, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { explorerAddress, metAddress } from "@/lib/chain";
 import { getRoom, petsByAddress } from "@/lib/met";
+import { requireResident } from "@/lib/session-cookie";
 
 type Props = { params: Promise<{ id: string }> };
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /** One room: its rule, who is in, and the gate. */
 export default async function RoomPage({ params }: Props) {
+  await requireResident(`/r/${(await params).id}`);
   const room = await load(params);
   if (!room) notFound();
   const pets = await petsByAddress(room.members);
