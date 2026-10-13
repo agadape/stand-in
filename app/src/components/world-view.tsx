@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, type World } from "@/lib/api";
+import type { TownScene } from "./town-scene";
 import { ownerProof, useMyPet } from "@/lib/owner-client";
 import { Pet, type Mood } from "./pet";
 import { RestorePet } from "./soul-vault";
@@ -12,6 +13,126 @@ type Agent = World["agents"][number];
 type Pair = World["pairs"][number];
 
 const POLL_MS = 3_000;
+
+const WANTS: Record<string, string> = {
+  rest: "a rest (the lake is where they go for that)",
+  company: "company (the tavern, or a friend)",
+  purpose: "something to do (the guild hall)",
+  supplies: "supplies (the market)",
+};
+
+function partOfDay(hour: number) {
+  return hour < 5 ? "night" : hour < 8 ? "dawn" : hour < 12 ? "morning" : hour < 17 ? "afternoon" : hour < 20 ? "dusk" : "night";
+}
+
+/**
+ * The 3D town. It loads three.js only on this page and only in the browser; if WebGL is
+ * not available the flat map passed as children is shown instead, so the world is never
+ * a blank box.
+ */
+function TownStage({
+  world,
+  mineId,
+  selected,
+  onPick,
+  children,
+}: {
+  world: World;
+  mineId: number | null;
+  selected: number | null;
+  onPick: (id: number | null) => void;
+  children: ReactNode;
+}) {
+  const host = useRef<HTMLDivElement>(null);
+  const scene = useRef<TownScene | null>(null);
+  const pick = useRef(onPick);
+  const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [line, setLine] = useState(0);
+  const seenTick = useRef({ tick: -1, at: 0 });
+
+  useEffect(() => {
+    pick.current = onPick;
+  }, [onPick]);
+
+  useEffect(() => {
+    let cancelled = false;
+    import("./town-scene")
+      .then(({ TownScene }) => {
+        if (cancelled || !host.current) return;
+        scene.current = new TownScene(host.current, (id) => pick.current(id));
+        setReady(true);
+      })
+      .catch((error) => {
+        console.warn("[world] 3D view unavailable, showing the flat map", error);
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+      scene.current?.dispose();
+      scene.current = null;
+    };
+  }, []);
+
+  // The newest talk is read out one line at a time, each in a bubble over whoever said it.
+  const talk = world.events.find((e) => e.kind === "talk");
+  const lines = talk?.lines ?? null;
+  useEffect(() => {
+    const first = setTimeout(() => setLine(0), 0);
+    if (!lines || lines.length < 2) return () => clearTimeout(first);
+    const timer = setInterval(() => setLine((n) => Math.min(n + 1, lines.length - 1)), 1900);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
+  }, [talk?.id, lines]);
+
+  useEffect(() => {
+    if (!scene.current) return;
+    if (seenTick.current.tick !== world.tick) seenTick.current = { tick: world.tick, at: performance.now() };
+    const said = lines?.[Math.min(line, lines.length - 1)];
+    scene.current.update({
+      agents: world.agents.map((a) => ({ id: a.id, name: a.name, place: a.place, hue: a.hue, mine: a.id === mineId, owned: Boolean(a.slug), paused: a.paused })),
+      hour: world.hour,
+      hourAt: seenTick.current.at,
+      hourRate: 1000 / world.tickMs,
+      buzz: world.buzz,
+      talk: talk
+        ? { id: talk.id * 10 + (lines ? Math.min(line, lines.length - 1) : 0), aId: talk.aId, bId: talk.bId, delta: talk.delta ?? 0, line: said?.text ?? null, speaker: said ? (said.from === "a" ? talk.aId : talk.bId) : null }
+        : null,
+      selected,
+    });
+  }, [world, mineId, selected, talk, lines, line, ready]);
+
+  if (failed) return <>{children}</>;
+  const latest = world.events.find((e) => e.kind !== "move");
+  return (
+    <div className="relative h-[58dvh] min-h-[380px] w-full overflow-hidden rounded-3xl border-2 border-border bg-[#cfeaff] lg:h-[70dvh]">
+      <div ref={host} className="absolute inset-0 isolate" aria-label="The town, in 3D. Drag to look around; tap a resident to select them." role="application" />
+      {!ready && <p className="absolute inset-0 flex items-center justify-center text-sm font-extrabold text-foreground/70">Opening the town…</p>}
+      <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+        <span className="rounded-full bg-white/85 px-3 py-1 text-xs font-extrabold shadow-sm">
+          {String(world.hour).padStart(2, "0")}:00 · {partOfDay(world.hour)}
+        </span>
+        <span className="pointer-events-auto flex gap-2">
+          {mineId !== null && (
+            <button type="button" onClick={() => scene.current?.focus(mineId)} className="min-h-11 rounded-full bg-white/90 px-4 text-xs font-extrabold uppercase tracking-wide text-blue shadow-sm">
+              My pet
+            </button>
+          )}
+          <button type="button" onClick={() => scene.current?.focus(null)} className="min-h-11 rounded-full bg-white/90 px-4 text-xs font-extrabold uppercase tracking-wide text-blue shadow-sm">
+            Whole town
+          </button>
+        </span>
+      </div>
+      {latest && (
+        <p className="pointer-events-none absolute inset-x-3 bottom-3 rounded-2xl bg-white/88 px-4 py-2 text-sm shadow-sm" aria-live="polite">
+          {latest.text}
+        </p>
+      )}
+    </div>
+  );
+}
 
 // Where each place sits on the map, in percent of the board.
 const ZONES: Record<string, { x: number; y: number; tint: string }> = {
@@ -34,7 +155,7 @@ function spot(place: string, n: number) {
  * The Isekai, live. Everyone can watch; nobody can steer. The page polls the world, and
  * the polling is what keeps it moving.
  */
-export function WorldView({ initial }: { initial: World }) {
+export function WorldView({ initial, welcome = false }: { initial: World; welcome?: boolean }) {
   const [world, setWorld] = useState(initial);
   const [selected, setSelected] = useState<number | null>(null);
   const [stale, setStale] = useState(false);
@@ -88,11 +209,38 @@ export function WorldView({ initial }: { initial: World }) {
           <p className="text-sm font-extrabold uppercase tracking-wide text-accent-strong">The Isekai</p>
           <h1 className="text-3xl tracking-tight">A town of agents living their own lives</h1>
         </div>
-        <Pill tone={stale ? "bad" : "ok"}>{stale ? "Reconnecting" : `Live · day ${Math.floor(world.tick / 20) + 1}, hour ${(world.tick % 20) + 1}`}</Pill>
+        <Pill tone={stale ? "bad" : "ok"}>
+          {stale ? "Reconnecting" : `Live · day ${Math.floor(world.tick / world.hours) + 1}, ${String(world.hour).padStart(2, "0")}:00 ${partOfDay(world.hour)}`}
+        </Pill>
       </div>
 
-      <div className="space-y-6 lg:grid lg:grid-cols-[3fr_2fr] lg:items-start lg:gap-8 lg:space-y-0">
-        <div className="space-y-6">
+      {welcome && mine && (
+        <Card className="border-accent/50 bg-accent/10">
+          <p className="font-extrabold">{mine.name} has moved in.</p>
+          <p className="mt-1 text-sm text-muted">
+            That&apos;s your pet with the gold marker. It will find its own way around. Tune it with the dials, or{" "}
+            <Link href={`/t/${mine.slug}`} className="underline decoration-dotted">
+              open its page
+            </Link>{" "}
+            to show your code to someone you meet.
+          </p>
+        </Card>
+      )}
+      {pet === null && (
+        <Card className="flex flex-wrap items-center gap-4">
+          <Pet mood="happy" className="w-16 shrink-0" />
+          <div className="min-w-0 flex-1 basis-52">
+            <p className="font-extrabold">You&apos;re watching as a visitor.</p>
+            <p className="text-sm text-muted">Make a pet and it moves in on its own, or bring back the one you already have.</p>
+          </div>
+          <div className="w-full space-y-1 sm:w-56">
+            <LinkButton href="/new">Make your pet</LinkButton>
+            <RestorePet />
+          </div>
+        </Card>
+      )}
+
+          <TownStage world={world} mineId={mine?.id ?? null} selected={focus?.id ?? null} onPick={setSelected}>
           <div className="relative aspect-square w-full overflow-hidden rounded-3xl border-2 border-border sm:aspect-[4/3]">
             {world.places.map((p) => (
               <div
@@ -125,10 +273,15 @@ export function WorldView({ initial }: { initial: World }) {
               );
             })}
           </div>
+          </TownStage>
           <p className="text-xs text-muted">
-            Purple pets belong to people; the colourful ones are made-up townsfolk. Tap anyone to see who they are and
-            how they stand with the others. The town only moves while someone is watching it.
+            Purple pets belong to people; the colourful ones are made-up townsfolk. Drag to look around, pinch or
+            scroll to zoom, tap anyone to see who they are. A day here lasts a couple of minutes, and the town only
+            moves while someone is watching it.
           </p>
+
+      <div className="space-y-6 lg:grid lg:grid-cols-[3fr_2fr] lg:items-start lg:gap-8 lg:space-y-0">
+        <div className="space-y-6">
 
           <section className="space-y-3">
             <h2 className="text-sm font-extrabold uppercase tracking-wide text-muted">Chronicle</h2>
@@ -145,15 +298,12 @@ export function WorldView({ initial }: { initial: World }) {
           {focus ? (
             <AgentPanel key={`panel-${focus.id}`} agent={focus} world={world} byId={byId} isMine={focus.id === mine?.id} onPick={setSelected} />
           ) : (
-            <Card className="space-y-3 text-center">
-              <Pet mood="happy" className="mx-auto w-28" />
-              <p className="font-extrabold">Send yourself into the town</p>
+            <Card className="space-y-2 text-center">
+              <p className="font-extrabold">Tap anyone in the town</p>
               <p className="text-sm text-muted">
-                Make a pet and it moves in on its own. You watch, you turn a few dials, and you never get to tell it
-                what to do.
+                You&apos;ll see who they are, what they&apos;re up to and how they stand with the others. Nobody here takes
+                orders, including from their owner.
               </p>
-              <LinkButton href="/new">Make your pet</LinkButton>
-              <RestorePet />
             </Card>
           )}
           {pet === undefined ? null : mine && focus?.id !== mine.id ? (
@@ -269,8 +419,16 @@ function AgentPanel({
         )}
         <div>
           <dt className="inline font-extrabold">Now at: </dt>
-          <dd className="inline text-muted">{agent.paused ? "resting, out of the town" : world.places.find((p) => p.id === agent.place)?.name}</dd>
+          <dd className="inline text-muted">
+            {agent.paused ? "resting, out of the town" : `${world.places.find((p) => p.id === agent.place)?.name}${agent.doing ? `, ${agent.doing}` : ""}`}
+          </dd>
         </div>
+        {!agent.paused && agent.wants && (
+          <div>
+            <dt className="inline font-extrabold">On their mind: </dt>
+            <dd className="inline text-muted">{WANTS[agent.wants]}</dd>
+          </div>
+        )}
       </dl>
       <p className="text-xs text-muted">
         {agent.slug ? (
@@ -285,6 +443,18 @@ function AgentPanel({
           "A made-up resident, not a real person."
         )}
       </p>
+
+      {/* The way out of the town and into the room: meeting for real, recorded as Proof of Met. */}
+      {agent.slug && isMine && (
+        <LinkButton href={`/t/${agent.slug}`} variant="secondary">
+          Met someone? Show my code
+        </LinkButton>
+      )}
+      {agent.slug && !isMine && (
+        <LinkButton href={`/t/${agent.slug}/meet`} variant="secondary">
+          Know {agent.name}? Meet in person
+        </LinkButton>
+      )}
 
       <div className="space-y-2">
         <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">How {agent.name} stands with others</h3>

@@ -54,6 +54,24 @@ Also in the app, from earlier in the hackathon and still working: meeting in per
 - **Not new in its parts.** Generative-agent towns (Smallville, AI Town), agent social networks and agent matchmaking (including Soulpair on Monad) exist. What is ours is the combination: closeness that emerges from life in a town, owners who cannot steer, and consent from both humans before anything is recorded.
 - Meeting by code shows the screens were together, not who the people are; NFC stickers are static; the model-free imitation judge is tuned on two made-up people.
 - Operational details (env vars, wallets, deploy, troubleshooting) live in [docs/runbook.md](docs/runbook.md).
+## The town in 3D
+
+`/world` is home for anyone with a pet: the landing page sends them there, a new pet lands there, and "I already have a pet" returns there. A visitor sees the same town with a prompt to make or bring back a pet.
+
+The town is drawn with [three.js](https://threejs.org) from code alone (`app/src/components/town-scene.ts`): an island with a tavern, market stalls, a guild hall, a lake and a plaza, with no models or textures. It is a view of the simulation, not a second one. Where each resident is, who is talking, what was said and what hour it is come from the server; the scene decides how a resident walks from where they were to where they now are.
+
+- **Residents have reasons.** Each has four needs that build with time (rest, company, purpose, supplies), and each place eases one. Nights tire people, days make them restless, and the sociable miss company sooner. The chronicle says why someone moved ("Dave wanted company and headed for The Tavern").
+- **A day lasts 24 ticks**, about two and a half minutes. The sky, sun and moon, fog, lanterns and lit windows follow the hour.
+- **The place answers back.** Lanterns and the light around a place burn brighter, and the tavern's chimney smokes more, the busier that place has been.
+- **Talk is visible.** The two who are talking turn to each other, the lines appear in bubbles over whoever said them, and a mark shows whether it went well.
+- If WebGL is unavailable, the flat map is shown instead.
+
+### Credits and licences
+
+- **three.js** (MIT) is the only library added for the 3D town.
+- **[SlimCityGame](https://github.com/rbenzing/SlimCityGame)** was studied for ideas and is licensed AGPL-3.0-or-later, which is not compatible with this repository's MIT licence, so **no code or assets from it are used**. What was taken as ideas and written from scratch here: a time-of-day ramp that drives the sky dome, the sun and the lamp schedule together; lamps and windows that come on at dusk; seeded scatter so trees and props are identical for everyone; drifting clouds and wind in the trees; and its demand-driven growth, which became residents' needs and places that show how busy they are.
+- No third-party models, textures or audio are in the scene.
+
 ## Architecture
 
 ```

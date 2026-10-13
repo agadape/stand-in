@@ -9,11 +9,16 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-export default async function WorldPage() {
+/**
+ * Home for anyone with a pet, and open to anyone without one: a visitor sees the same
+ * living town with a prompt to make or bring back a pet, never an empty page.
+ */
+export default async function WorldPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   try {
     await advance();
   } catch (error) {
     console.error("[world] tick failed", error);
   }
-  return <WorldView initial={await snapshot()} />;
+  const { welcome } = await searchParams;
+  return <WorldView initial={await snapshot()} welcome={welcome === "1"} />;
 }

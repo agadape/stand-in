@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { keccak256, stringToHex, type Hex } from "viem";
 import { explorerTx } from "./chain";
 import { db, schema } from "./db";
-import type { Agent, Dials, Pair, PersonaCard, Persona, Twin } from "./db/schema";
+import type { Agent, Dials, Needs, Pair, PersonaCard, Persona, Twin } from "./db/schema";
 import { env } from "./env";
 import { groqJson } from "./llm/groq";
 import { recordMeet } from "./met";
@@ -147,7 +147,7 @@ const open = (n: number) => (n < 34 ? "guarded, shares little" : n < 67 ? "frien
 
 function describe(label: "a" | "b", agent: Agent) {
   const c = agent.card;
-  return `Resident "${label}": ${c.name}. ${c.about}. Voice: ${c.voice}.${c.interests.length ? ` Cares about: ${c.interests.join(", ")}.` : ""} Today: ${open(agent.dials.openness)}.${agent.dials.avoid ? ` Will not discuss: ${agent.dials.avoid}.` : ""}`;
+  return `Resident "${label}": ${c.name}. ${c.about}. Voice: ${c.voice}.${c.interests.length ? ` Cares about: ${c.interests.join(", ")}.` : ""} Today: ${open(agent.dials.openness)}.${agent.doing ? ` Was just: ${agent.doing}.` : ""}${agent.dials.avoid ? ` Will not discuss: ${agent.dials.avoid}.` : ""}`;
 }
 
 /** When the model is busy the town still moves: a quiet moment, scored by shared interests. */
@@ -180,6 +180,29 @@ ${describe("b", b)}`;
 }
 
 const ordered = (x: number, y: number) => (x < y ? ([x, y] as const) : ([y, x] as const));
+
+// ------------------------------------------------------------------ needs and days
+
+/** A day in the town is this many ticks: at the default pace, a little under two and a half minutes. */
+export const HOURS = 24;
+const NEED_KEYS = ["rest", "company", "purpose", "supplies"] as const;
+/** What each place is for. */
+const EASES: Record<PlaceId, keyof Needs> = { lake: "rest", tavern: "company", guild: "purpose", market: "supplies" };
+const PLACE_FOR = Object.fromEntries(Object.entries(EASES).map(([place, need]) => [need, place])) as Record<keyof Needs, PlaceId>;
+const REASON: Record<keyof Needs, string> = {
+  rest: "was worn out and headed for",
+  company: "wanted company and headed for",
+  purpose: "got restless and went to find work at",
+  supplies: "was running low and went shopping at",
+};
+const DOING: Record<PlaceId, { day: string[]; night: string[] }> = {
+  tavern: { day: ["having lunch", "trading stories", "nursing a drink"], night: ["singing along", "sharing a late supper", "listening to the bard"] },
+  market: { day: ["haggling over prices", "browsing the stalls", "carrying a full basket"], night: ["helping a stall pack up", "looking for a late bargain"] },
+  guild: { day: ["reading the quest board", "filling in a ledger", "training in the yard"], night: ["finishing a report by lamplight", "keeping watch"] },
+  lake: { day: ["skipping stones", "resting in the shade", "watching the fishermen"], night: ["watching the moon on the water", "dozing by the reeds", "counting stars"] },
+};
+const placeName = (id: PlaceId) => PLACES.find((p) => p.id === id)!.name;
+const freshNeeds = (): Needs => ({ rest: 20 + Math.random() * 40, company: 20 + Math.random() * 40, purpose: 20 + Math.random() * 40, supplies: 20 + Math.random() * 40 });
 
 /** Runs one tick if one is due and nobody else has taken it. Returns whether it ran. */
 export async function advance(): Promise<boolean> {
@@ -220,22 +243,49 @@ export async function advance(): Promise<boolean> {
   const at = new Date(now);
   const log: (typeof schema.events.$inferInsert)[] = [];
 
-  // 1. Wander. Mostly at random; sometimes toward whoever they have grown closest to.
+  // 1. Live. Everyone has needs that build with time and a place that eases each one, so
+  // a move has a reason: tired, hungry for company, restless for work, out of supplies,
+  // or missing someone. Nobody is told where to go, and nobody wanders at random for long.
+  const hour = tick % HOURS;
+  const night = hour >= 20 || hour < 6;
+  const moves: Promise<unknown>[] = [];
   for (const agent of active) {
+    const needs: Needs = { ...(agent.needs ?? freshNeeds()) };
+    // Time passes: nights make people tired, days make them restless, the sociable miss company sooner.
+    needs.rest += night ? 11 : 4;
+    needs.purpose += night ? 2 : 8;
+    needs.company += 3 + agent.dials.openness / 20;
+    needs.supplies += 4;
+    // Being somewhere eases what that place is for.
+    const here = EASES[agent.place as PlaceId] ?? "company";
+    needs[here] = Math.max(0, needs[here] - 34);
+    for (const k of NEED_KEYS) needs[k] = Math.min(100, Math.round(needs[k]));
+
     const closest = allPairs
       .filter((p) => (p.aId === agent.id || p.bId === agent.id) && p.score >= 15)
       .sort((x, y) => y.score - x.score)[0];
     const friend = closest && active.find((o) => o.id === (closest.aId === agent.id ? closest.bId : closest.aId));
-    // Someone already with the person they like best tends to stay put.
-    if (Math.random() > (friend && friend.place === agent.place ? 0.1 : 0.3)) continue;
-    const to = friend && friend.place !== agent.place && Math.random() < 0.6 ? friend.place : pick(PLACES.filter((p) => p.id !== agent.place)).id;
-    agent.place = to;
-    await db().update(schema.agents).set({ place: to }).where(eq(schema.agents.id, agent.id));
-    if (log.length < 2) {
-      const place = PLACES.find((p) => p.id === to)!;
-      log.push({ tick, kind: "move", aId: agent.id, place: to, text: friend && to === friend.place ? `${agent.name} went looking for ${friend.name} at ${place.name}.` : `${agent.name} wandered over to ${place.name}.`, at });
+    const worst = NEED_KEYS.reduce((a, b) => (needs[b] > needs[a] ? b : a));
+
+    let to: PlaceId = agent.place as PlaceId;
+    let why = "";
+    if (friend && friend.place !== agent.place && needs.company > 45 && Math.random() < 0.55) {
+      to = friend.place as PlaceId;
+      why = `${agent.name} missed ${friend.name} and went to find them at ${placeName(to)}.`;
+    } else if (needs[worst] > 58 && EASES[agent.place as PlaceId] !== worst) {
+      to = PLACE_FOR[worst];
+      why = `${agent.name} ${REASON[worst]} ${placeName(to)}.`;
+    } else if (Math.random() < 0.06) {
+      to = pick(PLACES.filter((p) => p.id !== agent.place)).id;
+      why = `${agent.name} drifted over to ${placeName(to)}, no reason given.`;
     }
+    const doing = pick(DOING[to][night ? "night" : "day"]);
+    if (to !== agent.place && log.length < 3) log.push({ tick, kind: "move", aId: agent.id, place: to, text: why, at });
+    agent.place = to;
+    agent.needs = needs;
+    moves.push(db().update(schema.agents).set({ place: to, needs, doing }).where(eq(schema.agents.id, agent.id)));
   }
+  await Promise.all(moves);
 
   // 2. Two who share a place talk. Pets with owners are a little likelier to be the ones.
   const candidates: { a: Agent; b: Agent; weight: number }[] = [];
@@ -312,8 +362,21 @@ export async function snapshot() {
     db().select().from(schema.events).orderBy(desc(schema.events.id)).limit(40).all(),
     db().select().from(schema.pairs).where(sql`${schema.pairs.score} >= 1`).all(),
   ]);
+  const tick = clock?.tick ?? 0;
+  // How busy each place has been lately: who is there now plus the talk it has seen.
+  const buzz = Object.fromEntries(
+    PLACES.map((p) => [
+      p.id,
+      agentRows.filter(({ agent }) => agent.place === p.id && !agent.dials.paused).length +
+        2 * eventRows.filter((e) => e.kind === "talk" && e.place === p.id && e.tick > tick - 12).length,
+    ]),
+  ) as Record<PlaceId, number>;
   return {
-    tick: clock?.tick ?? 0,
+    tick,
+    hour: tick % HOURS,
+    hours: HOURS,
+    lastTickAt: clock?.lastTickAt.getTime() ?? 0,
+    buzz,
     tickMs: tickMs(),
     threshold: THRESHOLD,
     places: PLACES,
@@ -324,6 +387,9 @@ export async function snapshot() {
       voice: agent.card.voice,
       interests: agent.card.interests,
       place: agent.place as PlaceId,
+      doing: agent.doing ?? "",
+      // The need that is pressing hardest, so a watcher can tell where they will go next.
+      wants: agent.needs ? NEED_KEYS.reduce((a, b) => (agent.needs![b] > agent.needs![a] ? b : a)) : null,
       hue: agent.hue,
       slug,
       ownerAddress: owner,
