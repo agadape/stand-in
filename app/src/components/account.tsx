@@ -53,7 +53,9 @@ export function Account({ pet }: { pet: { slug: string; name: string } }) {
   return (
     <Card className="space-y-4">
       <div>
-        <h2 className="font-extrabold">Your account</h2>
+        <h2 className="flex items-center gap-2 font-extrabold">
+          <span aria-hidden>👤</span> Your account
+        </h2>
         <p className="text-xs text-muted">
           Signing out only affects this browser. {pet.name} stays in town, and the same passkey brings you back.
         </p>

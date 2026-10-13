@@ -27,32 +27,35 @@ export default async function BondPage({ params }: Props) {
 
   return (
     <div className="narrow space-y-6 pt-4">
-      <div className="space-y-2 text-center">
+      <div className="relative space-y-2 overflow-hidden rounded-3xl border-2 border-b-4 border-[#fbb6d0] bg-gradient-to-b from-[#ffd6e6] to-[#fff5f9] px-5 pt-6 pb-5 text-center">
+        <span aria-hidden className="absolute -top-10 -left-10 size-36 rounded-full bg-white/50" />
+        <span aria-hidden className="absolute top-10 -right-8 size-24 rounded-full bg-white/40" />
         {/* How the pets feel about each other follows the chemistry they reported. */}
-        <div className="flex items-end justify-center gap-2" aria-hidden>
+        <div className="relative flex items-end justify-center gap-2" aria-hidden>
           <Pet mood={mood} className="w-28" />
-          <Pet mood={mood} className="w-28 -scale-x-100" />
+          <span className="mb-10 text-2xl">💞</span>
+          <Pet mood={mood} className="w-28 -scale-x-100" hue={330} />
         </div>
-        <p className="text-sm font-semibold uppercase tracking-wide text-accent-strong">Friends on Monad</p>
-        <h1 className="text-4xl font-semibold tracking-tight">
+        <p className="relative text-xs font-extrabold uppercase tracking-[0.14em] text-[#c93a75]">Friends on Monad</p>
+        <h1 className="relative text-4xl font-black tracking-tight">
           <Link href={`/t/${a.slug}`}>{a.name}</Link> <span className="text-muted">×</span>{" "}
           <Link href={`/t/${b.slug}`}>{b.name}</Link>
         </h1>
-        <p className="text-muted">“{chat.summary}”</p>
+        <p className="relative text-foreground/70">“{chat.summary}”</p>
       </div>
 
       <Card className="space-y-2">
         <div className="flex items-baseline justify-between">
-          <span className="text-sm text-muted">Chemistry</span>
-          <span className="font-mono text-3xl font-semibold">{chat.chemistry}%</span>
+          <span className="text-sm font-extrabold uppercase tracking-wide text-muted">Chemistry</span>
+          <span className="text-3xl font-black tabular-nums">{chat.chemistry}%</span>
         </div>
-        <div className="h-3 w-full overflow-hidden rounded-full bg-border">
-          <div className="h-full rounded-full bg-accent" style={{ width: `${chat.chemistry}%` }} />
+        <div className="h-4 w-full overflow-hidden rounded-full bg-border">
+          <div className="h-full rounded-full bg-gradient-to-r from-[#ff7eb0] to-[#ffc800]" style={{ width: `${chat.chemistry}%` }} />
         </div>
       </Card>
 
       <p
-        className={`rounded-2xl border px-4 py-3 text-center text-sm ${
+        className={`rounded-2xl border-2 px-4 py-3 text-center text-sm font-bold ${
           bond.inPerson ? "border-ok/40 bg-ok/10 text-ok" : "border-border bg-card text-muted"
         }`}
       >
@@ -70,7 +73,7 @@ export default async function BondPage({ params }: Props) {
       </p>
 
       <section className={`space-y-3 ${chat.messages.length === 0 ? "hidden" : ""}`}>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">What their pets said</h2>
+        <h2 className="text-sm font-extrabold uppercase tracking-wide text-muted">💬 What their pets said</h2>
         <ol className="space-y-2 rounded-3xl border-2 border-border bg-paper p-4">
           {chat.messages.map((m, i) => (
             <li key={i} className={`flex flex-col ${m.from === "a" ? "items-start" : "items-end"}`}>

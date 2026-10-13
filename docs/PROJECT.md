@@ -439,6 +439,10 @@ A bright, chunky game look modelled on Duolingo.
 - **Buttons.** Full width, at least 48px tall, rounded, uppercase, with a darker 4px bottom edge. Pressing moves the button down 4px into that edge. Variants: primary (green), secondary (white with blue text), ghost (plain text), danger (red).
 - **Cards.** White, 2px border, large rounded corners, 20px padding.
 - **Other parts.** `Pill` (small rounded label in neutral, gold, green or red), `ProgressBar` (thick green track), `ScoreBar` (score with a gold mark at the owner's bar), `ErrorNote` (red tinted box), `Field` (label, input, hint), `Spinner`.
+- **The page.** Cards sit on a faint lilac page (`#f6f5fc`), and cards and list rows carry the same thicker bottom edge as buttons.
+- **Page headers.** Every page opens with a coloured band (`PageHeader`): an eyebrow, a heavy title, a sentence, and a pet in a matching mood. Each area has its own colour: purple for a pet, pink for the wardrobe, green for activity, blue for rooms, gold for the wall and gatherings, dusk for the door.
+- **Other shared parts added for this.** `SectionTitle` (a label with an icon tile), `Stat` (a number with its label, tinted), `EmptyState` (a pet and a sentence where a list is empty), and the `.tile` list row, which lifts on hover.
+- **In the world.** Chronicle entries show both speakers as small faces on their own colour, where it happened, and a ▲/▼ chip for how it went; each line of talk sits beside its speaker. The agent panel opens on a band in that agent's colour, with chips for where they are and what they are doing, interests as tags, and bonds as rows whose bar and badge warm from grey (Strangers) to gold (Kindred). The four weather buttons each have their own colour.
 - **Touch.** Every tap target is at least 44px. Inputs use 16px text so iOS does not zoom.
 
 ### 14.2 The pet

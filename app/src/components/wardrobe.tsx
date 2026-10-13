@@ -6,6 +6,7 @@ import { useOutfit } from "@/lib/use-outfit";
 import { useIsOwner } from "@/lib/use-session";
 import { Pet } from "./pet";
 import { SocialProgress } from "./pet-scene";
+import { Card, PageHeader } from "./ui";
 
 /**
  * What the pet can wear and what each locked item takes. Cosmetics change how the pet
@@ -25,20 +26,22 @@ export function Wardrobe({ twin, friends }: { twin: { slug: string; name: string
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Wardrobe</h1>
-        <p className="mt-1 text-muted">
-          <Link href={`/t/${twin.slug}`} className="underline decoration-dotted">
-            {twin.name}
-          </Link>
-          &apos;s pet. New things unlock by meeting people, and only by that.
-        </p>
-      </div>
+      <PageHeader tone="pink" eyebrow="Wardrobe" title={`What ${twin.name} can wear`} art={<Pet mood="happy" outfit={{ head: "partyhat", neck: "bowtie" }} />}>
+        <Link href={`/t/${twin.slug}`} className="underline decoration-dotted">
+          {twin.name}
+        </Link>
+        &apos;s pet. New things unlock by meeting people, and only by that.
+      </PageHeader>
 
       <div className="space-y-6 lg:grid lg:grid-cols-[2fr_3fr] lg:items-start lg:gap-10 lg:space-y-0">
-      <div className="space-y-6 lg:sticky lg:top-10">
-        <Pet outfit={outfit} className="mx-auto w-52 lg:w-72" label={`${twin.name}'s pet in its outfit`} />
-        <SocialProgress friends={friends} />
+      <div className="space-y-4 lg:sticky lg:top-10">
+        <div className="rounded-3xl border-2 border-b-4 border-[#fbb6d0] bg-gradient-to-b from-[#ffe1ec] to-[#fff7fa] p-5">
+          <Pet outfit={outfit} className="mx-auto w-52 lg:w-64" label={`${twin.name}'s pet in its outfit`} />
+          <span aria-hidden className="mx-auto -mt-2 block h-4 w-40 rounded-[50%] bg-[#c93a75]/10" />
+        </div>
+        <Card className="!p-4">
+          <SocialProgress friends={friends} />
+        </Card>
       </div>
 
       <ul className="grid grid-cols-2 gap-3 xl:grid-cols-3">
@@ -53,20 +56,20 @@ export function Wardrobe({ twin, friends }: { twin: { slug: string; name: string
                 disabled={!open || !isOwner}
                 onClick={() => toggle(c)}
                 aria-pressed={open ? worn : undefined}
-                className={`w-full rounded-3xl border p-3 text-center transition ${
+                className={`w-full rounded-3xl border-2 border-b-4 p-3 text-center transition ${
                   worn ? "border-accent bg-accent/10" : "border-border bg-card"
                 } ${open && isOwner ? "hover:border-accent" : ""} ${open ? "" : "opacity-60"}`}
               >
                 <Pet outfit={{ [c.slot]: c.id }} className={`mx-auto w-24 ${open ? "" : "grayscale"}`} />
-                <p className="mt-1 font-semibold">{c.name}</p>
-                <p className={`text-xs ${worn ? "text-accent" : "text-muted"}`}>
+                <p className="mt-1 font-extrabold">{c.name}</p>
+                <p className={`text-xs font-bold ${worn ? "text-accent-strong" : "text-muted"}`}>
                   {open
                     ? worn
                       ? "Wearing"
                       : isOwner
                         ? "Tap to wear"
                         : "Unlocked"
-                    : `Locked: meet ${missing} more ${missing === 1 ? "friend" : "friends"} (${c.friends} in all)`}
+                    : `🔒 Meet ${missing} more ${missing === 1 ? "friend" : "friends"} (${c.friends} in all)`}
                 </p>
               </button>
             </li>

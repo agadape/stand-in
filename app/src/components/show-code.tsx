@@ -85,18 +85,18 @@ export function ShowCode({
   return (
     <div className="space-y-3">
       {batch?.gathering && (
-        <p className="text-xs font-semibold uppercase tracking-wide text-gold">At {batch.gathering.name}</p>
+        <p className="text-xs font-extrabold uppercase tracking-wide text-[#a86e00]">🎪 At {batch.gathering.name}</p>
       )}
       <svg
         viewBox={`-2 -2 ${qr.size + 4} ${qr.size + 4}`}
-        className="mx-auto w-full max-w-64 rounded-2xl bg-white"
+        className="mx-auto w-full max-w-64 rounded-2xl border-2 border-b-4 border-border bg-white p-1"
         role="img"
         aria-label={`${pet.name}'s meeting code`}
         shapeRendering="crispEdges"
       >
         <path d={qr.d} fill="#151515" />
       </svg>
-      <p className="font-mono text-sm text-muted" aria-live="off">
+      <p className="mx-auto w-fit rounded-full bg-blue/10 px-3 py-1 text-xs font-extrabold text-blue-shadow tabular-nums" aria-live="off">
         New code in {secondsLeft}s
       </p>
       <p className="text-xs text-muted">Let them scan this with their phone camera. Scanning it makes you friends.</p>

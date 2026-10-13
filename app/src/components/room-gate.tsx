@@ -60,12 +60,12 @@ export function RoomGate({ roomId, roomName }: { roomId: number; roomName: strin
   return (
     <Card className="space-y-4">
       <p className="text-sm text-muted">
-        As <span className="font-medium text-foreground">{mine.name}</span>
+        As <span className="font-extrabold text-foreground">{mine.name}</span>
       </p>
 
       {status?.member ? (
-        <p className="rounded-2xl border border-ok/40 bg-ok/10 px-4 py-3 text-sm text-ok">
-          You&apos;re in.{" "}
+        <p className="rounded-2xl border-2 border-ok/40 bg-ok/10 px-4 py-3 text-sm font-bold text-ok">
+          🎉 You&apos;re in.{" "}
           {joinedTx && (
             <a href={joinedTx} target="_blank" rel="noreferrer" className="underline decoration-dotted">
               See the transaction
@@ -73,11 +73,11 @@ export function RoomGate({ roomId, roomName }: { roomId: number; roomName: strin
           )}
         </p>
       ) : status?.ok ? (
-        <p className="rounded-2xl border border-ok/40 bg-ok/10 px-4 py-3 text-sm text-ok">
-          {status.vouches} of the {status.needed} members you need have met you. You can join.
+        <p className="rounded-2xl border-2 border-ok/40 bg-ok/10 px-4 py-3 text-sm font-bold text-ok">
+          ✅ {status.vouches} of the {status.needed} members you need have met you. You can join.
         </p>
       ) : status ? (
-        <p className="rounded-2xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold">
+        <p className="rounded-2xl border-2 border-[#f2d37a] bg-[#fff7df] px-4 py-3 text-sm font-bold text-[#a86e00]">
           {status.vouches} of {status.needed}. Meet {missing} more {missing === 1 ? "member" : "members"} and scan
           their code, then check again.
         </p>
@@ -139,7 +139,9 @@ export function CreateRoom() {
 
   return (
     <Card className="space-y-4">
-      <h2 className="font-semibold">Open a room</h2>
+      <h2 className="flex items-center gap-2 font-extrabold">
+        <span aria-hidden>➕</span> Open a room
+      </h2>
       <input
         className={inputClass}
         value={name}
@@ -151,7 +153,7 @@ export function CreateRoom() {
       <label className="flex min-h-11 items-center justify-between gap-3 text-sm">
         <span>Members who must have met you</span>
         <select
-          className="min-h-11 rounded-xl border border-border bg-background px-3 py-2 text-base"
+          className="min-h-11 rounded-xl border-2 border-border bg-background px-3 py-2 text-base font-bold"
           value={threshold}
           onChange={(e) => setThreshold(Number(e.target.value))}
         >

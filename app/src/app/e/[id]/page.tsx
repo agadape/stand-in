@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { JoinGathering } from "@/components/gathering";
+import { Pet } from "@/components/pet";
+import { PageHeader } from "@/components/ui";
 import { WallGraph } from "@/components/wall-graph";
 import { wall } from "@/lib/wall";
 
@@ -31,16 +33,10 @@ export default async function GatheringPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <p className={`text-sm font-semibold uppercase tracking-wide ${open ? "text-ok" : "text-muted"}`}>
-          Gathering · {open ? "on now" : "ended"}
-        </p>
-        <h1 className="text-4xl font-semibold tracking-tight">{gathering.name}</h1>
-        <p className="text-sm text-muted">
-          {clock(gathering.startsAt)} to {clock(gathering.endsAt)} UTC. Meetings made with a code shown for this
-          gathering are stamped with it on-chain.
-        </p>
-      </div>
+      <PageHeader tone={open ? "green" : "gold"} eyebrow={`Gathering · ${open ? "on now" : "ended"}`} title={gathering.name} art={<Pet mood={open ? "victory" : "idle"} hue={45} />}>
+        {clock(gathering.startsAt)} to {clock(gathering.endsAt)} UTC. Meetings made with a code shown for this gathering
+        are stamped with it on-chain.
+      </PageHeader>
 
       <JoinGathering gatheringId={id} open={open} />
       <WallGraph initial={data} gatheringId={id} />

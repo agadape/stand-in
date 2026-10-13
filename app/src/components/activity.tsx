@@ -1,31 +1,29 @@
 import Link from "next/link";
 import { formatMon, pct, type LeaderboardRow, type TwinCard } from "@/lib/api";
 import type { BondRow } from "@/lib/bonds";
-import { LinkButton } from "./ui";
+import { Pet } from "./pet";
+import { EmptyState, LinkButton, PageHeader, SectionTitle, Stat } from "./ui";
 
 /** Everything that has happened to a pet: who it met, and who tried to be its owner. */
 export function Activity({ twin, bonds, leaderboard }: { twin: TwinCard; bonds: BondRow[]; leaderboard: LeaderboardRow[] }) {
   const friends = bonds.filter((b) => b.done);
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Activity</h1>
-        <p className="mt-1 text-muted">
-          <Link href={`/t/${twin.slug}`} className="underline decoration-dotted">
-            {twin.name}
-          </Link>
-          &apos;s meetings and imitation attempts.
-        </p>
-      </div>
+      <PageHeader tone="green" eyebrow="Activity" title={`${twin.name}'s story so far`} art={<Pet mood="happy" />}>
+        <Link href={`/t/${twin.slug}`} className="underline decoration-dotted">
+          {twin.name}
+        </Link>
+        &apos;s meetings and imitation attempts.
+      </PageHeader>
 
       <div className="space-y-8 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10 lg:space-y-0">
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-          Friends met {friends.length > 0 && `· ${friends.length}`}
-        </h2>
+        <SectionTitle icon="🤝">Friends met {friends.length > 0 && `· ${friends.length}`}</SectionTitle>
         {friends.length === 0 ? (
           <>
-            <p className="text-sm text-muted">Nobody yet. Friends are people {twin.name} met and scanned.</p>
+            <EmptyState art={<Pet mood="idle" />} title="Nobody yet">
+              Friends are people {twin.name} met and scanned.
+            </EmptyState>
             <LinkButton href="/rooms" variant="ghost">
               See rooms you can join by meeting people
             </LinkButton>
@@ -34,17 +32,17 @@ export function Activity({ twin, bonds, leaderboard }: { twin: TwinCard; bonds: 
           <ul className="space-y-2">
             {friends.map((f) => (
               <li key={f.id}>
-                <Link href={`/b/${f.id}`} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+                <Link href={`/b/${f.id}`} className="tile">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">
+                    <p className="truncate font-extrabold">
                       {f.other.name}
-                      <span className={`ml-2 text-xs font-normal ${f.inPerson ? "text-ok" : "text-muted"}`}>
+                      <span className={`ml-2 rounded-full px-2 py-0.5 text-[11px] font-extrabold ${f.inPerson ? "bg-ok/15 text-ok" : "bg-border/70 text-muted"}`}>
                         {f.inPerson ? "met in person" : "link"}
                       </span>
                     </p>
                     {f.summary && <p className="truncate text-xs text-muted">“{f.summary}”</p>}
                   </div>
-                  {f.chemistry !== null && <span className="font-mono text-sm font-semibold text-accent">{f.chemistry}%</span>}
+                  {f.chemistry !== null && <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs font-black text-accent-strong tabular-nums">{f.chemistry}%</span>}
                 </Link>
               </li>
             ))}
@@ -53,40 +51,31 @@ export function Activity({ twin, bonds, leaderboard }: { twin: TwinCard; bonds: 
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">The imitation game</h2>
+        <SectionTitle icon="🎭">The imitation game</SectionTitle>
         <dl className="grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-2xl border border-border bg-card p-3">
-            <dt className="text-xs text-muted">
-              {twin.name} as {twin.name}
-            </dt>
-            <dd className="font-mono text-lg font-semibold">{twin.ownerProven ? pct(twin.ownerScoreBps) : "—"}</dd>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-3">
-            <dt className="text-xs text-muted">Best impostor</dt>
-            <dd className="font-mono text-lg font-semibold">{twin.attempts > 0 ? pct(twin.bestScoreBps) : "—"}</dd>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-3">
-            <dt className="text-xs text-muted">Attempts</dt>
-            <dd className="font-mono text-lg font-semibold">{twin.attempts}</dd>
-          </div>
+          <Stat tone="gold" label={`${twin.name} as ${twin.name}`} value={twin.ownerProven ? pct(twin.ownerScoreBps) : "—"} />
+          <Stat tone="blue" label="Best impostor" value={twin.attempts > 0 ? pct(twin.bestScoreBps) : "—"} />
+          <Stat label="Attempts" value={twin.attempts} />
         </dl>
 
         {leaderboard.length === 0 ? (
-          <p className="text-sm text-muted">Nobody has tried to be {twin.name} yet.</p>
+          <EmptyState art={<Pet mood="suspicious" />} title={`Nobody has tried to be ${twin.name} yet`}>
+            Send the link to a friend and see if they can text like you.
+          </EmptyState>
         ) : (
           <ol className="space-y-2">
             {leaderboard.map((row, i) => (
-              <li key={row.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
-                <span className="w-5 font-mono text-sm text-muted">{i + 1}</span>
+              <li key={row.id} className="tile">
+                <span className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${i === 0 ? "bg-[#ffe7a8] text-[#a86e00]" : "bg-border/70 text-muted"}`}>{i + 1}</span>
                 <Link href={`/t/${twin.slug}/a/${row.id}`} className="min-w-0 flex-1">
-                  <p className="truncate font-medium">
+                  <p className="truncate font-extrabold">
                     {row.displayName}
-                    {row.mode === "owner" && <span className="ml-2 text-xs text-gold">the real one</span>}
+                    {row.mode === "owner" && <span className="ml-2 rounded-full bg-[#fff1c2] px-2 py-0.5 text-[11px] font-extrabold text-[#a86e00]">the real one</span>}
                   </p>
                   <p className="truncate text-xs text-muted">“{row.verdictLine}”</p>
                 </Link>
                 <div className="text-right">
-                  <p className="font-mono text-sm font-semibold">{pct(row.scoreBps)}</p>
+                  <p className="text-sm font-black tabular-nums">{pct(row.scoreBps)}</p>
                   <a href={row.txUrl} target="_blank" rel="noreferrer" className="text-xs text-muted underline decoration-dotted">
                     {row.mode === "owner"
                       ? "set the bar"

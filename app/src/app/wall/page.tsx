@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CreateGathering } from "@/components/gathering";
 import { WallGraph } from "@/components/wall-graph";
+import { Pet } from "@/components/pet";
+import { EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { listGatherings } from "@/lib/met";
 import { wall } from "@/lib/wall";
 
@@ -13,29 +15,33 @@ export default async function WallPage() {
   const [all, gatherings] = await Promise.all([wall(0), listGatherings()]);
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Live wall</h1>
-        <p className="text-muted">Every meeting recorded on Monad, as it happens. Put this on a big screen.</p>
-      </div>
+      <PageHeader tone="gold" eyebrow="Live wall" title="Everyone who has met" art={<Pet mood="victory" hue={45} />}>
+        Every meeting recorded on Monad, as it happens. Put this on a big screen.
+      </PageHeader>
 
       <WallGraph initial={all} />
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Gatherings</h2>
+        <SectionTitle icon="🎪">Gatherings</SectionTitle>
         {gatherings.length === 0 ? (
-          <p className="text-sm text-muted">None yet.</p>
+          <EmptyState art={<Pet mood="idle" hue={45} />} title="No gatherings yet">
+            Host one below and its meetings get their own wall.
+          </EmptyState>
         ) : (
           <ul className="space-y-2">
             {gatherings.map((g) => (
               <li key={g.id}>
-                <Link href={`/e/${g.id}`} className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+                <Link href={`/e/${g.id}`} className="tile">
+                  <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#ffe7a8] text-lg">
+                    🎪
+                  </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{g.name}</p>
+                    <p className="truncate font-extrabold">{g.name}</p>
                     <p className="text-xs text-muted">
                       {g.meets} {g.meets === 1 ? "meeting" : "meetings"} · {g.attendees} there
                     </p>
                   </div>
-                  <span className={`text-xs font-semibold ${g.open ? "text-ok" : "text-muted"}`}>
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide ${g.open ? "bg-ok/15 text-ok" : "bg-border/70 text-muted"}`}>
                     {g.open ? "on now" : "ended"}
                   </span>
                 </Link>

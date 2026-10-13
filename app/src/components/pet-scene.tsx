@@ -48,13 +48,13 @@ export function SocialProgress({ friends }: { friends: number }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between text-sm">
-        <span className="font-semibold">
+        <span className="font-extrabold">
           {next ? `${friends} / ${next.friends} friends met` : `${friends} friends met`}
         </span>
-        <span className="text-xs text-muted">{next ? `Next: ${next.name}` : "Everything unlocked"}</span>
+        <span className="rounded-full bg-[#fff1c2] px-2 py-0.5 text-xs font-extrabold text-[#a86e00]">{next ? `🎁 Next: ${next.name}` : "🎉 Everything unlocked"}</span>
       </div>
-      <div className="h-2.5 w-full overflow-hidden rounded-full bg-border" role="progressbar" aria-valuemin={0} aria-valuemax={next?.friends ?? friends} aria-valuenow={friends}>
-        <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${pctDone}%` }} />
+      <div className="h-3.5 w-full overflow-hidden rounded-full bg-border" role="progressbar" aria-valuemin={0} aria-valuemax={next?.friends ?? friends} aria-valuenow={friends}>
+        <div className="h-full rounded-full bg-gradient-to-r from-accent to-[#8ee000] transition-all duration-700" style={{ width: `${Math.max(pctDone, 4)}%` }} />
       </div>
     </div>
   );

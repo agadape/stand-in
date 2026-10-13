@@ -67,7 +67,9 @@ export function VerifyVerdict({ attemptId }: { attemptId: number }) {
   return (
     <Card className="space-y-3">
       <div>
-        <h2 className="font-semibold">Verify this verdict</h2>
+        <h2 className="flex items-center gap-2 font-extrabold">
+          <span aria-hidden>🧾</span> Verify this verdict
+        </h2>
         <p className="mt-1 text-sm text-muted">
           Recomputes the verdict&apos;s hash in your browser and compares it with the one the twin&apos;s wallet
           wrote on Monad. If they match, nobody edited the verdict after the fact.
@@ -76,7 +78,7 @@ export function VerifyVerdict({ attemptId }: { attemptId: number }) {
 
       {outcome.state === "done" ? (
         <div className={`space-y-2 rounded-2xl px-4 py-3 text-sm ${outcome.match ? "bg-ok/15" : "bg-bad/15"}`}>
-          <p className={`font-semibold ${outcome.match ? "text-ok" : "text-bad"}`}>
+          <p className={`font-extrabold ${outcome.match ? "text-ok" : "text-bad"}`}>
             {outcome.match ? "Match. This verdict is the one on-chain." : "Mismatch. The stored verdict differs from the chain."}
           </p>
           <p className="break-all font-mono text-xs text-muted">recomputed {outcome.recomputed}</p>
