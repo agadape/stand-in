@@ -60,8 +60,9 @@ function useTabs(): { pet: Tab[]; site: Tab[] } {
   return {
     pet: home
       ? [
-          { href: home, label: "Pet" },
+          // The world is home; the pet's own page comes second.
           { href: "/world", label: "World" },
+          { href: home, label: "Pet" },
           { href: `${home}/wardrobe`, label: "Wardrobe" },
           { href: `${home}/activity`, label: "Activity" },
         ]

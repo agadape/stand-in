@@ -170,7 +170,8 @@ export function RestorePet({ className = "" }: { className?: string }) {
       const { pets } = (await res.json()) as { pets: { slug: string; name: string; ownerAddress: string }[] };
       if (!pets?.length) throw new Error("That passkey doesn't own a pet here yet.");
       for (const p of pets) rememberOwned(p.slug, p.ownerAddress, p.name);
-      router.push(`/t/${pets[pets.length - 1].slug}`);
+      // Back home: the world, with their pet and its history where they left them.
+      router.push("/world");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't find your pet");
       setBusy(false);

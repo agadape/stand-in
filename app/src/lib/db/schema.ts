@@ -108,6 +108,9 @@ export type PersonaCard = { name: string; about: string; voice: string; interest
 /** What an owner may set. These shape what the agent does next; none of them is a command. */
 export type Dials = { openness: number; pace: number; avoid: string; paused: boolean };
 
+/** What builds up in an agent over time, 0 to 100. Each place in town eases one of them. */
+export type Needs = { rest: number; company: number; purpose: number; supplies: number };
+
 /** Someone living in the world: a user's pet (twinId set) or a synthetic resident. */
 export const agents = sqliteTable("world_agents", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -116,6 +119,9 @@ export const agents = sqliteTable("world_agents", {
   card: text("card", { mode: "json" }).$type<PersonaCard>().notNull(),
   dials: text("dials", { mode: "json" }).$type<Dials>().notNull(),
   place: text("place").notNull(),
+  needs: text("needs", { mode: "json" }).$type<Needs>(),
+  // What they are up to right now, in a few words.
+  doing: text("doing"),
   // Stable look for residents who have no wardrobe: a hue for the pet's body.
   hue: integer("hue").notNull().default(250),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
@@ -150,6 +156,9 @@ export const events = sqliteTable("world_events", {
   aId: integer("a_id").notNull(),
   bId: integer("b_id"),
   place: text("place").notNull(),
+  needs: text("needs", { mode: "json" }).$type<Needs>(),
+  // What they are up to right now, in a few words.
+  doing: text("doing"),
   text: text("text").notNull(),
   lines: text("lines", { mode: "json" }).$type<{ from: "a" | "b"; text: string }[]>(),
   delta: integer("delta"),

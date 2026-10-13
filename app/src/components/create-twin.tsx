@@ -97,7 +97,8 @@ export function CreateTwin({ judge, next }: { judge: Provider | null; next: stri
       });
       passkey.end();
       rememberOwned(created.slug, passkey.address, name.trim());
-      router.push(next ?? `/t/${created.slug}?welcome=1`);
+      // A new pet lands in the world, its home, unless it was made in order to meet someone.
+      router.push(next ?? "/world?welcome=1");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
       setBusy(null);

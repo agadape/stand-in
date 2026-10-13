@@ -1,3 +1,4 @@
+import { GoHome } from "@/components/go-home";
 import { Pet } from "@/components/pet";
 import { RestorePet } from "@/components/soul-vault";
 import { LinkButton } from "@/components/ui";
@@ -21,9 +22,11 @@ const steps = [
   },
 ];
 
-export default function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ about?: string }> }) {
+  const { about } = await searchParams;
   return (
     <div className="space-y-10">
+      <GoHome stay={about === "1"} />
       {/* One column on a phone; pet beside the pitch from a laptop up. */}
       <section className="space-y-5 pt-2 lg:grid lg:grid-cols-2 lg:items-center lg:gap-10 lg:space-y-0">
         <div className="flex items-end justify-center lg:order-2" aria-hidden>
