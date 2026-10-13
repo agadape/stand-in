@@ -138,3 +138,11 @@ select {
   width: 100%;
   max-width: 36rem;
 }
+
+/* Scrolls when it has to, without drawing a scrollbar (the landing page and its overlay). */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
