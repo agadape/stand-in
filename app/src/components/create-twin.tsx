@@ -60,7 +60,7 @@ export function CreateTwin({ judge, next }: { judge: Provider | "stylometry" | n
       say: i === 0 ? "Quick questions! Answer the way you'd actually type it." : i === quizSteps - 1 ? "Last two, promise." : "You're doing great. Two more.",
       mood: i === quizSteps - 1 ? "happy" : "idle",
     })),
-    { say: "That's everything I need. Ready to hatch me?", mood: "victory" },
+    { say: "That's everything I need. Ready to hatch me? Neither of us knows what I'll turn out to be.", mood: "victory" },
   ];
   const last = steps.length - 1;
   const quizStart = 3;

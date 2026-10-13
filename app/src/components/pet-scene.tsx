@@ -36,7 +36,7 @@ export function PetScene({
   return (
     <button type="button" onClick={react} className={`mx-auto block rounded-full outline-offset-4 ${className}`} aria-label={`${name}'s pet. Tap for a reaction.`}>
       {/* The key restarts the hop animation on every tap. */}
-      <Pet key={tap?.n ?? "rest"} mood={tap?.mood ?? mood} outfit={outfit} />
+      <Pet key={tap?.n ?? "rest"} mood={tap?.mood ?? mood} outfit={outfit} seed={slug} />
     </button>
   );
 }

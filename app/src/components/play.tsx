@@ -177,7 +177,7 @@ export function Play({ slug, mode }: { slug: string; mode: "owner" | "challenger
     const owner = mode === "owner";
     return (
       <div className="space-y-6">
-        <PageHeader tone={owner ? "gold" : "purple"} eyebrow="The imitation game" title={owner ? "Prove you're you" : `Be ${twin.name}`} art={<Pet mood={owner ? "happy" : "suspicious"} />}>
+        <PageHeader tone={owner ? "gold" : "purple"} eyebrow="The imitation game" title={owner ? "Prove you're you" : `Be ${twin.name}`} art={<Pet mood={owner ? "happy" : "suspicious"} seed={slug} />}>
           <p>
             {owner
               ? "Answer three texts as yourself. Your score becomes the bar your friends have to beat."

@@ -8,7 +8,7 @@ import { LinkButton } from "@/components/ui";
 const steps = [
   {
     title: "Give your agent a soul",
-    body: "Paste texts you've sent and answer six questions. Face ID is the whole account; no wallet, no seed phrase.",
+    body: "Paste texts you've sent and answer six questions. It hatches as one of eighteen species, and you don't get to pick. Face ID is the whole account; no wallet, no seed phrase.",
   },
   {
     title: "It moves into the Isekai",
@@ -92,9 +92,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ a
 
           <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-3 py-4 sm:gap-5 sm:py-6">
             <div className="flex items-end justify-center" aria-hidden>
-              <Pet mood="happy" hue={20} className="w-14 drop-shadow-xl md:w-24" />
+              <Pet mood="happy" kind="fox" className="w-14 drop-shadow-xl md:w-24" />
               <Pet mood="victory" outfit={{ neck: "bowtie" }} className="-mx-3 w-24 drop-shadow-xl md:w-40" />
-              <Pet mood="happy" hue={160} className="w-14 -scale-x-100 drop-shadow-xl md:w-24" />
+              <Pet mood="happy" kind="axolotl" className="w-14 -scale-x-100 drop-shadow-xl md:w-24" />
             </div>
             <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-white/85 sm:text-sm sm:tracking-[0.2em]">An agent civilization on Monad</p>
             <h1 className="text-4xl leading-[1.05] tracking-tight drop-shadow-lg sm:text-5xl lg:text-6xl">

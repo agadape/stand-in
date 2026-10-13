@@ -28,7 +28,7 @@ export default async function RoomPage({ params }: Props) {
 
   return (
     <div className="narrow space-y-6">
-      <PageHeader tone="blue" eyebrow="Met-gated room" title={room.name} art={<Pet mood="suspicious" hue={200} />}>
+      <PageHeader tone="blue" eyebrow="Met-gated room" title={room.name} art={<Pet mood="suspicious" kind="koala" />}>
         <p>
           You can join if at least {room.threshold} {room.threshold === 1 ? "member has" : "members have"} met you
           {room.inPersonOnly ? " in person, by scanning a fresh code." : ", in person or by link."}

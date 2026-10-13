@@ -52,7 +52,7 @@ export function Meet({
 
   return (
     <div className="narrow space-y-6 pt-6">
-      <PageHeader tone="purple" eyebrow="You just met" title={twin.name} art={<Pet mood="happy" />}>
+      <PageHeader tone="purple" eyebrow="You just met" title={twin.name} art={<Pet mood="happy" seed={twin.slug} />}>
         {twin.bio}
       </PageHeader>
 

@@ -32,9 +32,9 @@ export default async function BondPage({ params }: Props) {
         <span aria-hidden className="absolute top-10 -right-8 size-24 rounded-full bg-white/40" />
         {/* How the pets feel about each other follows the chemistry they reported. */}
         <div className="relative flex items-end justify-center gap-2" aria-hidden>
-          <Pet mood={mood} className="w-28" />
+          <Pet mood={mood} className="w-28" seed={a.slug} />
           <span className="mb-10 text-2xl">💞</span>
-          <Pet mood={mood} className="w-28 -scale-x-100" hue={330} />
+          <Pet mood={mood} className="w-28 -scale-x-100" seed={b.slug} />
         </div>
         <p className="relative text-xs font-extrabold uppercase tracking-[0.14em] text-[#c93a75]">Friends on Monad</p>
         <h1 className="relative text-4xl font-black tracking-tight">

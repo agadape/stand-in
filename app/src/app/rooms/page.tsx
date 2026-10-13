@@ -13,13 +13,13 @@ export default async function RoomsPage() {
   const rooms = await listRooms();
   return (
     <div className="narrow space-y-6">
-      <PageHeader tone="blue" eyebrow="Rooms" title="Get in by who you&apos;ve met" art={<Pet mood="suspicious" hue={200} />}>
+      <PageHeader tone="blue" eyebrow="Rooms" title="Get in by who you&apos;ve met" art={<Pet mood="suspicious" kind="koala" />}>
         A room lets you in only if enough of its members have met you. No invite link, no email: the contract counts
         the people you have actually stood next to.
       </PageHeader>
 
       {rooms.length === 0 ? (
-        <EmptyState art={<Pet mood="idle" hue={200} />} title="No rooms yet">
+        <EmptyState art={<Pet mood="idle" kind="koala" />} title="No rooms yet">
           Open the first one below.
         </EmptyState>
       ) : (

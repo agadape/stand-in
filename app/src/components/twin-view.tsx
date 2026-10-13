@@ -5,6 +5,7 @@ import { useState } from "react";
 import { api, formatMon, pct, type TwinCard } from "@/lib/api";
 import type { BondRow } from "@/lib/bonds";
 import { forgetPasskey, signInWithPasskey, signOwnerProof } from "@/lib/passkey";
+import { speciesOf } from "@/lib/species";
 import { useIsOwner } from "@/lib/use-session";
 import { Account } from "./account";
 import { befriend } from "./meet";
@@ -106,6 +107,7 @@ export function TwinView({
             <PetScene slug={twin.slug} name={twin.name} friends={friends.length} className="w-48 lg:w-72" />
             <span aria-hidden className="mx-auto -mt-3 block h-4 w-40 rounded-[50%] bg-[#6a56e0]/15 lg:w-56" />
             <h1 className="mt-3 text-4xl font-black tracking-tight">{twin.name}</h1>
+            <p className="mx-auto mt-1 w-fit rounded-full bg-white/70 px-3 py-0.5 text-xs font-extrabold uppercase tracking-wide text-[#6a56e0]">{speciesOf(twin.slug).name}</p>
             {twin.bio && <p className="mt-1 text-foreground/70">{twin.bio}</p>}
           </div>
         </div>
