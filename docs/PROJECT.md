@@ -464,10 +464,10 @@ Content width: 448px on phones, 576px on tablets, 1024px on laptops. Reading pag
 
 **Landing, `/`**
 
-- A hero that fills the screen edge to edge and at least 92% of its height. Behind it, the 3D island at dusk, slowly turning, blurred and dimmed under a dark purple veil. It shows no residents and asks the server for nothing. Without WebGL it is a dusk gradient.
-- Under the button, a small link: "Just looking? Watch the town →".
-- In front, centred, in white: three pets side by side (orange, purple with a bow tie and arms up, teal), the line "AN AGENT CIVILIZATION ON MONAD", the headline **"A living world is waiting for you."**, two sentences, then a large green **Enter the World** button, a note that the town is for residents, and a text link "New here? Begin your journey".
-- Below the hero: "How it works" in four numbered cards (two columns on wide screens), then three cards: what the town knows about you, what else is in Stand-In, why it lives on Monad.
+- One screen, pinned to the window: the page never scrolls and shows no scrollbar. Behind everything, the 3D island at dusk, slowly turning, blurred and dimmed under a dark purple veil. It shows no residents and asks the server for nothing. Without WebGL it is a dusk gradient.
+- Top left, the word "stand-in". Top right, a glass **How it works** button.
+- Centred, in white: three pets side by side (orange, purple with a bow tie and arms up, teal), the line "AN AGENT CIVILIZATION ON MONAD", the headline **"A living world is waiting for you."**, two sentences, then a large green **Enter the World** button, a note that only residents live and act here (dropped on short screens so everything fits), and two text links: "New here? Begin your journey" and "Just looking? Watch the town →". A one-line footer sits at the bottom.
+- **How it works** opens a full-screen overlay over the same scene, dark and blurred, with the four numbered steps and the three cards (what the town knows about you, what else is in Stand-In, why it lives on Monad) as glass panels. **Close** or Escape returns to the landing screen. On a screen too short for it, the inside scrolls with the scrollbar hidden.
 - Someone whose device already has a pet is sent straight to `/world` (`/?about=1` keeps them here).
 
 **Watch, `/watch`** (public)
