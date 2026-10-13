@@ -4,28 +4,9 @@
     {
       "name": "standin",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "--prefix",
-        "app",
-        "run",
-        "dev"
-      ],
+      "runtimeArgs": ["--prefix", "app", "run", "dev"],
       "port": 3000,
       "autoPort": true
-    },
-    {
-      "name": "standin-video",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "--prefix",
-        "../standin-video/app",
-        "run",
-        "start",
-        "--",
-        "-p",
-        "3100"
-      ],
-      "port": 3100
     }
   ]
 }
