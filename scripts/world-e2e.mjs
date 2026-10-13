@@ -112,6 +112,42 @@ for (const path of ["/api/world/move", "/api/world/say", "/api/world/command"]) 
   check(r.status === 404 || r.status === 405, `there is no ${path} to command an agent with`, String(r.status));
 }
 
+// Weather: the one thing money buys. It names a kind of weather and nothing else.
+// A clear sky to start from, so the script can be run twice in a row.
+await local.execute("update world_clock set weather_kind = null, weather_by = null, weather_started_tick = null, weather_until_tick = null, weather_tx = null");
+const weather = (body) => call("POST", "/api/world/weather", body);
+check((await weather({ slug: dave.slug, kind: "storm" })).status === 400, "weather without an owner's proof is refused");
+const notMine = await weather({ ...(await signed(dave, "world:weather:storm", sarah.owner)), kind: "storm" });
+check(notMine.status === 401, "someone else's signature cannot buy weather as Dave", String(notMine.status));
+const otherKind = await weather({ ...(await signed(dave, "world:weather:festival")), kind: "storm" });
+check(otherKind.status === 401, "a signature for a festival cannot buy a storm", String(otherKind.status));
+for (const extra of [{ agentId: b.id }, { place: "lake" }, { pairId: 1 }]) {
+  const r = await weather({ ...(await signed(dave, "world:weather:storm")), kind: "storm", ...extra });
+  check(r.status === 400, `a weather request that also names ${Object.keys(extra)[0]} is refused`, String(r.status));
+}
+world = (await call("GET", "/api/world")).json;
+check(world.weather === null && world.weatherReadyInTicks === 0, "none of those refusals touched the sky");
+const storm = await weather({ ...(await signed(dave, "world:weather:storm")), kind: "storm" });
+check(storm.status === 200 && /^0x[0-9a-f]{64}$/.test(storm.json.txHash ?? ""), "Dave's owner buys a thunderstorm, paid by the pet's wallet", storm.json.txUrl ?? JSON.stringify(storm.json));
+world = (await call("GET", "/api/world")).json;
+check(world.weather?.kind === "storm" && world.weather.byName === "Dave" && world.weather.place === "tavern", "the town has a storm, credited to the pet by name", JSON.stringify(world.weather));
+check(!JSON.stringify(world.weather).includes(dave.owner.address), "and not to anyone's address");
+check(world.events.some((e) => e.kind === "weather" && e.text.includes("thunderstorm")), "the chronicle says who changed the weather");
+const again = await weather({ ...(await signed(sarah, "world:weather:festival")), kind: "festival" });
+check(again.status === 409 && again.json.readyInTicks > 0, "a second purchase straight after is refused, with how long to wait", JSON.stringify(again.json));
+// Nobody was sent anywhere. They go because of the storm, each by their own rules.
+let sheltering = 0;
+let awake = 0;
+for (let i = 0; i < 15 && !(awake && sheltering * 2 >= awake); i++) {
+  await sleep(3000);
+  world = (await call("GET", "/api/world")).json;
+  awake = world.agents.filter((x) => !x.paused).length;
+  sheltering = world.agents.filter((x) => !x.paused && x.place === "tavern").length;
+}
+check(sheltering * 2 >= awake, "within 45 seconds at least half the town is in the tavern", `${sheltering} of ${awake}`);
+const stormTalk = world.events.find((e) => e.kind === "talk" && e.lines && /storm|thunder|rain|lightning|wet|soaked|dry/i.test(JSON.stringify(e.lines)));
+console.log(stormTalk ? `     a talk mentions it: ${JSON.stringify(stormTalk.lines.slice(0, 2))}` : "     (no talk has mentioned the storm yet)");
+
 // Bring this one pair to the threshold directly, then test the consent gate.
 const [lo, hi] = a.id < b.id ? [a.id, b.id] : [b.id, a.id];
 await local.execute({ sql: "delete from world_pairs where a_id = ? and b_id = ?", args: [lo, hi] });

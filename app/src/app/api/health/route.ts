@@ -6,6 +6,7 @@ import { env } from "@/lib/env";
 import { funderStatus } from "@/lib/limits";
 import { judgeLabel } from "@/lib/llm";
 import { STYLOMETRY_VERSION } from "@/lib/stylometry";
+import { treasury } from "@/lib/weather-pay";
 
 /** Liveness for the team: judge, chain, contract, funder gas and database reachability. */
 export async function GET() {
@@ -27,6 +28,14 @@ export async function GET() {
   } catch (error) {
     checks.funder = { error: error instanceof Error ? error.message : String(error) };
     ok = false;
+  }
+
+  try {
+    // Where weather fees go. Without a treasury they return to the funder, which is circular.
+    const to = treasury();
+    checks.weather = { feeMon: env().WORLD_WEATHER_FEE_MON, treasury: to.address, treasuryIsFunder: to.isFunder };
+  } catch (error) {
+    checks.weather = { error: error instanceof Error ? error.message : String(error) };
   }
 
   try {

@@ -1,4 +1,4 @@
-import { concatHex, formatEther, keccak256, parseEther, stringToHex, type Address, type Hex } from "viem";
+import { concatHex, formatEther, keccak256, parseEther, parseGwei, stringToHex, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { publicClient, walletFor } from "./chain";
 import { env } from "./env";
@@ -78,6 +78,9 @@ export async function withSendRetry<T>(send: (attempt: number) => Promise<T>, at
   }
   throw lastError;
 }
+
+/** The priority fee for a send, raised on each retry so the retry is a new transaction. */
+export const tip = (attempt: number) => ({ maxPriorityFeePerGas: parseGwei(String(2 + attempt)) });
 
 function describe(error: unknown) {
   if (!(error instanceof Error)) return String(error);

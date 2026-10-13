@@ -5,7 +5,6 @@ import {
   keccak256,
   pad,
   parseEventLogs,
-  parseGwei,
   recoverMessageAddress,
   type Address,
   type Hex,
@@ -15,7 +14,7 @@ import { db, schema } from "./db";
 import type { Twin } from "./db/schema";
 import { env } from "./env";
 import { metAbi } from "./met-abi";
-import { ensureGas, twinAccount, twinWallet, withSendRetry } from "./twin-wallet";
+import { ensureGas, tip, twinAccount, twinWallet, withSendRetry } from "./twin-wallet";
 
 /**
  * ProofOfMet from the server's side: issuing the rotating codes a pet shows, checking a
@@ -33,8 +32,6 @@ export type Code = { issuedAt: number; nonce: Hex; signature: Hex };
 
 const METHOD = { link: 0, code: 1 } as const;
 export type Method = keyof typeof METHOD;
-
-const tip = (attempt: number) => ({ maxPriorityFeePerGas: parseGwei(String(2 + attempt)) });
 
 /**
  * Monad charges for the gas limit, not for the gas used, so every unit of headroom is paid

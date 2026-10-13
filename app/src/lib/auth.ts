@@ -15,6 +15,8 @@ export type OwnerAction =
   // The Isekai: turning the agent's dials, and agreeing to be introduced to a pair.
   | "world:dials"
   | `world:consent:${number}`
+  // Paying to change the weather. The kind is signed, so a proof for one cannot buy another.
+  | `world:weather:${string}`
   // Storing a passkey-encrypted tier of the soul vault (the server only ever gets ciphertext).
   | `vault:save:${string}`
   // Signing in: the server answers with the session cookie that opens the world.

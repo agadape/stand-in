@@ -23,6 +23,8 @@ export type SceneState = {
   buzz: Record<string, number>;
   talk: SceneTalk | null;
   selected: number | null;
+  /** Weather someone paid for, and the place it fills. The server decides both. */
+  weather: { kind: string; place: string } | null;
 };
 
 const PLACE_AT: Record<string, [number, number]> = { tavern: [-15, -12], market: [15, -12], guild: [-15, 13], lake: [16, 13] };
@@ -126,8 +128,15 @@ export class TownScene {
   private water!: THREE.Mesh;
   private lake!: THREE.Mesh;
   private banner!: THREE.Mesh;
-  private state: SceneState = { agents: [], hour: 12, hourAt: 0, hourRate: 0, buzz: {}, talk: null, selected: null };
+  private state: SceneState = { agents: [], hour: 12, hourAt: 0, hourRate: 0, buzz: {}, talk: null, selected: null, weather: null };
   private lastTalk = -1;
+  // How far the sky has turned to storm or to moonlight, 0 to 1, eased so weather rolls in.
+  private storm = 0;
+  private moonlit = 0;
+  private rain!: THREE.Points;
+  private flash = 0;
+  private nextFlash = 0;
+  private small = false;
   private follow: number | null = null;
   private wantTarget = new THREE.Vector3();
   private userMoved = false;
@@ -147,6 +156,7 @@ export class TownScene {
     private ambient = false,
   ) {
     const small = host.clientWidth < 700 || ambient;
+    this.small = small;
     this.reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     this.renderer = new THREE.WebGLRenderer({ antialias: !small, powerPreference: "high-performance" });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, small ? 1.5 : 2));
@@ -392,6 +402,16 @@ export class TownScene {
     mg.setAttribute("position", new THREE.BufferAttribute(mp, 3));
     this.motes = new THREE.Points(mg, new THREE.PointsMaterial({ color: 0xffd1e0, size: 0.22, transparent: true, opacity: 0.9, depthWrite: false }));
     s.add(this.motes);
+
+    // Rain for a thunderstorm: one set of points, made once, hidden until it storms.
+    const drops = this.small ? 300 : 800;
+    const rp = new Float32Array(drops * 3);
+    for (let i = 0; i < drops; i++) rp.set([(rnd() - 0.5) * 84, rnd() * 36, (rnd() - 0.5) * 84], i * 3);
+    const rg = new THREE.BufferGeometry();
+    rg.setAttribute("position", new THREE.BufferAttribute(rp, 3));
+    this.rain = new THREE.Points(rg, new THREE.PointsMaterial({ color: 0xcfe0ff, size: 0.2, transparent: true, opacity: 0, depthWrite: false }));
+    this.rain.visible = false;
+    s.add(this.rain);
   }
 
   private lantern(x: number, z: number, place: string | null) {
@@ -692,6 +712,37 @@ export class TownScene {
     const hour = this.state.hour + Math.min(1, ((now - this.state.hourAt) / 1000) * this.state.hourRate);
     const sky = skyAt(hour);
 
+    // Weather rolls in and out over a couple of seconds and never snaps.
+    const kind = this.state.weather?.kind ?? null;
+    const ease = Math.min(1, dt * 1.6);
+    this.storm += ((kind === "storm" ? 1 : 0) - this.storm) * ease;
+    this.moonlit += ((kind === "moon" ? 1 : 0) - this.moonlit) * ease;
+    if (this.storm > 0.01) {
+      // A thunderstorm: slate sky, half the light, lamps lit in the middle of the day.
+      const slate = new THREE.Color(0x39414f);
+      sky.top.lerp(slate, 0.8 * this.storm);
+      sky.low.lerp(new THREE.Color(0x5b6573), 0.8 * this.storm);
+      sky.fog.lerp(new THREE.Color(0x4a5360), 0.8 * this.storm);
+      sky.sun.lerp(new THREE.Color(0xaab6c8), 0.7 * this.storm);
+      sky.light *= 1 - 0.62 * this.storm;
+      sky.night = Math.max(sky.night, 0.75 * this.storm);
+    }
+    if (this.moonlit > 0.01) {
+      // A giant moon: the town goes to a clear blue night whatever the hour.
+      sky.top.lerp(new THREE.Color(0x0b1030), 0.85 * this.moonlit);
+      sky.low.lerp(new THREE.Color(0x2a3a7a), 0.85 * this.moonlit);
+      sky.fog.lerp(new THREE.Color(0x1f2a5c), 0.85 * this.moonlit);
+      sky.sun.lerp(new THREE.Color(0xbfd0ff), this.moonlit);
+      sky.light += (0.42 - sky.light) * this.moonlit;
+      sky.night = Math.max(sky.night, this.moonlit);
+    }
+    // Lightning: a short spike of light every few seconds. Not under reduced motion.
+    if (this.storm > 0.6 && !this.reduced && time > this.nextFlash) {
+      this.flash = 1;
+      this.nextFlash = time + 4 + Math.random() * 5;
+    }
+    this.flash = Math.max(0, this.flash - dt / 0.12);
+
     // Sky, sun or moon, light and fog all follow the hour.
     const pos = this.sky.geometry.attributes.position;
     const col = this.sky.geometry.attributes.color as THREE.BufferAttribute;
@@ -706,11 +757,17 @@ export class TownScene {
     this.sunDisc.position.copy(dir).multiplyScalar(190);
     (this.sunDisc.material as THREE.MeshBasicMaterial).color.copy(up >= 0 ? sky.sun : new THREE.Color(0xdfe6ff));
     this.sunDisc.scale.setScalar(up >= 0 ? 1 : 0.7);
+    if (this.moonlit > 0.5) {
+      // The giant moon hangs over the lake's side of the island, twice its usual size.
+      this.sunDisc.position.set(0.42, 0.62, 0.5).normalize().multiplyScalar(190);
+      (this.sunDisc.material as THREE.MeshBasicMaterial).color.set(0xf4f6ff);
+      this.sunDisc.scale.setScalar(0.7 + 1.3 * this.moonlit);
+    }
     this.sun.position.copy(dir).multiplyScalar(70);
     this.sun.color.copy(sky.sun);
     // Bright, soft daylight; nights stay readable under a blue moon instead of going black.
     this.sun.intensity = 0.15 + sky.light * 2.3;
-    this.hemi.intensity = 0.42 + sky.light * 1.15;
+    this.hemi.intensity = 0.42 + sky.light * 1.15 + this.flash * 3.5;
     this.hemi.color.copy(sky.top).lerp(new THREE.Color(0xffffff), 0.6);
     this.hemi.groundColor.set(sky.night > 0.5 ? 0x33406b : 0x86a86a);
     (this.scene.fog as THREE.Fog).color.copy(sky.fog);
@@ -723,7 +780,24 @@ export class TownScene {
       (g.mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = sky.night * (0.8 + busy * 2.2) * (0.92 + 0.08 * Math.sin(time * 5 + g.mesh.position.x));
     }
     for (const w of this.windows) w.emissiveIntensity = sky.night * 1.6;
-    for (const [place, light] of Object.entries(this.placeLights)) light.intensity = sky.night * (6 + Math.min(1, (this.state.buzz[place] ?? 0) / 8) * 22);
+    for (const [place, light] of Object.entries(this.placeLights)) {
+      // The place the weather fills is lit up even at midday, and burns brighter than the rest.
+      const here = this.state.weather?.place === place;
+      light.intensity = (here ? Math.max(sky.night, 0.55) * 1.6 : sky.night) * (6 + Math.min(1, (this.state.buzz[place] ?? 0) / 8) * 22);
+    }
+
+    // Rain falls only in a storm, and not for someone who asked for less motion.
+    const raining = this.storm > 0.05 && !this.reduced;
+    this.rain.visible = raining;
+    if (raining) {
+      const rp = this.rain.geometry.attributes.position;
+      for (let i = 0; i < rp.count; i++) {
+        const y = rp.getY(i) - dt * 34;
+        rp.setY(i, y < 0 ? y + 36 : y);
+      }
+      rp.needsUpdate = true;
+      (this.rain.material as THREE.PointsMaterial).opacity = 0.75 * this.storm;
+    }
 
     // Wind in the trees and the banner, drifting clouds, a breathing sea.
     for (const c of this.canopies) {
@@ -731,7 +805,7 @@ export class TownScene {
       c.mesh.rotation.x = Math.cos(time * 0.7 + c.phase) * 0.03;
     }
     const bp = this.banner.geometry.attributes.position;
-    for (let i = 0; i < bp.count; i++) bp.setZ(i, Math.sin(time * 3 + bp.getX(i) * 2.4) * 0.16 * (bp.getX(i) + 0.8));
+    for (let i = 0; i < bp.count; i++) bp.setZ(i, Math.sin(time * (kind === "tournament" ? 8 : 3) + bp.getX(i) * 2.4) * (kind === "tournament" ? 0.26 : 0.16) * (bp.getX(i) + 0.8));
     bp.needsUpdate = true;
     for (const c of this.clouds) {
       c.position.x += dt * 0.9;
@@ -756,8 +830,9 @@ export class TownScene {
     }
     mp.needsUpdate = true;
     const mm = this.motes.material as THREE.PointsMaterial;
-    mm.color.set(sky.night > 0.5 ? 0xeaff8a : 0xffd1e0);
-    mm.size = sky.night > 0.5 ? 0.3 : 0.2;
+    if (kind === "festival" && !this.reduced) mm.color.setHSL((time * 0.35) % 1, 0.9, 0.62);
+    else mm.color.set(sky.night > 0.5 ? 0xeaff8a : 0xffd1e0);
+    mm.size = kind === "festival" ? 0.36 : sky.night > 0.5 ? 0.3 : 0.2;
     mm.opacity = sky.night > 0.5 ? 0.6 + 0.4 * Math.sin(time * 2) : 0.75;
 
     // Residents: walk the path if there is one, otherwise idle where they are.

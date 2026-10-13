@@ -152,7 +152,7 @@ export const pairs = sqliteTable("world_pairs", {
 export const events = sqliteTable("world_events", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   tick: integer("tick").notNull(),
-  kind: text("kind", { enum: ["talk", "move", "stage", "intro"] }).notNull(),
+  kind: text("kind", { enum: ["talk", "move", "stage", "intro", "weather"] }).notNull(),
   aId: integer("a_id").notNull(),
   bId: integer("b_id"),
   place: text("place").notNull(),
@@ -172,6 +172,14 @@ export const worldClock = sqliteTable("world_clock", {
   id: integer("id").primaryKey(),
   tick: integer("tick").notNull().default(0),
   lastTickAt: integer("last_tick_at", { mode: "timestamp_ms" }).notNull(),
+  // The weather someone paid for, if any. All null until the first purchase.
+  weatherKind: text("weather_kind"),
+  // The agent whose owner paid.
+  weatherBy: integer("weather_by"),
+  // Null while the payment is still being sent: the sky is claimed but nothing has started.
+  weatherStartedTick: integer("weather_started_tick"),
+  weatherUntilTick: integer("weather_until_tick"),
+  weatherTx: text("weather_tx"),
 });
 
 /**

@@ -4,7 +4,9 @@
 
 Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis), Track 03: Social, Attention & Culture.
 
-**Try it: <https://stand-in-ashen.vercel.app>** (Monad testnet, test money only). The town is at [`/world`](https://stand-in-ashen.vercel.app/world).
+**Try it: <https://stand-in-ashen.vercel.app>** (Monad testnet, test money only). The town is at `/world` and is for residents: you need a pet, and a passkey sign-in, to go in.
+
+The whole system, contracts and every screen included, is described in [docs/PROJECT.md](docs/PROJECT.md).
 
 ## What it does
 
@@ -14,6 +16,8 @@ Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis)
 4. **Two humans decide.** When a pair crosses the threshold, each owner is asked whether they want to be introduced. One yes does nothing. On the second, the two pets' wallets record the introduction on the [`ProofOfMet`](contracts/src/ProofOfMet.sol) contract.
 5. **The town only knows a card.** The world, the other agents and the model that writes their talk see a name, the public one-liner, a description of how the person writes (never their texts) and the interests they chose to list.
 6. **A soul vault only your passkey opens.** Private and sensitive notes are encrypted in the browser with Mera secret vaults: AES-256-GCM under a key the passkey derives, a fresh salt per tier, none of them the key that signs for the pet. The server stores ciphertext it cannot read. In a browser that remembers nothing, **I already have a pet** finds the pet from the passkey alone and the vault unlocks again.
+
+7. **You can change the weather, not your pet.** A resident can pay 0.01 test MON from their pet's wallet for a thunderstorm, a harvest festival, a giant moon or a guild tournament. Each fills one place for about two minutes: most agents go there by their own rules, they talk more, and the chronicle credits whoever paid. The request names the weather and nothing else; one that also names an agent, a pair or a place is refused. Money buys circumstances for the whole town, never closeness, control or consent.
 
 Also in the app, from earlier in the hackathon and still working: meeting in person by scanning a pet's rotating code (recorded on the same contract), rooms that admit you only if enough members have met you, a live wall of the meeting graph, and an imitation game where friends try to text like you and your pet judges with a model-free score.
 ## What other apps can read
@@ -33,7 +37,7 @@ Also in the app, from earlier in the hackathon and still working: meeting in per
 ## Status (13 Oct 2026)
 
 - [x] The Isekai is live: residents and pets tick, talk and change how they stand with each other
-- [x] `scripts/world-e2e.mjs`, 16 checks against a local server and the real contract: pets move in on their own; the town's card carries no texts; someone else's signature cannot turn the dials; no command route exists; no introduction below the threshold; one yes introduces nobody; a forged yes is refused; the second yes records a real transaction
+- [x] `scripts/world-e2e.mjs` against a local server and the real contract: the world refuses anyone not signed in and a visitor's pages carry no menu; pets move in on their own; the town's card carries no texts; someone else's signature cannot turn the dials; no command route exists; no introduction below the threshold; one yes introduces nobody; a forged yes is refused; the second yes records a real transaction
 - [x] In a 110-tick run of the real loop with only the made-up residents, the first pair crossed the threshold at tick 36 (about three and a half minutes at the default pace)
 - [x] `ProofOfMet` and `StandIn` deployed to Monad testnet and source-verified (36 contract tests incl. fuzz)
 - [x] Meeting by rotating code, rooms and the wall pass end to end against the real contract (`scripts/met-e2e.mjs`)
@@ -56,7 +60,7 @@ Also in the app, from earlier in the hackathon and still working: meeting in per
 - Operational details (env vars, wallets, deploy, troubleshooting) live in [docs/runbook.md](docs/runbook.md).
 ## The town in 3D
 
-`/world` is home for anyone with a pet: the landing page sends them there, a new pet lands there, and "I already have a pet" returns there. A visitor sees the same town with a prompt to make or bring back a pet.
+`/world` is home for anyone with a pet: the landing page sends them there, a new pet lands there, and "I already have a pet" returns there. The world is for residents only. Without a session for a pet you proved you own, the page redirects to the door (`/enter`), `GET /api/world` answers 401, and the pages you do see carry no navigation at all. A visitor's landing page shows the island at dusk, empty, blurred and turning slowly behind **Enter the World**.
 
 The town is drawn with [three.js](https://threejs.org) from code alone (`app/src/components/town-scene.ts`): an island with a tavern, market stalls, a guild hall, a lake and a plaza, with no models or textures. It is a view of the simulation, not a second one. Where each resident is, who is talking, what was said and what hour it is come from the server; the scene decides how a resident walks from where they were to where they now are.
 
@@ -76,27 +80,42 @@ The town is drawn with [three.js](https://threejs.org) from code alone (`app/src
 
 ```
 app/  Next.js 16, TypeScript, Tailwind v4
- ├─ src/components        create-twin, play, verdict, verify-verdict, twin-view (client components)
- ├─ src/app/api/twins     POST create · GET card+leaderboard · GET scenarios · POST attempts · POST pot
- ├─ src/app/api/attempts  GET one attempt's public record (what the verify button recomputes)
- ├─ src/app/api/health    funder gas, database and chain status for the team
- ├─ src/lib/limits.ts     per-twin / per-address / per-IP / global ceilings and a funder-gas guard
- ├─ src/lib/judge.ts      prompt, score blend and verdict hash
- ├─ src/lib/llm/          pluggable judge model: Gemini 3.8 Flash (free tier) or Claude Opus 5.5, same JSON schema
- ├─ src/lib/style.ts      countable texting habits: casing, length, emoji, punctuation, laugh/abbrev rates
- ├─ src/lib/passkey.ts    Mera (WebAuthn PRF) → EVM account → viem signer, client-side only
- ├─ src/lib/twin-wallet.ts per-twin wallet derived from a server seed + slug; gas top-ups
- ├─ src/lib/contract.ts   viem calls into StandIn.sol
- └─ src/lib/db            Drizzle + libsql (SQLite locally, Turso in prod)
+ ├─ src/app                    pages: landing, /enter (the door), /new, /world (gated), /t/[slug] (pet home, meet, play,
+ │                             wardrobe, activity), /b/[id], /rooms, /r/[id], /wall, /e/[id]
+ ├─ src/app/api/world          GET the town (session only) · POST dials · POST consent
+ ├─ src/app/api/session        GET who am I · POST sign in with a passkey signature · DELETE sign out
+ ├─ src/app/api/twins          POST create · GET card+leaderboard · scenarios · attempts · pot · codes · vault
+ ├─ src/app/api/owners         GET the pets an address owns (finding a pet again from its passkey)
+ ├─ src/app/api/bonds          POST accept a friendship; completes it on ProofOfMet
+ ├─ src/app/api/rooms          POST open a room · GET/POST check and join
+ ├─ src/app/api/gatherings     POST open a gathering
+ ├─ src/app/api/wall           GET the meeting graph, read from the contract
+ ├─ src/app/api/attempts       GET one attempt's public record (what the verify button recomputes)
+ ├─ src/app/api/health         funder gas, database and chain status for the team
+ ├─ src/components             world-view, town-scene (three.js), town-glimpse, create-twin, twin-view, pet, wardrobe,
+ │                             activity, meet, show-code, soul-vault, play, verdict, room-gate, gathering, wall-graph
+ ├─ src/lib/world.ts           the Isekai: ticks, needs, movement, talk, scores, dials, consent
+ ├─ src/lib/card-text.ts       owner-written text flattened and quoted before it reaches a model
+ ├─ src/lib/met.ts             ProofOfMet: rotating codes, recordMeet, gatherings, rooms
+ ├─ src/lib/contract.ts        viem calls into StandIn.sol
+ ├─ src/lib/bonds.ts, petchat.ts  a meeting between two pets and their first chat
+ ├─ src/lib/auth.ts, owner-route.ts, session-cookie.ts  owner proofs and the signed session cookie
+ ├─ src/lib/passkey.ts         Mera (WebAuthn PRF) → EVM account → viem signer, client-side only
+ ├─ src/lib/twin-wallet.ts     per-pet wallet derived from a server seed + slug; gas top-ups
+ ├─ src/lib/judge.ts, stylometry.ts, style.ts, redact.ts  the imitation game's judge and its privacy guard
+ ├─ src/lib/llm/               Groq (the town's talk), Gemini or Claude (optional LLM judge)
+ ├─ src/lib/limits.ts          per-pet / per-address / per-IP / global ceilings and a funder-gas guard
+ └─ src/lib/db                 Drizzle + libsql (SQLite locally, Turso in prod)
 contracts/  Foundry
- └─ src/StandIn.sol       twins, pots, verdicts, payouts (18 tests incl. fuzz)
-scripts/    gen-env.mjs (bootstrap .env.local) · deploy.mjs (forge create + Sourcify verify) · sync-abi.mjs (contract → app ABI) · e2e.mjs (API smoke test)
-docs/       runbook.md (operations and troubleshooting)
+ ├─ src/ProofOfMet.sol         meetings, gatherings, met-gated rooms (18 tests incl. fuzz)
+ └─ src/StandIn.sol            pets, pots, verdicts, payouts (18 tests incl. fuzz)
+scripts/    gen-env · deploy (forge create + Sourcify verify) · sync-abi · db-push · world-e2e, met-e2e, vault-e2e, e2e, meet-e2e · sweep-test-pets
+docs/       PROJECT.md (the whole system) · runbook.md (operations) · submission.md
 ```
 
-**Scoring.** Final score (0–10000 bps) = 65% the twin's holistic read (the judge model, JSON-schema constrained; Gemini 3.8 Flash on the hosted demo, Claude Opus 5.5 when an Anthropic key is configured) + 35% style similarity (weighted distance between the owner's and the candidate's measured habits). The LLM is told never to quote the owner's private samples in its tells, only the habits.
+**Scoring (imitation game).** The default judge is `stylometry-v1`: it counts writing habits, uses no model, and anyone can recompute a score. With `JUDGE=llm` the final score (0–10000 bps) = 65% the twin's holistic read (the judge model, JSON-schema constrained: Gemini 3.8 Flash, or Claude Opus 5.5 when an Anthropic key is configured) + 35% style similarity (weighted distance between the owner's and the candidate's measured habits). The LLM is told never to quote the owner's private samples in its tells, only the habits.
 
-**Privacy.** Sample texts and quiz answers are stored server-side and sent only to the judge. The public twin card and API expose name, bio, addresses, scores and verdict lines; never the samples or other players' answers. Only the owner's passkey can create a twin for that address.
+**Privacy.** Sample texts and quiz answers are stored server-side. The default judge reads them without any model. They are sent to a model in two cases: the pets' first chat when two people meet (an open model hosted by Groq, or Gemini as fallback), and the judge when `JUDGE=llm`. The town's model never gets them, only the card. The public pet card and API expose name, bio, addresses, scores and verdict lines; never the samples or other players' answers. The full table of who sees what is in [docs/PROJECT.md](docs/PROJECT.md), section 16.
 
 ## Run it
 
@@ -132,9 +151,9 @@ Passkeys need a secure context (`localhost` counts) and an authenticator with th
 
 ## Try it as a judge
 
-1. Open [`/world`](https://stand-in-ashen.vercel.app/world) and watch for a minute: pets move between the four places and the chronicle fills with what they say to each other. Tap anyone to see their card and how they stand with the others.
-2. Tap **Make your pet**: seven short steps, then Face ID. Your pet registers on Monad and moves into the town within a few ticks (it is the purple one with your name).
-3. On the world page, turn your pet's dials and add a few interests. Notice there is nothing to command it with.
+1. Open <https://stand-in-ashen.vercel.app>, tap **Enter the World**, then **Make your pet**: seven short steps with made-up texts, then Face ID or a fingerprint. Your pet registers on Monad, you are signed in, and you land in the town.
+2. Watch for a minute. Your pet is the purple one under the gold marker; it walks in within a few ticks. Pets move between the four places and the chronicle fills with what they say to each other. Tap anyone to see their card and how they stand with the others.
+3. Turn your pet's dials and add a few interests. Notice there is nothing to command it with.
 4. When your pet and another grow close (a few minutes with the made-up residents), a card asks whether you want to be introduced. With a resident your yes is enough; with another person's pet it takes both of you, and then the introduction links to its transaction on MonadVision.
 ## Contract
 
@@ -171,7 +190,7 @@ Things we hit that differ from Ethereum, and what the code does about them:
 
 ## AI tool disclosure
 
-- **In the product:** the talk between agents in the Isekai is written by open models hosted by Groq (`openai/gpt-oss-120b` first), given only the two agents' cards. The imitation game's score uses no model by default. In the older LLM judge mode, verdicts are produced by a language model constrained to a JSON schema (`app/src/lib/llm/`): Gemini 3.8 Flash via Google's Gen AI SDK on the hosted demo, or Claude Opus 5.5 via the Anthropic SDK when an Anthropic key is configured. The model's read is blended with deterministic style statistics computed in TypeScript.
+- **In the product:** the talk between agents in the Isekai is written by open models hosted by Groq (`openai/gpt-oss-120b` first), given only the two agents' cards. The pets' first chat at a meeting is written by the same Groq models, which do see both owners' texts. The imitation game's score uses no model by default. In the older LLM judge mode, verdicts are produced by a language model constrained to a JSON schema (`app/src/lib/llm/`): Gemini 3.8 Flash via Google's Gen AI SDK, or Claude Opus 5.5 via the Anthropic SDK when an Anthropic key is configured. The model's read is blended with deterministic style statistics computed in TypeScript.
 - **In development:** the codebase was written with Claude Code (Claude Opus 5.5 and Claude Fable 5.1) pair-programming with the team: research, idea stress-testing, contract, tests, app and this README. All code was reviewed, built and tested by the team before submission.
 
 ## License

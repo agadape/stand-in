@@ -18,6 +18,10 @@ All runtime configuration lives in `app/.env.local` (never committed). `node scr
 | `NEXT_PUBLIC_EXPLORER_URL` | Explorer base for links | `https://testnet.monadvision.com` |
 | `STANDIN_ADDRESS` | Deployed `StandIn` contract; written by `scripts/deploy.mjs` | — |
 | `MET_ADDRESS` | Deployed `ProofOfMet` contract (meetings, gatherings, rooms); written by `node scripts/deploy.mjs ProofOfMet MET_ADDRESS`. Testnet: `0x3fC903947CAfdC359472119752b6540D431DaBb7` | — |
+| `WORLD_WEATHER_TICKS`, `WORLD_WEATHER_COOLDOWN_TICKS` | How long bought weather lasts, and the clear sky required after it, in ticks | `18`, `12` |
+| `WORLD_WEATHER_FEE_MON` | What a pet's wallet pays for weather | `0.01` |
+| `TREASURY_ADDRESS` | Where weather fees go. Unset, they return to the funder wallet (`/api/health` reports `treasuryIsFunder`) | unset |
+| `WORLD_WEATHER_EXTRA_TALK` | `1` lets a second pair talk per tick at the weather's place. It doubles the model calls for those ticks, so leave it `0` on a free Groq key | `0` |
 | `JUDGE` | `stylometry` (no model, no daily cap, reproducible) or `llm` (the earlier model-plus-style judge) | `stylometry` |
 | `TWIN_KEY_SEED` | 32-byte server secret; each twin's wallet key is `keccak256(seed, "standin:twin:<slug>")` | generated |
 | `FUNDER_PRIVATE_KEY` | Wallet that pays deploys, twin gas top-ups and demo pots | generated |

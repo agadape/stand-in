@@ -4,6 +4,7 @@
  */
 
 export type { World } from "./world";
+import type { WeatherKind } from "./weather";
 import type { World } from "./world";
 
 export type TwinCard = {
@@ -191,6 +192,13 @@ export const api = {
 
   consentIntro: (input: OwnerInput & { pairId: number }) =>
     request<{ introduced: boolean; aConsent: boolean; bConsent: boolean }>("/api/world/consent", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+
+  /** Pays for weather from the pet wallet. The body names the weather and nothing else. */
+  buyWeather: (input: OwnerInput & { kind: WeatherKind }) =>
+    request<{ kind: WeatherKind; untilTick: number; txHash: string; txUrl: string }>("/api/world/weather", {
       method: "POST",
       body: JSON.stringify(input),
     }),
