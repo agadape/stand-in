@@ -2,7 +2,7 @@
 
 import type { OwnerAction } from "./auth";
 import type { OwnerInput } from "./api";
-import { signInWithPasskey, signOwnerProof } from "./passkey";
+import { signInWithPasskey, signOwnerProof, type PasskeyAccount } from "./passkey";
 import { useOwned } from "./use-session";
 
 export type MyPet = { slug: string; name: string; ownerAddress: string };
@@ -13,6 +13,20 @@ export function useMyPet(): MyPet | null | undefined {
   if (owned === null) return undefined;
   const first = Object.entries(owned)[0];
   return first ? { slug: first[0], name: first[1].name, ownerAddress: first[1].ownerAddress } : null;
+}
+
+/**
+ * Signs in with a passkey account that is already unlocked: it signs "session" for the
+ * pet and the server sets the cookie that opens the world. No extra prompt.
+ */
+export async function startSession(passkey: PasskeyAccount, slug: string) {
+  const proof = await signOwnerProof(passkey, slug, "session");
+  const res = await fetch("/api/session", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ slug, address: passkey.address, proof }),
+  });
+  if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? `Couldn't sign in (${res.status})`);
 }
 
 /** One Face ID: proves this device's passkey owns `pet`, for one action. */

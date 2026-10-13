@@ -3,7 +3,7 @@
 import { createSecretVaultWithExistingPasskey, decryptSecretVaultWithPasskey, parseSecretVault } from "@category-labs/mera";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ownerProof } from "@/lib/owner-client";
+import { ownerProof, startSession } from "@/lib/owner-client";
 import { signInWithPasskey } from "@/lib/passkey";
 import { rememberOwned } from "@/lib/session";
 import { Button, Card, ErrorNote } from "./ui";
@@ -154,7 +154,7 @@ export function SoulVault({ pet }: { pet: { slug: string; name: string; ownerAdd
  * Finds your pet again from the passkey alone, for a browser that remembers nothing: the
  * passkey gives the address, and the address gives the pet.
  */
-export function RestorePet({ className = "" }: { className?: string }) {
+export function RestorePet({ className = "", label = "I already have a pet" }: { className?: string; label?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -164,12 +164,16 @@ export function RestorePet({ className = "" }: { className?: string }) {
     setBusy(true);
     try {
       const passkey = await signInWithPasskey();
-      const address = passkey.address;
-      passkey.end();
-      const res = await fetch(`/api/owners/${address}`, { cache: "no-store" });
-      const { pets } = (await res.json()) as { pets: { slug: string; name: string; ownerAddress: string }[] };
-      if (!pets?.length) throw new Error("That passkey doesn't own a pet here yet.");
-      for (const p of pets) rememberOwned(p.slug, p.ownerAddress, p.name);
+      try {
+        const res = await fetch(`/api/owners/${passkey.address}`, { cache: "no-store" });
+        const { pets } = (await res.json()) as { pets: { slug: string; name: string; ownerAddress: string }[] };
+        if (!pets?.length) throw new Error("That passkey doesn't own a pet here yet.");
+        for (const p of pets) rememberOwned(p.slug, p.ownerAddress, p.name);
+        // Signing in is what opens the world: the same unlocked key proves the pet is theirs.
+        await startSession(passkey, pets[pets.length - 1].slug);
+      } finally {
+        passkey.end();
+      }
       // Back home: the world, with their pet and its history where they left them.
       router.push("/world");
     } catch (e) {
@@ -181,7 +185,7 @@ export function RestorePet({ className = "" }: { className?: string }) {
   return (
     <div className={`space-y-2 ${className}`}>
       <Button variant="ghost" onClick={restore} loading={busy}>
-        {busy ? "Waiting for your passkey…" : "I already have a pet"}
+        {busy ? "Waiting for your passkey…" : label}
       </Button>
       <ErrorNote>{error}</ErrorNote>
     </div>

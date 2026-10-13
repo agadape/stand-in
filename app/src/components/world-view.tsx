@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api, type World } from "@/lib/api";
+import { api, ApiError, type World } from "@/lib/api";
 import type { TownScene } from "./town-scene";
-import { ownerProof, useMyPet } from "@/lib/owner-client";
+import { ownerProof, type MyPet } from "@/lib/owner-client";
+import { rememberOwned } from "@/lib/session";
 import { Pet, type Mood } from "./pet";
-import { RestorePet } from "./soul-vault";
 import { Button, Card, ErrorNote, LinkButton, Pill } from "./ui";
 
 type Agent = World["agents"][number];
@@ -155,25 +156,36 @@ function spot(place: string, n: number) {
  * The Isekai, live. Everyone can watch; nobody can steer. The page polls the world, and
  * the polling is what keeps it moving.
  */
-export function WorldView({ initial, welcome = false }: { initial: World; welcome?: boolean }) {
+export function WorldView({ initial, welcome = false, me }: { initial: World; welcome?: boolean; me: MyPet }) {
   const [world, setWorld] = useState(initial);
   const [selected, setSelected] = useState<number | null>(null);
   const [stale, setStale] = useState(false);
-  const pet = useMyPet();
+  // Who is watching comes from the signed-in session, checked on the server.
+  const pet = me;
+  const router = useRouter();
+
+  useEffect(() => {
+    // Keep this device's memory of its pet in step with the session it is signed in as.
+    rememberOwned(me.slug, me.ownerAddress, me.name);
+  }, [me]);
 
   useEffect(() => {
     let alive = true;
     const load = () =>
       api.getWorld().then(
         (w) => alive && (setWorld(w), setStale(false)),
-        () => alive && setStale(true),
+        (error) => {
+          // Signed out (or the session ran out): back to the door.
+          if (error instanceof ApiError && error.status === 401) router.replace("/enter?next=/world");
+          else if (alive) setStale(true);
+        },
       );
     const timer = setInterval(() => document.visibilityState === "visible" && load(), POLL_MS);
     return () => {
       alive = false;
       clearInterval(timer);
     };
-  }, []);
+  }, [router]);
 
   const byId = useMemo(() => new Map(world.agents.map((a) => [a.id, a])), [world.agents]);
   const mine = pet ? world.agents.find((a) => a.slug === pet.slug) : undefined;
@@ -226,17 +238,13 @@ export function WorldView({ initial, welcome = false }: { initial: World; welcom
           </p>
         </Card>
       )}
-      {pet === null && (
-        <Card className="flex flex-wrap items-center gap-4">
-          <Pet mood="happy" className="w-16 shrink-0" />
-          <div className="min-w-0 flex-1 basis-52">
-            <p className="font-extrabold">You&apos;re watching as a visitor.</p>
-            <p className="text-sm text-muted">Make a pet and it moves in on its own, or bring back the one you already have.</p>
-          </div>
-          <div className="w-full space-y-1 sm:w-56">
-            <LinkButton href="/new">Make your pet</LinkButton>
-            <RestorePet />
-          </div>
+      {!mine && (
+        <Card className="flex items-center gap-4">
+          <Pet mood="idle" className="w-14 shrink-0" />
+          <p className="text-sm text-muted">
+            <span className="font-extrabold text-foreground">{pet.name} is on the way into town.</span> New arrivals
+            walk in within a few moments.
+          </p>
         </Card>
       )}
 
@@ -296,7 +304,7 @@ export function WorldView({ initial, welcome = false }: { initial: World; welcom
 
         <aside className="space-y-6 lg:sticky lg:top-10">
           {focus ? (
-            <AgentPanel key={`panel-${focus.id}`} agent={focus} world={world} byId={byId} isMine={focus.id === mine?.id} onPick={setSelected} />
+            <AgentPanel key={`panel-${focus.id}`} pet={pet} agent={focus} world={world} byId={byId} isMine={focus.id === mine?.id} onPick={setSelected} />
           ) : (
             <Card className="space-y-2 text-center">
               <p className="font-extrabold">Tap anyone in the town</p>
@@ -306,12 +314,12 @@ export function WorldView({ initial, welcome = false }: { initial: World; welcom
               </p>
             </Card>
           )}
-          {pet === undefined ? null : mine && focus?.id !== mine.id ? (
+          {mine && focus?.id !== mine.id ? (
             <Button variant="secondary" onClick={() => setSelected(mine.id)}>
               Back to {mine.name}
             </Button>
           ) : null}
-          {mine && pet && <Dials key={`dials-${mine.id}`} agent={mine} pet={pet} />}
+          {mine && <Dials key={`dials-${mine.id}`} agent={mine} pet={pet} />}
         </aside>
       </div>
     </div>
@@ -358,19 +366,20 @@ function Entry({ event, byId, onPick }: { event: World["events"][number]; byId: 
 }
 
 function AgentPanel({
+  pet,
   agent,
   world,
   byId,
   isMine,
   onPick,
 }: {
+  pet: MyPet;
   agent: Agent;
   world: World;
   byId: Map<number, Agent>;
   isMine: boolean;
   onPick: (id: number) => void;
 }) {
-  const pet = useMyPet();
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [said, setSaid] = useState<Record<number, string>>({});

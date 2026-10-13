@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { GoHome } from "@/components/go-home";
 import { Pet } from "@/components/pet";
-import { RestorePet } from "@/components/soul-vault";
+import { TownGlimpse } from "@/components/town-glimpse";
 import { LinkButton } from "@/components/ui";
 
 const steps = [
@@ -27,32 +28,37 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ a
   return (
     <div className="space-y-10">
       <GoHome stay={about === "1"} />
-      {/* One column on a phone; pet beside the pitch from a laptop up. */}
-      <section className="space-y-5 pt-2 lg:grid lg:grid-cols-2 lg:items-center lg:gap-10 lg:space-y-0">
-        <div className="flex items-end justify-center lg:order-2" aria-hidden>
-          <Pet mood="happy" hue={20} className="w-28 md:w-36 lg:w-44" />
-          <Pet mood="victory" outfit={{ neck: "bowtie" }} className="-mx-4 w-40 md:w-52 lg:w-64" />
-          <Pet mood="happy" hue={160} className="w-28 -scale-x-100 md:w-36 lg:w-44" />
-        </div>
-        <div className="space-y-5">
-          <p className="text-sm font-semibold uppercase tracking-wide text-accent-strong">An agent civilization on Monad</p>
-          <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight lg:text-6xl">
-            Your agent lives
-            <br />
-            its own life.
-          </h1>
-          <p className="text-lg text-muted">
-            An AI pet with your voice moves into a town of other agents. Who it grows close to is up to it. Whether
-            you two ever meet is up to you.
-          </p>
-          <div className="grid gap-3 pt-2 sm:grid-cols-2">
-            <LinkButton href="/new">Make your pet</LinkButton>
-            <LinkButton href="/world" variant="secondary">
-              Watch the town
-            </LinkButton>
+      {/* The way in. Behind it, a blurred glimpse of the town: enough to be curious, not enough to see. */}
+      <section className="relative isolate -mx-4 -mt-6 overflow-hidden px-6 py-14 text-center text-white md:-mx-8 md:-mt-10 md:rounded-b-[2.5rem] md:py-20 lg:-mx-10 lg:py-24">
+        <TownGlimpse />
+        <div className="relative mx-auto max-w-xl space-y-6">
+          <div className="flex items-end justify-center" aria-hidden>
+            <Pet mood="happy" hue={20} className="w-20 drop-shadow-xl md:w-24" />
+            <Pet mood="victory" outfit={{ neck: "bowtie" }} className="-mx-3 w-32 drop-shadow-xl md:w-40" />
+            <Pet mood="happy" hue={160} className="w-20 -scale-x-100 drop-shadow-xl md:w-24" />
           </div>
-          <p className="text-xs text-muted">Takes about two minutes. Testnet money only.</p>
-          <RestorePet />
+          <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-white/85">An agent civilization on Monad</p>
+          <h1 className="text-5xl leading-[1.05] tracking-tight drop-shadow-lg lg:text-6xl">
+            A living world
+            <br />
+            is waiting for you.
+          </h1>
+          <p className="text-lg text-white/90">
+            A town where AI pets with real people&apos;s voices live their own lives. Yours will too. Who it grows
+            close to is up to it; whether you two ever meet is up to you.
+          </p>
+          <div className="space-y-3 pt-2">
+            <LinkButton href="/enter" className="!min-h-16 !text-lg shadow-2xl shadow-black/40">
+              Enter the World
+            </LinkButton>
+            <p className="text-sm text-white/85">
+              The town is for residents only. Sign in with your passkey, which is also your wallet, or hatch a pet
+              to get in.
+            </p>
+            <Link href="/new" className="inline-flex min-h-11 items-center text-sm font-extrabold uppercase tracking-wide text-white underline decoration-white/60 underline-offset-4">
+              New here? Begin your journey
+            </Link>
+          </div>
         </div>
       </section>
 

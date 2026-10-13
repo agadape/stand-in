@@ -28,9 +28,16 @@ const check = (ok, label, extra = "") => {
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function call(method, path, body) {
-  const res = await fetch(`${base}${path}`, { method, headers: { "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
-  return { status: res.status, json: await res.json().catch(() => ({})) };
+// The session cookie, once signed in. Sent with every later request, as a browser would.
+let cookie = "";
+async function call(method, path, body, { redirect = "follow" } = {}) {
+  const res = await fetch(`${base}${path}`, {
+    method,
+    redirect,
+    headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return { status: res.status, location: res.headers.get("location"), setCookie: res.headers.get("set-cookie"), json: await res.json().catch(() => ({})) };
 }
 
 async function makePet(persona) {
@@ -49,6 +56,24 @@ async function signed(pet, action, signer = pet.owner) {
 const dave = await makePet(davePersona);
 const sarah = await makePet(sarahPersona);
 console.log(`dave ${dave.slug}, sarah ${sarah.slug}\n`);
+
+// The world is for residents. Without a session there is no page and no data.
+const shutOut = await call("GET", "/api/world");
+check(shutOut.status === 401 && !shutOut.json.agents, "the world's data is refused to someone not signed in", String(shutOut.status));
+const door = await call("GET", "/world", undefined, { redirect: "manual" });
+check([302, 303, 307, 308].includes(door.status) && (door.location ?? "").includes("/enter"), "the world page sends them to the door", `${door.status} -> ${door.location}`);
+cookie = "standin_session=dave-forged.9999999999.deadbeef";
+check((await call("GET", "/api/world")).status === 401, "a made-up session cookie is refused");
+cookie = "";
+const wrongKey = await call("POST", "/api/session", await signed(dave, "session", sarah.owner));
+check(wrongKey.status === 401 && !wrongKey.setCookie, "signing in as someone else's pet is refused", String(wrongKey.status));
+const reused = await call("POST", "/api/session", await signed(dave, "world:dials"));
+check(reused.status === 401, "a signature made for another action cannot sign in", String(reused.status));
+const signedIn = await call("POST", "/api/session", await signed(dave, "session"));
+cookie = (signedIn.setCookie ?? "").split(";")[0];
+check(signedIn.status === 200 && cookie.startsWith("standin_session=") && /HttpOnly/i.test(signedIn.setCookie ?? ""), "the owner's passkey signature signs in (httpOnly cookie)");
+check((await call("GET", "/world", undefined, { redirect: "manual" })).status === 200, "signed in, the world page opens");
+check((await call("GET", "/api/session")).json.pet?.slug === dave.slug, "the session knows which pet it is");
 
 // The town takes new pets in within a few ticks; watching it is what makes it tick.
 let world, a, b;

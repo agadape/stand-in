@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import type { Provider } from "@/lib/llm";
+import { startSession } from "@/lib/owner-client";
 import { createPasskeyAccount, passkeysSupported, signInWithPasskey } from "@/lib/passkey";
 import { QUIZ } from "@/lib/scenarios";
 import { rememberOwned } from "@/lib/session";
@@ -95,6 +96,9 @@ export function CreateTwin({ judge, next }: { judge: Provider | null; next: stri
         samples,
         quiz: QUIZ.map((question, i) => ({ question, answer: quiz[i].trim() })),
       });
+      // Sign in with the key that is already unlocked, so the world opens without another prompt.
+      // If that fails the pet still exists; the door at /enter will ask for the passkey.
+      await startSession(passkey, created.slug).catch(() => undefined);
       passkey.end();
       rememberOwned(created.slug, passkey.address, name.trim());
       // A new pet lands in the world, its home, unless it was made in order to meet someone.
